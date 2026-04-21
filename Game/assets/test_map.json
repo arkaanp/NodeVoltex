@@ -1,0 +1,14 @@
+{
+  "general": {
+    "audioFilename": "audio.mp3",
+    "audioOffset": 0
+  },
+  "hitObjects": [
+    { "lane": 1, "startTime": 1000, "type": "TAP" },
+    { "lane": 2, "startTime": 1500, "type": "TAP" },
+    { "lane": 3, "startTime": 2000, "type": "TAP" },
+    { "lane": 4, "startTime": 2500, "type": "TAP" },
+    { "lane": 1, "startTime": 3000, "type": "HOLD", "endTime": 3500 },
+    { "lane": 4, "startTime": 3000, "type": "HOLD", "endTime": 3500 }
+  ]
+}
