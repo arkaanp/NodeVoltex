@@ -3,6 +3,7 @@ package com.nodevoltex.game;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.nodevoltex.game.screens.PlayScreen;
 
 public class NodeVoltex extends Game {
     public SpriteBatch batch;
@@ -19,7 +20,7 @@ public class NodeVoltex extends Game {
 
     @Override
     public void render() {
-        // This is mandatory to render the active screen
+        // Mmandatory to render the active screen
         super.render();
     }
 
