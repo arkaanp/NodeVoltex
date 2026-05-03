@@ -23,6 +23,7 @@ public class LaserCursor {
     public boolean isHoldingCorrectKey = false;
     public boolean isMissed = false;
     public boolean wasAutoSnapped = false;
+    public float comboTimer = 0f;
 
     // Assigned Keyboard Keys (LibGDX Input.Keys integers)
     private final int keyLeft;

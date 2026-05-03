@@ -6,6 +6,7 @@ public class GameArchitecture {
     public interface HitObserver {
         void onHit(float diffMs);
         void onMiss();
+        void onLaserTick();
     }
 
     // Encapsulates the math for timing windows so we can swap it later (eg. Easy vs Hard mode)

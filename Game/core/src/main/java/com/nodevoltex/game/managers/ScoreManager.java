@@ -21,6 +21,13 @@ public class ScoreManager implements GameArchitecture.HitObserver {
     @Override
     public void onMiss() {
         latestJudgment = "MISS";
-        combo = 0; // Combo break
+        combo = 0; // Combo break!
+    }
+
+    // --- NEW: Laser Ticks ---
+    @Override
+    public void onLaserTick() {
+        combo++;
+        // We purposely do not update latestJudgment so the previous tap judgment stays on screen
     }
 }

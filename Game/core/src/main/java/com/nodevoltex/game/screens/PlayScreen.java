@@ -105,8 +105,8 @@ public class PlayScreen implements Screen {
 
         // Process Laser Interpolation & States
         if (beatmap.lasers != null) {
-            laserManager.updateCursor(leftCursor, beatmap.lasers.left, currentAudioTimeMs, delta);
-            laserManager.updateCursor(rightCursor, beatmap.lasers.right, currentAudioTimeMs, delta);
+            laserManager.updateCursor(leftCursor, beatmap.lasers.left, currentAudioTimeMs, delta, scoreManager);
+            laserManager.updateCursor(rightCursor, beatmap.lasers.right, currentAudioTimeMs, delta, scoreManager);
         }
 
         // --- CLEAR SCREEN & SETUP CAMERA ---
@@ -134,11 +134,34 @@ public class PlayScreen implements Screen {
         // Draw Track
         drawTrack();
 
-        // Draw Lasers
+        // --- NEW: Enable Alpha Blending for Lasers ---
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+        // 3rd: Draw Lasers (Top Layer - Overwrites Notes)
         if (beatmap.lasers != null) {
             laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.left, true, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
             laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.right, false, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
         }
+
+        // --- NEW: Draw Laser Alert Backgrounds ---
+        float leftWarningAlpha = laserManager.getWarningAlpha(beatmap.lasers.left, currentAudioTimeMs);
+        float rightWarningAlpha = laserManager.getWarningAlpha(beatmap.lasers.right, currentAudioTimeMs);
+
+        if (leftWarningAlpha > 0f) {
+            // Faint Cyan Box
+            game.shapeRenderer.setColor(0f, 1f, 1f, leftWarningAlpha * 0.2f);
+            game.shapeRenderer.rect(50, WORLD_HEIGHT / 2f - 100, 150, 200);
+        }
+
+        if (rightWarningAlpha > 0f) {
+            // Faint Magenta Box
+            game.shapeRenderer.setColor(1f, 0f, 1f, rightWarningAlpha * 0.2f);
+            game.shapeRenderer.rect(WORLD_WIDTH - 200, WORLD_HEIGHT / 2f - 100, 150, 200);
+        }
+
+        // --- Disable Blending to keep Cursors and UI opaque ---
+        Gdx.gl.glDisable(GL20.GL_BLEND);
 
         // Update, Draw, and Manage Notes
         // 1. First Pass: Update math and handle Miss/Cleanup logic for ALL notes
@@ -190,6 +213,24 @@ public class PlayScreen implements Screen {
 
         // --- RENDER UI ---
         game.batch.begin();
+
+        // Temporarily double the font size for the massive warning letters
+        font.getData().setScale(4f);
+
+        if (leftWarningAlpha > 0f) {
+            //font.setColor(0f, 1f, 1f, leftWarningAlpha); // Blinking Cyan
+            font.draw(game.batch, "L", 95, WORLD_HEIGHT / 2f + 30);
+        }
+
+        if (rightWarningAlpha > 0f) {
+            //font.setColor(1f, 0f, 1f, rightWarningAlpha); // Blinking Magenta
+            font.draw(game.batch, "R", WORLD_WIDTH - 145, WORLD_HEIGHT / 2f + 30);
+        }
+
+        // Reset the font size back to normal for the Combo text
+        font.getData().setScale(2f);
+
+
         font.setColor(Color.WHITE);
         font.draw(game.batch, "Combo: " + scoreManager.combo, 50, WORLD_HEIGHT - 50);
 

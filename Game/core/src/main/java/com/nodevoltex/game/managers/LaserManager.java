@@ -9,8 +9,12 @@ import com.nodevoltex.game.patterns.LockedState;
 
 public class LaserManager {
 
-    public void updateCursor(LaserCursor cursor, Array<Beatmap.LaserSequence> laserData, float currentTime, float delta) {
+    // NEW: Passed in the ScoreManager
+    public void updateCursor(LaserCursor cursor, Array<Beatmap.LaserSequence> laserData, float currentTime, float delta, ScoreManager scoreManager) {
         if (laserData == null) return;
+
+        // Track the state from the previous frame to detect the exact moment a miss happens
+        boolean wasMissedBefore = cursor.isMissed;
         boolean isCurrentlyOnLaser = false;
 
         for (Beatmap.LaserSequence sequence : laserData) {
@@ -19,25 +23,19 @@ public class LaserManager {
             float firstOffset = sequence.nodes.get(0).offset;
             float lastOffset = sequence.nodes.get(sequence.nodes.size - 1).offset;
 
-            // Check if we are currently inside this laser sequence (with a tiny 50ms buffer for the final slam)
             if (currentTime >= firstOffset && currentTime <= lastOffset + 50f) {
                 isCurrentlyOnLaser = true;
 
-                // Auto-Snap at the very beginning of a new laser
                 if (currentTime - firstOffset < 100f && !cursor.wasAutoSnapped) {
                     cursor.setState(new LockedState());
                     cursor.isMissed = false;
                     cursor.wasAutoSnapped = true;
                 }
 
-                // Find the active segment (Handles 0ms horizontal slams)
                 int startIndex = 0;
                 for (int i = 0; i < sequence.nodes.size; i++) {
-                    if (sequence.nodes.get(i).offset <= currentTime) {
-                        startIndex = i;
-                    } else {
-                        break;
-                    }
+                    if (sequence.nodes.get(i).offset <= currentTime) startIndex = i;
+                    else break;
                 }
 
                 Beatmap.LaserNode nodeA;
@@ -47,12 +45,10 @@ public class LaserManager {
                     nodeA = sequence.nodes.get(startIndex);
                     nodeB = sequence.nodes.get(startIndex + 1);
                 } else {
-                    // At the very end of the laser
                     nodeA = sequence.nodes.get(sequence.nodes.size - 1);
                     nodeB = nodeA;
                 }
 
-                // Interpolation Math
                 float duration = nodeB.offset - nodeA.offset;
                 float ratio = (duration <= 0) ? 1.0f : (currentTime - nodeA.offset) / duration;
                 float currentLaserX = nodeA.x + ratio * (nodeB.x - nodeA.x);
@@ -66,19 +62,57 @@ public class LaserManager {
             }
         }
 
-        // If the laser is completely finished or hasn't started
         if (!isCurrentlyOnLaser) {
             cursor.requiresInput = false;
             cursor.pollInputs(0);
-            cursor.wasAutoSnapped = false; // Reset so the next laser auto-snaps again
+            cursor.wasAutoSnapped = false;
+            cursor.comboTimer = 0f; // Reset the tick timer
+
+            Beatmap.LaserSequence upcomingLaser = null;
+            for (Beatmap.LaserSequence sequence : laserData) {
+                if (sequence.nodes.size > 0 && sequence.nodes.get(0).offset > currentTime) {
+                    upcomingLaser = sequence;
+                    break;
+                }
+            }
+
+            if (upcomingLaser != null) {
+                float timeToNextMs = upcomingLaser.nodes.get(0).offset - currentTime;
+                if (timeToNextMs <= 1000f) {
+                    cursor.targetLaserX = upcomingLaser.nodes.get(0).x;
+                    cursor.setState(new LockedState());
+                    cursor.isMissed = false;
+                }
+            }
+        } else {
+            // --- NEW: Combo Tick Math ---
+            if (!cursor.isMissed) {
+                cursor.comboTimer += delta * 1000f;
+                // If 100ms has passed, tick the combo and subtract 100 (handles frame-drops safely)
+                while (cursor.comboTimer >= 100.0f) {
+                    scoreManager.onLaserTick();
+                    cursor.comboTimer -= 100.0f;
+                }
+            } else {
+                cursor.comboTimer = 0f;
+            }
         }
 
+        // Run the State Pattern (This might flip cursor.isMissed to true if they let go)
         cursor.update(delta);
+
+        // --- NEW: Laser Miss Math ---
+        // If it wasn't missed at the top of the frame, but it IS missed now, snap the combo!
+        if (!wasMissedBefore && cursor.isMissed) {
+            scoreManager.onMiss();
+        }
     }
+
 
     public void drawLasers(ShapeRenderer renderer, Array<Beatmap.LaserSequence> laserData, boolean isLeft, float currentTime, float speed, float mult, float trackX, float trackW, float hitY) {
         if (laserData == null) return;
-        renderer.setColor(isLeft ? Color.CYAN : Color.MAGENTA);
+        Color laserColor = isLeft ? new Color(0f, 1f, 1f, 0.1f) : new Color(1f, 0f, 1f, 0.1f);
+        renderer.setColor(laserColor);
 
         // Iterate through the wrappers
         for (Beatmap.LaserSequence sequence : laserData) {
@@ -99,5 +133,23 @@ public class LaserManager {
                 renderer.rectLine(xA, yA, xB, yB, 15f);
             }
         }
+    }
+
+    public float getWarningAlpha(Array<Beatmap.LaserSequence> laserData, float currentTime) {
+        if (laserData == null) return 0f;
+
+        for (Beatmap.LaserSequence sequence : laserData) {
+            if (sequence.nodes.size > 0) {
+                float startOffset = sequence.nodes.get(0).offset;
+                float diffMs = startOffset - currentTime;
+
+                // If the laser hasn't started yet, and is 2 seconds or less away
+                if (diffMs > 0 && diffMs <= 2000f) {
+                    // Creates a fast arcade-style blinking effect (approx 3 flashes per second)
+                    return 0.3f + 0.7f * Math.abs((float)Math.sin(diffMs * 0.01f));
+                }
+            }
+        }
+        return 0f; // No upcoming laser in the 2-second window
     }
 }
