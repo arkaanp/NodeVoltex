@@ -1,6 +1,6 @@
 import json
 
-def convert_osu_to_json(file_path):
+def convert_osu_to_json(input_file, output_file):
     hit_objects = []
     
     # Map osu!mania x-coordinates to lanes
@@ -11,7 +11,7 @@ def convert_osu_to_json(file_path):
         448: 4
     }
 
-    with open(file_path, 'r') as file:
+    with open(input_file, 'r') as file:
         for line in file:
             line = line.strip()
             # Skip empty lines or headers
@@ -49,9 +49,14 @@ def convert_osu_to_json(file_path):
                     "type": "TAP"
                 })
 
-    # Wrap and print as JSON
+    # Wrap as JSON
     output = {"hitObjects": hit_objects}
-    print(json.dumps(output, indent=2))
+    
+    # Write directly to the output file
+    with open(output_file, 'w') as outfile:
+        json.dump(output, outfile, indent=2)
+        
+    print(f"Successfully converted! Saved to {output_file}")
 
-# Use the function (make sure map.txt is in the same folder)
-convert_osu_to_json('map.txt')
+# Use the function: it reads 'map.txt' and creates 'map.json'
+convert_osu_to_json('map.txt', 'map.json')

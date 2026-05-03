@@ -141,21 +141,46 @@ public class PlayScreen implements Screen {
         }
 
         // Update, Draw, and Manage Notes
+        // 1. First Pass: Update math and handle Miss/Cleanup logic for ALL notes
         for (int i = activeNotes.size - 1; i >= 0; i--) {
             Note note = activeNotes.get(i);
-            note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, HIT_LINE_Y);
 
-            // MISS DETECTION (For notes that scroll past unhit)
+            // Miss Detection
             if (!note.wasHeadHit && !note.isMissed && currentAudioTimeMs - note.startTime > 150.0f) {
                 scoreManager.onMiss();
                 note.isMissed = true;
             }
 
-            // CLEANUP, Remove if the tail is way past the screen, or if it was successfully completed
+            // Cleanup
             if (note.getTailY(currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, HIT_LINE_Y) < -200 || note.isCompleted) {
                 activeNotes.removeIndex(i);
                 notePool.free(note);
             }
+        }
+
+        // 2. Second Pass: Render Queue (Strict Z-Ordering)
+        // Layer 1: FX Holds (Bottom-most)
+        for (Note note : activeNotes) {
+            if (note.isHold && note.lane >= 5)
+                note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, HIT_LINE_Y);
+        }
+
+        // Layer 2: BT Holds
+        for (Note note : activeNotes) {
+            if (note.isHold && note.lane <= 4)
+                note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, HIT_LINE_Y);
+        }
+
+        // Layer 3: FX Taps
+        for (Note note : activeNotes) {
+            if (!note.isHold && note.lane >= 5)
+                note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, HIT_LINE_Y);
+        }
+
+        // Layer 4: BT Taps (Top-most, never obscured)
+        for (Note note : activeNotes) {
+            if (!note.isHold && note.lane <= 4)
+                note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, HIT_LINE_Y);
         }
 
         // Draw Cursors over everything else on the track

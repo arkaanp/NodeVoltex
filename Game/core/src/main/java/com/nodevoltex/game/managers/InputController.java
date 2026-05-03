@@ -8,9 +8,11 @@ import com.nodevoltex.game.entities.Note;
 public class InputController {
 
     public void processNoteInputs(Array<Note> activeNotes, float currentAudioTimeMs, ScoreManager scoreManager) {
-        boolean[] laneJustPressed = new boolean[5];
-        boolean[] laneIsPressed = new boolean[5];
+        // Expanded to 7 to safely accommodate lanes 1 through 6
+        boolean[] laneJustPressed = new boolean[7];
+        boolean[] laneIsPressed = new boolean[7];
 
+        // BT Buttons
         laneJustPressed[1] = Gdx.input.isKeyJustPressed(Input.Keys.W) || Gdx.input.isKeyJustPressed(Input.Keys.Y);
         laneJustPressed[2] = Gdx.input.isKeyJustPressed(Input.Keys.E) || Gdx.input.isKeyJustPressed(Input.Keys.U);
         laneJustPressed[3] = Gdx.input.isKeyJustPressed(Input.Keys.R) || Gdx.input.isKeyJustPressed(Input.Keys.I);
@@ -20,6 +22,13 @@ public class InputController {
         laneIsPressed[2] = Gdx.input.isKeyPressed(Input.Keys.E) || Gdx.input.isKeyPressed(Input.Keys.U);
         laneIsPressed[3] = Gdx.input.isKeyPressed(Input.Keys.R) || Gdx.input.isKeyPressed(Input.Keys.I);
         laneIsPressed[4] = Gdx.input.isKeyPressed(Input.Keys.T) || Gdx.input.isKeyPressed(Input.Keys.O);
+
+        // FX Buttons (Lane 5 = Left FX, Lane 6 = Right FX)
+        laneJustPressed[5] = Gdx.input.isKeyJustPressed(Input.Keys.X);
+        laneJustPressed[6] = Gdx.input.isKeyJustPressed(Input.Keys.M);
+
+        laneIsPressed[5] = Gdx.input.isKeyPressed(Input.Keys.X);
+        laneIsPressed[6] = Gdx.input.isKeyPressed(Input.Keys.M);
 
         for (Note note : activeNotes) {
             if (note.isMissed || note.isCompleted) continue;
