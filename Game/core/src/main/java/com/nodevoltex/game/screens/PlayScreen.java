@@ -158,32 +158,31 @@ public class PlayScreen implements Screen {
             }
         }
 
-        // 2. Second Pass: Render Queue (Strict Z-Ordering)
-        // Layer 1: FX Holds (Bottom-most)
+        // 2nd: Draw All Notes (Middle Layers)
         for (Note note : activeNotes) {
             if (note.isHold && note.lane >= 5)
                 note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, HIT_LINE_Y);
         }
-
-        // Layer 2: BT Holds
         for (Note note : activeNotes) {
             if (note.isHold && note.lane <= 4)
                 note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, HIT_LINE_Y);
         }
-
-        // Layer 3: FX Taps
         for (Note note : activeNotes) {
             if (!note.isHold && note.lane >= 5)
                 note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, HIT_LINE_Y);
         }
-
-        // Layer 4: BT Taps (Top-most, never obscured)
         for (Note note : activeNotes) {
             if (!note.isHold && note.lane <= 4)
                 note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, HIT_LINE_Y);
         }
 
-        // Draw Cursors over everything else on the track
+        // 3rd: Draw Lasers (Top Layer - Overwrites Notes)
+        if (beatmap.lasers != null) {
+            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.left, true, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
+            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.right, false, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
+        }
+
+        // 4th: Draw Cursors (Absolute Top)
         leftCursor.draw(game.shapeRenderer, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
         rightCursor.draw(game.shapeRenderer, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
 

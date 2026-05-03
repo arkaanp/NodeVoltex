@@ -8,11 +8,10 @@ import com.nodevoltex.game.entities.Note;
 public class InputController {
 
     public void processNoteInputs(Array<Note> activeNotes, float currentAudioTimeMs, ScoreManager scoreManager) {
-        // Expanded to 7 to safely accommodate lanes 1 through 6
         boolean[] laneJustPressed = new boolean[7];
         boolean[] laneIsPressed = new boolean[7];
 
-        // BT Buttons
+        // BT Buttons (Lanes 1 to 4)
         laneJustPressed[1] = Gdx.input.isKeyJustPressed(Input.Keys.W) || Gdx.input.isKeyJustPressed(Input.Keys.Y);
         laneJustPressed[2] = Gdx.input.isKeyJustPressed(Input.Keys.E) || Gdx.input.isKeyJustPressed(Input.Keys.U);
         laneJustPressed[3] = Gdx.input.isKeyJustPressed(Input.Keys.R) || Gdx.input.isKeyJustPressed(Input.Keys.I);
@@ -30,25 +29,53 @@ public class InputController {
         laneIsPressed[5] = Gdx.input.isKeyPressed(Input.Keys.X);
         laneIsPressed[6] = Gdx.input.isKeyPressed(Input.Keys.M);
 
-        for (Note note : activeNotes) {
-            if (note.isMissed || note.isCompleted) continue;
+        // --- 1. HEAD HITS (Taps & Initial Hold Presses) ---
+        for (int lane = 1; lane <= 6; lane++) {
+            if (laneJustPressed[lane]) {
+                Note targetNote = null;
 
-            if (!note.wasHeadHit && laneJustPressed[note.lane]) {
-                float diffMs = Math.abs(note.startTime - currentAudioTimeMs);
-                if (diffMs <= 150.0f) {
-                    scoreManager.onHit(diffMs);
-                    note.wasHeadHit = true;
-                    if (!note.isHold) note.isCompleted = true;
+                // FIX: Strictly find the EARLIEST unhit note to prevent Ghost Hitting
+                for (Note note : activeNotes) {
+                    if (note.lane == lane && !note.isMissed && !note.isCompleted && !note.wasHeadHit) {
+                        if (targetNote == null || note.startTime < targetNote.startTime) {
+                            targetNote = note;
+                        }
+                    }
+                }
+
+                if (targetNote != null) {
+                    float diffMs = Math.abs(targetNote.startTime - currentAudioTimeMs);
+                    if (diffMs <= 150.0f) {
+                        scoreManager.onHit(diffMs);
+                        targetNote.wasHeadHit = true;
+
+                        // Tap notes die immediately on successful hit
+                        if (!targetNote.isHold) targetNote.isCompleted = true;
+                    }
                 }
             }
+        }
 
-            if (note.isHold && note.wasHeadHit) {
-                if (laneIsPressed[note.lane]) {
-                    if (currentAudioTimeMs >= note.endTime) {
-                        note.isCompleted = true;
-                        scoreManager.onHit(0f);
-                    }
+        // --- 2. CONTINUOUS HOLD TRACKING ---
+        for (Note note : activeNotes) {
+            // Only process active Hold notes that have already been hit successfully
+            if (note.isMissed || note.isCompleted || !note.isHold || !note.wasHeadHit) continue;
+
+            if (laneIsPressed[note.lane]) {
+                // Kept holding until the absolute end
+                if (currentAudioTimeMs >= note.endTime) {
+                    note.isCompleted = true;
+                    scoreManager.onHit(0f);
+                }
+            } else {
+                // FIX: Hold Release Leniency Window
+                // If the user lets go early, but they are within 100ms of the end of the note,
+                // grant them the completion anyway.
+                if (note.endTime - currentAudioTimeMs <= 100.0f) {
+                    note.isCompleted = true;
+                    scoreManager.onHit(0f);
                 } else {
+                    // They truly let go too early
                     note.isMissed = true;
                     scoreManager.onMiss();
                 }
