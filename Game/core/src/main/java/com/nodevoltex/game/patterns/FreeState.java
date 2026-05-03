@@ -3,7 +3,7 @@ package com.nodevoltex.game.patterns;
 import com.nodevoltex.game.entities.LaserCursor;
 
 public class FreeState implements CursorState {
-    private final float FREE_SPEED = 1.5f;
+    private final float FREE_SPEED = 2f;
 
     @Override
     public void update(LaserCursor cursor, float delta) {
@@ -14,7 +14,7 @@ public class FreeState implements CursorState {
         if (cursor.x > 1.0f) cursor.x = 1.0f;
 
         // The cursor can ONLY snap back if it's within tolerance AND the player is actively pressing the right key
-        if (Math.abs(cursor.x - cursor.targetLaserX) <= 0.05f && cursor.isHoldingCorrectKey) {
+        if (Math.abs(cursor.x - cursor.targetLaserX) <= 0.15f && cursor.isHoldingCorrectKey) {
             cursor.setState(new LockedState());
             cursor.isMissed = false;
         }

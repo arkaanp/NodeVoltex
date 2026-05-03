@@ -62,11 +62,15 @@ public class LaserManager {
             }
         }
 
+        // ... (The active laser loop finishes right before this) ...
+
         if (!isCurrentlyOnLaser) {
             cursor.requiresInput = false;
             cursor.pollInputs(0);
             cursor.wasAutoSnapped = false;
-            cursor.comboTimer = 0f; // Reset the tick timer
+            cursor.comboTimer = 0f;
+            cursor.missedTimer = 0f; // Reset leniency timer when no laser is active
+            cursor.hasComboBroken = false;
 
             Beatmap.LaserSequence upcomingLaser = null;
             for (Beatmap.LaserSequence sequence : laserData) {
@@ -84,27 +88,35 @@ public class LaserManager {
                     cursor.isMissed = false;
                 }
             }
-        } else {
-            // --- NEW: Combo Tick Math ---
-            if (!cursor.isMissed) {
+        }
+
+        // Run the State Pattern (Updates X position and handles snapping)
+        cursor.update(delta);
+
+        // --- NEW: Leniency Math & Delayed Combo Breaks ---
+        if (isCurrentlyOnLaser) {
+            if (cursor.isMissed) {
+                cursor.comboTimer = 0f;
+                // Cursor is detached! Start the leniency timer.
+                cursor.missedTimer += delta * 1000f;
+
+                // If 200ms passes and they haven't snapped back, break the combo.
+                if (cursor.missedTimer >= 200.0f && !cursor.hasComboBroken) {
+                    scoreManager.onMiss();
+                    cursor.hasComboBroken = true; // Prevents spamming the miss function
+                }
+            } else {
+                // The cursor is locked! Reset the leniency timers and flags.
+                cursor.missedTimer = 0f;
+                cursor.hasComboBroken = false;
+
+                // Process continuous Combo Ticks
                 cursor.comboTimer += delta * 1000f;
-                // If 100ms has passed, tick the combo and subtract 100 (handles frame-drops safely)
                 while (cursor.comboTimer >= 100.0f) {
                     scoreManager.onLaserTick();
                     cursor.comboTimer -= 100.0f;
                 }
-            } else {
-                cursor.comboTimer = 0f;
             }
-        }
-
-        // Run the State Pattern (This might flip cursor.isMissed to true if they let go)
-        cursor.update(delta);
-
-        // --- NEW: Laser Miss Math ---
-        // If it wasn't missed at the top of the frame, but it IS missed now, snap the combo!
-        if (!wasMissedBefore && cursor.isMissed) {
-            scoreManager.onMiss();
         }
     }
 
