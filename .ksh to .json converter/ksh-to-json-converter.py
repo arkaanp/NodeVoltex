@@ -18,8 +18,12 @@ def convert_ksh_to_json(ksh_path, json_path):
     with open(ksh_path, 'r', encoding='utf-8-sig', errors='replace') as f:
         lines = [line.strip() for line in f.readlines()]
 
-    # Initialization / Defaults
+    # Updated Initialization / Defaults based on the new general format
     general = {
+        "title": "",
+        "artist": "",
+        "mapper": "",
+        "level": 1,
         "audioFilename": "audio.mp3",
         "audioOffset": 0
     }
@@ -27,7 +31,6 @@ def convert_ksh_to_json(ksh_path, json_path):
     bpm = 120.0
     beat_num = 4
     beat_den = 4
-    current_offset = 0.0
 
     hit_objects = []
     lasers = {"left": [], "right": []}
@@ -50,7 +53,12 @@ def convert_ksh_to_json(ksh_path, json_path):
         if in_header:
             if '=' in line:
                 key, val = line.split('=', 1)
-                if key == 'm': general['audioFilename'] = val
+                # Map standard .ksh header fields to the requested JSON keys
+                if key == 'title': general['title'] = val
+                elif key == 'artist': general['artist'] = val
+                elif key == 'effect': general['mapper'] = val
+                elif key == 'level': general['level'] = int(val) if val.isdigit() else 1
+                elif key == 'm': general['audioFilename'] = val
                 elif key == 'o': general['audioOffset'] = int(val)
                 elif key == 't': 
                     bpm = float(val.split('-')[0]) # Use initial if a range is present
@@ -62,8 +70,12 @@ def convert_ksh_to_json(ksh_path, json_path):
     if current_block:
         blocks.append(current_block)
 
+    # Syncing: Initialize current_offset with the audioOffset from the header
+    current_offset = float(general['audioOffset'])
+
     # Process each measure block
     for block in blocks:
+        # Count only the tick rows for proper subdivision duration
         tick_lines_in_block = sum(1 for line in block if '|' in line)
         
         for line in block:
@@ -134,10 +146,10 @@ def convert_ksh_to_json(ksh_path, json_path):
                                         active_lasers[l_key] = {"nodes": []}
                                     active_lasers[l_key]["nodes"].append({"offset": int(offset), "x": val})
 
-                # Increment precisely by one tick
+                # Increment precisely by one tick chronologically
                 current_offset += tick_duration
 
-    # Cap trailing objects that never closed properly
+    # Cap trailing objects that never closed properly at the end of the file
     for l_key in ["left", "right"]:
         if active_lasers[l_key] is not None:
             lasers[l_key].append(active_lasers[l_key])
@@ -145,7 +157,7 @@ def convert_ksh_to_json(ksh_path, json_path):
     for h in active_holds.values():
         hit_objects.append(h)
 
-    # Sort chronologically
+    # Sort chronologically to keep the JSON organized cleanly
     hit_objects.sort(key=lambda x: x["startTime"])
 
     output_data = {

@@ -15,18 +15,22 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 import com.nodevoltex.game.NodeVoltex;
 import com.nodevoltex.game.data.Beatmap;
+import com.nodevoltex.game.data.BeatmapParser;
 import com.nodevoltex.game.entities.LaserCursor;
 import com.nodevoltex.game.entities.Note;
 import com.nodevoltex.game.managers.InputController;
 import com.nodevoltex.game.managers.LaserManager;
 import com.nodevoltex.game.managers.ScoreManager;
 import com.nodevoltex.game.patterns.GameArchitecture;
+import com.badlogic.gdx.audio.Music;
 
 public class PlayScreen implements Screen {
 
     private final NodeVoltex game;
     private final OrthographicCamera camera;
     private final Viewport viewport;
+    private String mapFilePath;
+    private Music music;
 
     // Time & Math Variables
     private float currentAudioTimeMs = 0f;
@@ -68,8 +72,9 @@ public class PlayScreen implements Screen {
         return note;
     }
 
-    public PlayScreen(NodeVoltex game) {
+    public PlayScreen(NodeVoltex game, String mapFilePath) {
         this.game = game;
+        this.mapFilePath = mapFilePath;
 
         camera = new OrthographicCamera();
         viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
@@ -79,6 +84,19 @@ public class PlayScreen implements Screen {
         inputController = new InputController();
         laserManager = new LaserManager();
         scoreManager = new ScoreManager(new GameArchitecture.StrictJudgment());
+
+        BeatmapParser parser = new BeatmapParser();
+        this.beatmap = parser.parse(mapFilePath);
+
+        // 2. Dynamically load the audio file from the same folder as the JSON
+        com.badlogic.gdx.files.FileHandle jsonFile = Gdx.files.internal(mapFilePath);
+        com.badlogic.gdx.files.FileHandle audioFile = jsonFile.parent().child(beatmap.general.audioFilename);
+
+        try {
+            music = Gdx.audio.newMusic(audioFile);
+        } catch (Exception e) {
+            System.out.println("CRITICAL: Could not load gameplay audio: " + audioFile.path());
+        }
 
         // Initialize UI Font
         font = new BitmapFont();
@@ -90,7 +108,7 @@ public class PlayScreen implements Screen {
 
         // Load the Beatmap
         Json json = new Json();
-        beatmap = json.fromJson(Beatmap.class, Gdx.files.internal("test_map.json"));
+        //beatmap = json.fromJson(Beatmap.class, Gdx.files.internal("test_map.json"));
     }
 
     @Override

@@ -3,6 +3,7 @@ package com.nodevoltex.game;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.nodevoltex.game.screens.MainMenuScreen;
 import com.nodevoltex.game.screens.PlayScreen;
 
 public class NodeVoltex extends Game {
@@ -15,7 +16,7 @@ public class NodeVoltex extends Game {
         shapeRenderer = new ShapeRenderer();
 
         // Boot directly into the core engine simulation
-        this.setScreen(new PlayScreen(this));
+        this.setScreen(new MainMenuScreen(this));
     }
 
     @Override

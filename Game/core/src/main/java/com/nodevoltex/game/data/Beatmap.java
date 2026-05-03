@@ -3,13 +3,18 @@ package com.nodevoltex.game.data;
 import com.badlogic.gdx.utils.Array;
 
 public class Beatmap {
-    public GeneralData general;
+    public General general;
     public Array<HitObject> hitObjects;
     public Lasers lasers; // NEW
 
-    public static class GeneralData {
-        public String audioFilename;
-        public float audioOffset;
+    // Inside Beatmap.java
+    public static class General {
+        public String title = "Unknown Title";
+        public String artist = "Unknown Artist";
+        public String mapper = "Unknown Mapper";
+        public int level = 0;
+        public String audioFilename = "audio.ogg";
+        public float audioOffset = 0f;
     }
 
     public static class HitObject {
