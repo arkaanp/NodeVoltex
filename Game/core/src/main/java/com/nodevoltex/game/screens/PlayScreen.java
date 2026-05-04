@@ -29,6 +29,7 @@ import com.nodevoltex.game.managers.LaserManager;
 import com.nodevoltex.game.managers.ScoreManager;
 import com.nodevoltex.game.patterns.GameArchitecture;
 import com.badlogic.gdx.audio.Music;
+import com.nodevoltex.game.patterns.StrictJudgment;
 
 public class PlayScreen implements Screen {
 
@@ -71,7 +72,7 @@ public class PlayScreen implements Screen {
     private Stage pauseStage;
 
     // Object Pool for Notes
-    private final Array<Note> activeNotes = new Array<>();
+    private Array<Note> activeNotes = new Array<>();
     private final Pool<Note> notePool = new Pool<Note>() {
         @Override protected Note newObject() { return new Note(); }
     };
@@ -87,39 +88,60 @@ public class PlayScreen implements Screen {
         this.game = game;
         this.mapFilePath = mapFilePath;
 
+        // --- 1. SETUP GRAPHICS & CAMERA ---
         camera = new OrthographicCamera();
         viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
-        camera.position.set(viewport.getWorldWidth() / 2, viewport.getWorldHeight() / 2, 0);
+        camera.position.set(WORLD_WIDTH / 2f, WORLD_HEIGHT / 2f, 0);
 
-        // Initialize Managers
-        inputController = new InputController();
-        laserManager = new LaserManager();
-        scoreManager = new ScoreManager(new GameArchitecture.StrictJudgment());
-
+        // --- 2. PARSE THE DYNAMIC JSON ---
         BeatmapParser parser = new BeatmapParser();
         this.beatmap = parser.parse(mapFilePath);
 
-        // 2. Dynamically load the audio file from the same folder as the JSON
+        // CRITICAL SAFETY NET: If the JSON was completely empty or failed to parse
+        if (this.beatmap == null) {
+            System.out.println("WARNING: JSON failed to parse! Creating blank map.");
+            this.beatmap = new Beatmap();
+            this.beatmap.general = new Beatmap.General();
+        }
+
+        // --- 3. LOAD THE DYNAMIC AUDIO ---
         com.badlogic.gdx.files.FileHandle jsonFile = Gdx.files.internal(mapFilePath);
-        com.badlogic.gdx.files.FileHandle audioFile = jsonFile.parent().child(beatmap.general.audioFilename);
+        com.badlogic.gdx.files.FileHandle audioFile = jsonFile.parent().child(this.beatmap.general.audioFilename);
 
         try {
-            music = Gdx.audio.newMusic(audioFile);
+            if (audioFile.exists()) {
+                music = Gdx.audio.newMusic(audioFile);
+            } else {
+                System.out.println("WARNING: Audio file not found at " + audioFile.path());
+            }
         } catch (Exception e) {
-            System.out.println("CRITICAL: Could not load gameplay audio: " + audioFile.path());
+            System.out.println("CRITICAL: Could not load gameplay audio!");
         }
 
         // Initialize UI Font
         font = new BitmapFont();
         font.getData().setScale(2f);
 
-        // Initialize Laser Cursors with specific keybinds
+        // --- 4. INITIALIZE MANAGERS & ENTITIES ---
+        inputController = new InputController();
+        laserManager = new LaserManager();
+        scoreManager = new ScoreManager(new StrictJudgment());
+
+        // FOOLPROOF SCORE MATH: Calculate actual total notes and exact laser ticks!
+        int totalNotes = (this.beatmap != null && this.beatmap.hitObjects != null) ? this.beatmap.hitObjects.size : 0;
+
+        // --- THE FIX: Replace the 500 placeholder with the actual calculation ---
+        int totalLaserTicks = calculateTotalLaserTicks(this.beatmap);
+
+        scoreManager.setMaxPossibleScore(totalNotes, totalLaserTicks);
+
+        activeNotes = new Array<>();
         leftCursor = new LaserCursor(true, Input.Keys.NUM_2, Input.Keys.NUM_3);
         rightCursor = new LaserCursor(false, Input.Keys.NUM_9, Input.Keys.NUM_0);
 
-        // Load the Beatmap
-        Json json = new Json();
-        //beatmap = json.fromJson(Beatmap.class, Gdx.files.internal("test_map.json"));
+
+
+
 
         // --- 6. PAUSE MENU SETUP ---
         // Pass your existing viewport so it scales perfectly with the game window
@@ -187,6 +209,18 @@ public class PlayScreen implements Screen {
                     hasAudioStarted = true;
                 }
             } else {
+                // --- Check if song finished naturally ---
+                if (!music.isPlaying() && !isPaused) {
+                    // Determine difficulty name from the file path
+                    String diffName = "UNKNOWN";
+                    if (mapFilePath.contains("nov.json")) diffName = "NOV";
+                    else if (mapFilePath.contains("adv.json")) diffName = "ADV";
+                    else if (mapFilePath.contains("exh.json")) diffName = "EXH";
+                    else if (mapFilePath.contains("mxm.json")) diffName = "MXM";
+
+                    game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, diffName));
+                    return; // Stop rendering this frame immediately
+                }
                 // 3. Once playing, anchor the visual timeline to the music hardware so they never drift.
                 // We add the offset back here so the visual timer stays accurately synced to the audio.
                 currentAudioTimeMs = (music.getPosition() * 1000f) + beatmap.general.audioOffset;
@@ -329,7 +363,7 @@ public class PlayScreen implements Screen {
 
 
         font.setColor(Color.WHITE);
-        font.draw(game.batch, "Combo: " + scoreManager.combo, 50, WORLD_HEIGHT - 50);
+        font.draw(game.batch, "Combo: " + scoreManager.combo, WORLD_WIDTH / 2f - 80, WORLD_HEIGHT - 125);
 
         // Dynamic Judgment Color
         if (scoreManager.latestJudgment.contains("CRITICAL")) font.setColor(Color.GOLD);
@@ -399,6 +433,47 @@ public class PlayScreen implements Screen {
         Gdx.input.setInputProcessor(null);
     }
 
+    // --- LASER TICK CALCULATION ---
+    private int calculateTotalLaserTicks(Beatmap beatmap) {
+        if (beatmap == null || beatmap.lasers == null) return 0;
+
+        int totalTicks = 0;
+        totalTicks += countTicksForLaserArray(beatmap.lasers.left);
+        totalTicks += countTicksForLaserArray(beatmap.lasers.right);
+
+        return totalTicks;
+    }
+
+    private int countTicksForLaserArray(Array<Beatmap.LaserSequence> sequences) {
+        if (sequences == null) return 0;
+
+        int ticks = 0;
+        // 50ms is roughly equivalent to a 1/8th beat tick at 150 BPM
+        final float TICK_INTERVAL_MS = 100.0f;
+
+        for (Beatmap.LaserSequence seq : sequences) {
+            if (seq.nodes == null || seq.nodes.size == 0) continue;
+
+            // The start of a new laser sequence always grants 1 tick
+            ticks++;
+
+            for (int i = 1; i < seq.nodes.size; i++) {
+                Beatmap.LaserNode prev = seq.nodes.get(i - 1);
+                Beatmap.LaserNode curr = seq.nodes.get(i);
+
+                float duration = curr.offset - prev.offset;
+
+                if (duration <= 1.0f) {
+                    // It's a Slam! (Instant horizontal movement with 0ms duration)
+                    ticks++;
+                } else {
+                    // It's a continuous line! Calculate how many 50ms ticks fit inside it
+                    ticks += (int) (duration / TICK_INTERVAL_MS);
+                }
+            }
+        }
+        return ticks;
+    }
 
     @Override
     public void dispose() {
