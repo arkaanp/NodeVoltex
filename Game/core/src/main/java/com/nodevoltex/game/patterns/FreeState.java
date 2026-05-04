@@ -14,7 +14,7 @@ public class FreeState implements CursorState {
         if (cursor.x > 1.0f) cursor.x = 1.0f;
 
         // The cursor can ONLY snap back if it's within tolerance AND the player is actively pressing the right key
-        if (Math.abs(cursor.x - cursor.targetLaserX) <= 0.15f && cursor.isHoldingCorrectKey) {
+        if (Math.abs(cursor.x - cursor.targetLaserX) <= 0.2f && cursor.isHoldingCorrectKey) {
             cursor.setState(new LockedState());
             cursor.isMissed = false;
         }

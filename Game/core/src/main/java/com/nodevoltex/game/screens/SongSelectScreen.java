@@ -182,6 +182,19 @@ public class SongSelectScreen implements Screen {
         Table infoTable = new Table();
         infoTable.add(titleLabel).align(Align.left).row();
         infoTable.add(artistLabel).align(Align.left);
+
+        // --- Make the text clickable, but NOT the whole row ---
+        infoTable.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.enabled);
+        infoTable.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                playPreview(audioFilename);
+                updateScoresPanel(title);
+            }
+        });
+
+        songItem.add(infoTable).expandX().align(Align.left).pad(10);
+
         songItem.add(infoTable).expandX().align(Align.left).pad(10);
 
         Table diffTable = new Table();
@@ -191,13 +204,13 @@ public class SongSelectScreen implements Screen {
         diffTable.add(createDiffButton("MXM", mxmLv, mxmPath, Color.valueOf("#C0C0C0"))).pad(5);
         songItem.add(diffTable).pad(10);
 
-        songItem.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                playPreview(audioFilename);
-                updateScoresPanel(title);
-            }
-        });
+//        songItem.addListener(new ClickListener() {
+//            @Override
+//            public void clicked(InputEvent event, float x, float y) {
+//                playPreview(audioFilename);
+//                updateScoresPanel(title);
+//            }
+//        });
 
         table.add(songItem).expandX().fillX().padBottom(5).row();
     }
@@ -220,8 +233,10 @@ public class SongSelectScreen implements Screen {
             btn.addListener(new ClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
+                    // --- Stop the click from passing through to the row ---
+                    event.stop();
+
                     stopPreview();
-                    // TODO: Pass 'mapFilePath' to PlayScreen so it loads the correct JSON!
                     game.setScreen(new PlayScreen(game, mapFilePath));
                 }
             });

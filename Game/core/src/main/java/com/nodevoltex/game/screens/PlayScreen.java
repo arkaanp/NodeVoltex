@@ -2,6 +2,12 @@ package com.nodevoltex.game.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
@@ -33,7 +39,8 @@ public class PlayScreen implements Screen {
     private Music music;
 
     // Time & Math Variables
-    private float currentAudioTimeMs = 0f;
+    private float currentAudioTimeMs = -2000f;
+    private boolean hasAudioStarted = false;
     private final float BASE_SCROLL_SPEED = 1.0f;
     private float hiSpeedMult = 1.0f;
 
@@ -58,6 +65,10 @@ public class PlayScreen implements Screen {
     // Cursors
     private final LaserCursor leftCursor;
     private final LaserCursor rightCursor;
+
+    // Pause Menu Variables
+    private boolean isPaused = false;
+    private Stage pauseStage;
 
     // Object Pool for Notes
     private final Array<Note> activeNotes = new Array<>();
@@ -109,29 +120,97 @@ public class PlayScreen implements Screen {
         // Load the Beatmap
         Json json = new Json();
         //beatmap = json.fromJson(Beatmap.class, Gdx.files.internal("test_map.json"));
+
+        // --- 6. PAUSE MENU SETUP ---
+        // Pass your existing viewport so it scales perfectly with the game window
+        pauseStage = new Stage(viewport, game.batch);
+        Table pauseTable = new Table();
+        pauseTable.setFillParent(true);
+        pauseStage.addActor(pauseTable);
+
+        Skin skin = MainMenuScreen.skin;
+
+        TextButton continueBtn = new TextButton("Continue", skin);
+        TextButton retryBtn = new TextButton("Retry", skin);
+        TextButton exitBtn = new TextButton("Exit", skin);
+
+        // Stack the buttons in the center of the screen
+        pauseTable.add(continueBtn).fillX().pad(10).height(60).row();
+        pauseTable.add(retryBtn).fillX().pad(10).height(60).row();
+        pauseTable.add(exitBtn).fillX().pad(10).height(60).row();
+
+        // --- BUTTON EVENTS ---
+        continueBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                resumeGame();
+            }
+        });
+
+        retryBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                music.stop();
+                game.setScreen(new PlayScreen(game, mapFilePath)); // Reload the exact same map
+            }
+        });
+
+        exitBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                music.stop();
+                game.setScreen(new SongSelectScreen(game)); // Go back to song selection
+            }
+        });
     }
 
     @Override
     public void render(float delta) {
-        // Advance Time
-        currentAudioTimeMs += delta * 1000f;
-
-        // --- LOGIC UPDATES ---
-
-        // Process Note Inputs
-        inputController.processNoteInputs(activeNotes, currentAudioTimeMs, scoreManager);
-
-        // Process Laser Interpolation & States
-        if (beatmap.lasers != null) {
-            laserManager.updateCursor(leftCursor, beatmap.lasers.left, currentAudioTimeMs, delta, scoreManager);
-            laserManager.updateCursor(rightCursor, beatmap.lasers.right, currentAudioTimeMs, delta, scoreManager);
+        // --- ESC Key Listener ---
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            if (isPaused) resumeGame();
+            else pauseGame();
         }
 
-        // --- CLEAR SCREEN & SETUP CAMERA ---
-        Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        // --- MATH & LOGIC UPDATES (Only runs if NOT paused) ---
+        if (!isPaused) {
+            // --- TIMELINE & AUDIO SYNC ENGINE ---
+            if (!hasAudioStarted) {
+                // 1. Move the visual gameplay timeline forward using the framerate
+                currentAudioTimeMs += delta * 1000f;
 
-        camera.update();
+                // 2. The audio offset strictly controls when the music starts playing.
+                // If offset is 500, the gameplay ignores it, but the music waits until 500ms to play.
+                // If offset is -500, the music plays early while the visual timer is at -500ms.
+                if (currentAudioTimeMs >= beatmap.general.audioOffset) {
+                    music.play();
+                    hasAudioStarted = true;
+                }
+            } else {
+                // 3. Once playing, anchor the visual timeline to the music hardware so they never drift.
+                // We add the offset back here so the visual timer stays accurately synced to the audio.
+                currentAudioTimeMs = (music.getPosition() * 1000f) + beatmap.general.audioOffset;
+            }
+
+            // --- LOGIC UPDATES ---
+
+            // Process Note Inputs
+            inputController.processNoteInputs(activeNotes, currentAudioTimeMs, scoreManager);
+
+            // Process Laser Interpolation & States
+            if (beatmap.lasers != null) {
+                laserManager.updateCursor(leftCursor, beatmap.lasers.left, currentAudioTimeMs, delta, scoreManager);
+                laserManager.updateCursor(rightCursor, beatmap.lasers.right, currentAudioTimeMs, delta, scoreManager);
+            }
+
+            // --- CLEAR SCREEN & SETUP CAMERA ---
+            Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1);
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+            camera.update();
+        }
+
+
         game.shapeRenderer.setProjectionMatrix(camera.combined);
         game.batch.setProjectionMatrix(camera.combined);
 
@@ -259,6 +338,23 @@ public class PlayScreen implements Screen {
 
         font.draw(game.batch, scoreManager.latestJudgment, WORLD_WIDTH / 2f - 80, WORLD_HEIGHT / 2f + 100);
         game.batch.end();
+
+        if (isPaused) {
+            // 1. Draw 80% Black Dimming Layer
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+            game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
+            game.shapeRenderer.setColor(0f, 0f, 0f, 0.8f); // R, G, B, Alpha
+            game.shapeRenderer.rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+            game.shapeRenderer.end();
+
+            Gdx.gl.glDisable(GL20.GL_BLEND);
+
+            // 2. Draw the Buttons on top
+            pauseStage.act(delta);
+            pauseStage.draw();
+        }
     }
 
     private void drawTrack() {
@@ -283,8 +379,30 @@ public class PlayScreen implements Screen {
     @Override public void resume() {}
     @Override public void hide() {}
 
+    private void pauseGame() {
+        isPaused = true;
+        // Only pause the music if the 2-second lead-in timer has finished!
+        if (hasAudioStarted && music.isPlaying()) {
+            music.pause();
+        }
+        // Give control to the UI Stage so buttons can be clicked
+        Gdx.input.setInputProcessor(pauseStage);
+    }
+
+    private void resumeGame() {
+        isPaused = false;
+        // Only resume music if it was actually playing before
+        if (hasAudioStarted) {
+            music.play();
+        }
+        // Take control away from UI so they can't accidentally click buttons while playing
+        Gdx.input.setInputProcessor(null);
+    }
+
+
     @Override
     public void dispose() {
         font.dispose();
+        pauseStage.dispose();
     }
 }
