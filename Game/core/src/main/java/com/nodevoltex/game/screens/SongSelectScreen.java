@@ -46,7 +46,7 @@ public class SongSelectScreen implements Screen {
     public SongSelectScreen(NodeVoltex game) {
         this.game = game;
         this.stage = new Stage(new ScreenViewport());
-        this.skin = MainMenuScreen.skin; // Reuse the skin we built in the Main Menu
+        this.skin = NodeVoltex.skin; // Reuse the skin we built in the Main Menu
         Gdx.input.setInputProcessor(stage);
 
         Table rootTable = new Table();
@@ -143,6 +143,14 @@ public class SongSelectScreen implements Screen {
         scoresListTable.add(mxmScoreLabel).pad(5).align(Align.left).row();
 
         ScrollPane scrollPane = new ScrollPane(scoresListTable, skin);
+
+        scrollPane.setScrollingDisabled(true, false); // FORCES vertical scrolling only
+        scrollPane.setFadeScrollBars(false);          // Stops scrollbars from vanishing
+        scrollPane.setOverscroll(false, false);       // Removes the weird "bouncy" edge effect
+
+        // To make the mouse wheel work immediately on the song list, you can add:
+        stage.setScrollFocus(scrollPane);
+
         scrollPane.setFadeScrollBars(false);
         panel.add(scrollPane).expand().fill().colspan(2).pad(10);
 

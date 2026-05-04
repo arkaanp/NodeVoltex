@@ -26,7 +26,7 @@ public class ScoreScreen implements Screen {
     public ScoreScreen(NodeVoltex game, Beatmap.General metadata, ScoreManager scoreManager, String difficultyName, String mapFilePath) {
         this.game = game;
         this.stage = new Stage(new ScreenViewport());
-        this.skin = MainMenuScreen.skin;
+        this.skin = NodeVoltex.skin;
         Gdx.input.setInputProcessor(stage);
 
         Table rootTable = new Table();

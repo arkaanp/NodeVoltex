@@ -150,7 +150,7 @@ public class PlayScreen implements Screen {
         pauseTable.setFillParent(true);
         pauseStage.addActor(pauseTable);
 
-        Skin skin = MainMenuScreen.skin;
+        Skin skin = NodeVoltex.skin;
 
         TextButton continueBtn = new TextButton("Continue", skin);
         TextButton retryBtn = new TextButton("Retry", skin);
