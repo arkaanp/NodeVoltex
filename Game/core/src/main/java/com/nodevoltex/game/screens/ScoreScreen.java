@@ -16,13 +16,14 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.nodevoltex.game.NodeVoltex;
 import com.nodevoltex.game.data.Beatmap;
 import com.nodevoltex.game.managers.ScoreManager;
+import com.badlogic.gdx.Preferences;
 
 public class ScoreScreen implements Screen {
     private final NodeVoltex game;
     private final Stage stage;
     private final Skin skin;
 
-    public ScoreScreen(NodeVoltex game, Beatmap.General metadata, ScoreManager scoreManager, String difficultyName) {
+    public ScoreScreen(NodeVoltex game, Beatmap.General metadata, ScoreManager scoreManager, String difficultyName, String mapFilePath) {
         this.game = game;
         this.stage = new Stage(new ScreenViewport());
         this.skin = MainMenuScreen.skin;
@@ -51,8 +52,39 @@ public class ScoreScreen implements Screen {
         Table statsTable = new Table();
         statsTable.align(Align.topRight);
 
-        // --- NEW: THE GRADE DISPLAY ---
+        // 1. Get the final score and grade
+        int finalScore = scoreManager.getFinalScore();
         String grade = scoreManager.getGrade();
+
+        // --- CUSTOM JSON SAVING LOGIC (MULTIPLE SCORES) ---
+        String safeFileName = mapFilePath.replace("/", "_").replace("\\", "_") + "_save.json";
+        com.badlogic.gdx.files.FileHandle saveFile = Gdx.files.local("assets/scores/" + safeFileName);
+        com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
+
+        com.nodevoltex.game.data.ScoreHistory history = new com.nodevoltex.game.data.ScoreHistory();
+
+        // Load the existing list of scores (if it exists)
+        if (saveFile.exists()) {
+            try {
+                history = json.fromJson(com.nodevoltex.game.data.ScoreHistory.class, saveFile);
+                if (history == null) history = new com.nodevoltex.game.data.ScoreHistory();
+            } catch (Exception e) {
+                System.out.println("Corrupted save file. Starting fresh.");
+            }
+        }
+
+        // Create the new record for this exact play
+        com.nodevoltex.game.data.SaveData newData = new com.nodevoltex.game.data.SaveData();
+        newData.score = finalScore;
+        newData.grade = grade;
+        newData.timestamp = System.currentTimeMillis(); // Stamp it with the current date/time
+
+        // Add it to the history array and save!
+        history.plays.add(newData);
+        saveFile.writeString(json.prettyPrint(history), false);
+
+        // --- NEW: THE GRADE DISPLAY ---
+        //String grade = scoreManager.getGrade();
         Label gradeLabel = new Label(grade, skin);
         gradeLabel.setFontScale(6.0f); // Make the grade absolutely massive!
 
@@ -67,7 +99,7 @@ public class ScoreScreen implements Screen {
 
 
         // 1. Format the 8-Digit Score (e.g., "0987" and "6543")
-        int finalScore = scoreManager.getFinalScore();
+        //int finalScore = scoreManager.getFinalScore();
         String scoreString = String.format("%08d", finalScore);
         String firstHalf = scoreString.substring(0, 4);
         String secondHalf = scoreString.substring(4, 8);
@@ -86,6 +118,7 @@ public class ScoreScreen implements Screen {
 
         statsTable.add(new Label("RESULT SCORE", skin)).align(Align.right).row();
         statsTable.add(scoreNumberTable).align(Align.right).padBottom(20).row();
+
 
 
         // 2. Judgment Counts

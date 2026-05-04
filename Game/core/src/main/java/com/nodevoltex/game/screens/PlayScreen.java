@@ -218,7 +218,7 @@ public class PlayScreen implements Screen {
                     else if (mapFilePath.contains("exh.json")) diffName = "EXH";
                     else if (mapFilePath.contains("mxm.json")) diffName = "MXM";
 
-                    game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, diffName));
+                    game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, diffName, mapFilePath));
                     return; // Stop rendering this frame immediately
                 }
                 // 3. Once playing, anchor the visual timeline to the music hardware so they never drift.
