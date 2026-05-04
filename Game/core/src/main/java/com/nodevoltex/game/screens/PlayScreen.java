@@ -111,6 +111,7 @@ public class PlayScreen implements Screen {
         try {
             if (audioFile.exists()) {
                 music = Gdx.audio.newMusic(audioFile);
+                music.setVolume(0.5f);
             } else {
                 System.out.println("WARNING: Audio file not found at " + audioFile.path());
             }
@@ -206,6 +207,7 @@ public class PlayScreen implements Screen {
                 // If offset is -500, the music plays early while the visual timer is at -500ms.
                 if (currentAudioTimeMs >= beatmap.general.audioOffset) {
                     music.play();
+                    music.setVolume(0.5f);
                     hasAudioStarted = true;
                 }
             } else {
@@ -428,6 +430,7 @@ public class PlayScreen implements Screen {
         // Only resume music if it was actually playing before
         if (hasAudioStarted) {
             music.play();
+            music.setVolume(0.5f);
         }
         // Take control away from UI so they can't accidentally click buttons while playing
         Gdx.input.setInputProcessor(null);
