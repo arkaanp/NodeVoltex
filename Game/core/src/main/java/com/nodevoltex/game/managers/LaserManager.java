@@ -1,6 +1,8 @@
 package com.nodevoltex.game.managers;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.utils.Array;
 import com.nodevoltex.game.data.Beatmap;
@@ -121,9 +123,14 @@ public class LaserManager {
     }
 
 
-    public void drawLasers(ShapeRenderer renderer, Array<Beatmap.LaserSequence> laserData, boolean isLeft, float currentTime, float speed, float mult, float trackX, float trackW, float hitY) {
+    public void drawLasers(ShapeRenderer renderer, Array<Beatmap.LaserSequence> laserData, boolean isLeft, LaserCursor cursor, float currentTime, float speed, float mult, float trackX, float trackW, float hitY) {
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
         if (laserData == null) return;
-        Color laserColor = isLeft ? new Color(0f, 1f, 1f, 0.1f) : new Color(1f, 0f, 1f, 0.1f);
+
+        float alpha = cursor.isMissed ? 0.15f : 0.5f;
+
+        Color laserColor = isLeft ? new Color(0f, 1f, 1f, alpha) : new Color(1f, 0f, 1f, alpha);
         renderer.setColor(laserColor);
 
         // Iterate through the wrappers

@@ -273,8 +273,8 @@ public class PlayScreen implements Screen {
 
         // 3rd: Draw Lasers (Top Layer - Overwrites Notes)
         if (beatmap.lasers != null) {
-            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.left, true, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
-            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.right, false, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
+            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.left, true, leftCursor, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
+            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.right, false, rightCursor, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
         }
 
         // --- NEW: Draw Laser Alert Backgrounds ---
@@ -334,8 +334,8 @@ public class PlayScreen implements Screen {
 
         // 3rd: Draw Lasers (Top Layer - Overwrites Notes)
         if (beatmap.lasers != null) {
-            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.left, true, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
-            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.right, false, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
+            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.left, true, leftCursor, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
+            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.right, false, rightCursor, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
         }
 
         // 4th: Draw Cursors (Absolute Top)

@@ -2,6 +2,7 @@ package com.nodevoltex.game.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
@@ -19,6 +20,7 @@ public class MainMenuScreen implements Screen {
 
     private final NodeVoltex game;
     private final Stage stage;
+    private Music music;
 
     // --- NEW: Graphic Textures ---
     private Texture bgTexture;
@@ -31,7 +33,7 @@ public class MainMenuScreen implements Screen {
 
         // 1. Load your images from the assets folder
         bgTexture = new Texture(Gdx.files.internal("assets/background_gaussianblurupscaled.jpeg"));
-        titleTexture = new Texture(Gdx.files.internal("assets/title.png"));
+        titleTexture = new Texture(Gdx.files.internal("assets/title4.png"));
 
         Table rootTable = new Table();
         rootTable.setFillParent(true);
@@ -49,6 +51,22 @@ public class MainMenuScreen implements Screen {
         // Add the Title Image to the top of the screen
         rootTable.add(titleImage).padBottom(50).row();
 
+        // 3.5 MAIN MENU SONG
+        com.badlogic.gdx.files.FileHandle audioFile = Gdx.files.internal("worldender.ogg");
+
+        try {
+            if (audioFile.exists()) {
+                music = Gdx.audio.newMusic(audioFile);
+                music.setVolume(0.4f);
+                music.setLooping(true);
+                music.play();
+            } else {
+                System.out.println("WARNING: Audio file not found at " + audioFile.path());
+            }
+        } catch (Exception e) {
+            System.out.println("CRITICAL: Could not load gameplay audio!");
+        }
+
         // 4. Create your Menu Buttons
         TextButton.TextButtonStyle btnStyle = NodeVoltex.skin.get("default", TextButton.TextButtonStyle.class);
 
@@ -59,6 +77,11 @@ public class MainMenuScreen implements Screen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 game.setScreen(new SongSelectScreen(game));
+                if (music != null) {
+                    music.stop();
+                    music.dispose();
+                    music = null;
+                }
             }
         });
 
