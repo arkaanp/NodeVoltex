@@ -111,7 +111,7 @@ public class PlayScreen implements Screen {
         try {
             if (audioFile.exists()) {
                 music = Gdx.audio.newMusic(audioFile);
-                music.setVolume(0.5f);
+                music.setVolume(0.3f);
             } else {
                 System.out.println("WARNING: Audio file not found at " + audioFile.path());
             }
@@ -132,8 +132,7 @@ public class PlayScreen implements Screen {
         int totalNotes = (this.beatmap != null && this.beatmap.hitObjects != null) ? this.beatmap.hitObjects.size : 0;
 
         // --- THE FIX: Replace the 500 placeholder with the actual calculation ---
-        int totalLaserTicks = calculateTotalLaserTicks(this.beatmap);
-
+        int totalLaserTicks = bakeAndCountLaserTicks(this.beatmap);
         scoreManager.setMaxPossibleScore(totalNotes, totalLaserTicks);
 
         activeNotes = new Array<>();
@@ -207,7 +206,7 @@ public class PlayScreen implements Screen {
                 // If offset is -500, the music plays early while the visual timer is at -500ms.
                 if (currentAudioTimeMs >= beatmap.general.audioOffset) {
                     music.play();
-                    music.setVolume(0.5f);
+                    music.setVolume(0.3f);
                     hasAudioStarted = true;
                 }
             } else {
@@ -430,50 +429,62 @@ public class PlayScreen implements Screen {
         // Only resume music if it was actually playing before
         if (hasAudioStarted) {
             music.play();
-            music.setVolume(0.5f);
+            music.setVolume(0.3f);
         }
         // Take control away from UI so they can't accidentally click buttons while playing
         Gdx.input.setInputProcessor(null);
     }
 
     // --- LASER TICK CALCULATION ---
-    private int calculateTotalLaserTicks(Beatmap beatmap) {
+    // --- NEW: PRE-BAKED LASER TICK ENGINE ---
+    private int bakeAndCountLaserTicks(Beatmap beatmap) {
         if (beatmap == null || beatmap.lasers == null) return 0;
-
         int totalTicks = 0;
-        totalTicks += countTicksForLaserArray(beatmap.lasers.left);
-        totalTicks += countTicksForLaserArray(beatmap.lasers.right);
-
+        totalTicks += bakeArray(beatmap.lasers.left);
+        totalTicks += bakeArray(beatmap.lasers.right);
         return totalTicks;
     }
 
-    private int countTicksForLaserArray(Array<Beatmap.LaserSequence> sequences) {
+    private int bakeArray(Array<Beatmap.LaserSequence> sequences) {
         if (sequences == null) return 0;
-
         int ticks = 0;
-        // 50ms is roughly equivalent to a 1/8th beat tick at 150 BPM
-        final float TICK_INTERVAL_MS = 100.0f;
 
         for (Beatmap.LaserSequence seq : sequences) {
+            seq.tickTimes = new Array<>();
             if (seq.nodes == null || seq.nodes.size == 0) continue;
 
-            // The start of a new laser sequence always grants 1 tick
-            ticks++;
+            // 1. GUARANTEED: Add tick at the exact Start of the laser
+            seq.tickTimes.add(seq.nodes.first().offset);
 
             for (int i = 1; i < seq.nodes.size; i++) {
                 Beatmap.LaserNode prev = seq.nodes.get(i - 1);
                 Beatmap.LaserNode curr = seq.nodes.get(i);
-
                 float duration = curr.offset - prev.offset;
 
-                if (duration <= 1.0f) {
-                    // It's a Slam! (Instant horizontal movement with 0ms duration)
-                    ticks++;
+                if (duration <= 100.0f) {
+                    // SLAM: Only add a tick at the exact End of the slam
+                    if (!seq.tickTimes.contains(curr.offset, false)) {
+                        seq.tickTimes.add(curr.offset);
+                    }
                 } else {
-                    // It's a continuous line! Calculate how many 50ms ticks fit inside it
-                    ticks += (int) (duration / TICK_INTERVAL_MS);
+                    // CONTINUOUS: Add ticks every 50ms
+                    float tickTime = prev.offset + 100.0f;
+                    while (tickTime < curr.offset) {
+                        if (!seq.tickTimes.contains(tickTime, false)) seq.tickTimes.add(tickTime);
+                        tickTime += 100.0f;
+                    }
                 }
             }
+
+
+            // 2. GUARANTEED: Add tick at the exact End of the laser
+            float lastOffset = seq.nodes.get(seq.nodes.size - 1).offset;
+            if (!seq.tickTimes.contains(lastOffset, false)) {
+                seq.tickTimes.add(lastOffset);
+            }
+
+            seq.tickTimes.sort(); // Ensure chronological order
+            ticks += seq.tickTimes.size; // Count exactly how many ticks were baked
         }
         return ticks;
     }

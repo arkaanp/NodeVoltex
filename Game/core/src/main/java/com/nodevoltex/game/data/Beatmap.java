@@ -32,6 +32,11 @@ public class Beatmap {
     // Wrapper class to prevent Type Erasure crashes
     public static class LaserSequence {
         public Array<LaserNode> nodes;
+
+        // --- Pre-baked tick engine variables ---
+        // 'transient' tells the JSON parser to ignore these variables when loading the file
+        public transient com.badlogic.gdx.utils.Array<Float> tickTimes;
+        public transient int nextTickIndex = 0;
     }
 
     public static class LaserNode {

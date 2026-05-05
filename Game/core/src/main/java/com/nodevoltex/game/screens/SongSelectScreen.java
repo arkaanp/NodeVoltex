@@ -328,7 +328,7 @@ public class SongSelectScreen implements Screen {
             // Gdx.audio natively supports .ogg and .mp3
             currentSongPreview = Gdx.audio.newMusic(Gdx.files.internal(filename));
             currentSongPreview.setLooping(true);
-            currentSongPreview.setVolume(0.5f);
+            currentSongPreview.setVolume(0.3f);
             currentSongPreview.play();
         } catch (Exception e) {
             System.out.println("Audio file not found or failed to load: " + filename);
