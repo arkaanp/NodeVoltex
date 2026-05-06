@@ -3,7 +3,7 @@ package com.nodevoltex.game.patterns;
 import com.nodevoltex.game.entities.LaserCursor;
 
 public class FreeState implements CursorState {
-    private final float FREE_SPEED = 2f;
+    private final float FREE_SPEED = 1.25f;
 
     @Override
     public void update(LaserCursor cursor, float delta) {

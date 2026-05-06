@@ -12,23 +12,22 @@ import com.nodevoltex.game.patterns.LockedState;
 public class LaserManager {
 
     // --- HELPER 1: Detect if a tick is the exact end of a Slam (< 100ms) ---
-    // Now ONLY applies to the absolute final 2 nodes of the entire sequence
     private boolean isTickASlamEnd(Beatmap.LaserSequence seq, float tickTime) {
-        // A sequence must have at least 2 nodes to have a distance
         if (seq.nodes.size < 2) return false;
 
-        // Grab ONLY the absolute last two nodes in the entire array
-        Beatmap.LaserNode secondToLast = seq.nodes.get(seq.nodes.size - 2);
-        Beatmap.LaserNode absoluteLast = seq.nodes.get(seq.nodes.size - 1);
+        // Check EVERY segment to see if this tick is the end of a fast movement
+        for (int i = 1; i < seq.nodes.size; i++) {
+            Beatmap.LaserNode prev = seq.nodes.get(i - 1);
+            Beatmap.LaserNode curr = seq.nodes.get(i);
 
-        // If the current tick happens exactly at the final node...
-        if (Math.abs(absoluteLast.offset - tickTime) < 1.0f) {
-            // ...AND the time between the last two nodes is < 100ms
-            if (absoluteLast.offset - secondToLast.offset <= 100f) {
-                return true;
+            // If this tick aligns exactly with this node...
+            if (Math.abs(curr.offset - tickTime) < 1.0f) {
+                // ...AND it is fast (<100ms) AND it moves horizontally (not a straight vertical line)
+                if (curr.offset - prev.offset <= 100f && Math.abs(curr.x - prev.x) > 0.01f) {
+                    return true;
+                }
             }
         }
-
         return false;
     }
 
@@ -69,6 +68,8 @@ public class LaserManager {
                     cursor.setState(new LockedState());
                     cursor.isMissed = false;
                     cursor.wasAutoSnapped = true;
+                    // --- THE FIX: Anchor the cursor perfectly to the first node! ---
+                    cursor.x = sequence.nodes.get(0).x;
                 }
 
                 // Setup the State Pattern targets
@@ -93,15 +94,23 @@ public class LaserManager {
                 while (sequence.nextTickIndex < sequence.tickTimes.size) {
                     float expectedTickTime = sequence.tickTimes.get(sequence.nextTickIndex);
 
+                    // If the song timeline has passed this baked tick's timestamp
                     if (currentTime >= expectedTickTime) {
+                        boolean isStartTick = (sequence.nextTickIndex == 0);
                         boolean isSlamEnd = isTickASlamEnd(sequence, expectedTickTime);
                         float targetLaserPos = calculateLaserPositionAtTime(sequence, expectedTickTime);
 
                         boolean isHit = false;
 
-                        if (isSlamEnd) {
-                            // --- SLAM LOGIC: Check Keyboard Input Intent ---
-                            // 1. Find where this slam started to determine direction
+                        if (isStartTick) {
+                            // --- START TICK LOGIC ---
+                            // If they just auto-snapped, or are physically close, it's a guaranteed hit!
+                            if (cursor.wasAutoSnapped || Math.abs(cursor.x - targetLaserPos) <= 0.40f) {
+                                isHit = true;
+                                cursor.x = targetLaserPos; // Lock it in
+                            }
+                        } else if (isSlamEnd) {
+                            // --- SLAM LOGIC ---
                             float slamStartX = targetLaserPos;
                             for (int i = 1; i < sequence.nodes.size; i++) {
                                 if (Math.abs(sequence.nodes.get(i).offset - expectedTickTime) < 1.0f) {
@@ -113,19 +122,18 @@ public class LaserManager {
                             float slamDirection = Math.signum(targetLaserPos - slamStartX);
                             boolean correctFlick = false;
 
-                            // 2. Check if the player is holding the correct direction key
+                            // Check intent based on direction
                             if (slamDirection > 0 && cursor.isMovingRight) correctFlick = true;
                             if (slamDirection < 0 && cursor.isMovingLeft) correctFlick = true;
 
-                            // 3. Hit condition: Correct input OR they are physically already there
-                            if (correctFlick || Math.abs(cursor.x - targetLaserPos) <= 0.15f) {
+                            // Hit if they flick correctly OR if they are physically parked there
+                            if (correctFlick || Math.abs(cursor.x - targetLaserPos) <= 0.30f) {
                                 isHit = true;
-                                cursor.x = targetLaserPos; // Force-snap the visual cursor so it doesn't lag!
+                                cursor.x = targetLaserPos; // Instantly teleport cursor to end of slam!
                             }
                         } else {
-                            // --- CONTINUOUS LOGIC: Check Physical Proximity ---
-                            // Standard 20% leniency window for normal lasers
-                            if (!cursor.isMissed && Math.abs(cursor.x - targetLaserPos) <= 0.20f) {
+                            // --- CONTINUOUS LOGIC ---
+                            if (Math.abs(cursor.x - targetLaserPos) <= 0.35f) {
                                 isHit = true;
                             }
                         }
@@ -134,10 +142,11 @@ public class LaserManager {
                         if (isHit) {
                             scoreManager.onLaserTick();
                             cursor.isMissed = false;
-                            if (cursor.wasAutoSnapped) cursor.setState(new LockedState());
+                            cursor.setState(new LockedState());
                         } else {
                             scoreManager.onMiss();
                             cursor.isMissed = true;
+                            cursor.setState(new com.nodevoltex.game.patterns.FreeState());
                         }
 
                         sequence.nextTickIndex++;

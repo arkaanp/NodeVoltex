@@ -42,7 +42,7 @@ public class PlayScreen implements Screen {
     // Time & Math Variables
     private float currentAudioTimeMs = -2000f;
     private boolean hasAudioStarted = false;
-    private final float BASE_SCROLL_SPEED = 1.0f;
+    private final float BASE_SCROLL_SPEED = 1.2f;
     private float hiSpeedMult = 1.0f;
 
     // Playfield Dimensions
