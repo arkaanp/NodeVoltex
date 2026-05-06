@@ -23,11 +23,11 @@ public class InputController {
         laneIsPressed[4] = Gdx.input.isKeyPressed(Input.Keys.T) || Gdx.input.isKeyPressed(Input.Keys.O);
 
         // FX Buttons (Lane 5 = Left FX, Lane 6 = Right FX)
-        laneJustPressed[5] = Gdx.input.isKeyJustPressed(Input.Keys.X);
-        laneJustPressed[6] = Gdx.input.isKeyJustPressed(Input.Keys.M);
+        laneJustPressed[5] = Gdx.input.isKeyJustPressed(Input.Keys.X) || Gdx.input.isKeyJustPressed(Input.Keys.N);
+        laneJustPressed[6] = Gdx.input.isKeyJustPressed(Input.Keys.M) || Gdx.input.isKeyJustPressed(Input.Keys.C);
 
-        laneIsPressed[5] = Gdx.input.isKeyPressed(Input.Keys.X);
-        laneIsPressed[6] = Gdx.input.isKeyPressed(Input.Keys.M);
+        laneIsPressed[5] = Gdx.input.isKeyPressed(Input.Keys.X) || Gdx.input.isKeyPressed(Input.Keys.N);
+        laneIsPressed[6] = Gdx.input.isKeyPressed(Input.Keys.M) || Gdx.input.isKeyPressed(Input.Keys.C);
 
         // --- 1. HEAD HITS (Taps & Initial Hold Presses) ---
         for (int lane = 1; lane <= 6; lane++) {
