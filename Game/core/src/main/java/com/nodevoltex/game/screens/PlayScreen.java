@@ -38,6 +38,7 @@ public class PlayScreen implements Screen {
     private final Viewport viewport;
     private String mapFilePath;
     private Music music;
+    private com.badlogic.gdx.audio.Sound slamSound;
 
     // Time & Math Variables
     private float currentAudioTimeMs = -2000f;
@@ -107,6 +108,7 @@ public class PlayScreen implements Screen {
         // --- 3. LOAD THE DYNAMIC AUDIO ---
         com.badlogic.gdx.files.FileHandle jsonFile = Gdx.files.internal(mapFilePath);
         com.badlogic.gdx.files.FileHandle audioFile = jsonFile.parent().child(this.beatmap.general.audioFilename);
+        slamSound = Gdx.audio.newSound(Gdx.files.internal("assets/audio/laser_slam1.wav"));
 
         try {
             if (audioFile.exists()) {
@@ -234,8 +236,8 @@ public class PlayScreen implements Screen {
 
             // Process Laser Interpolation & States
             if (beatmap.lasers != null) {
-                laserManager.updateCursor(leftCursor, beatmap.lasers.left, currentAudioTimeMs, delta, scoreManager);
-                laserManager.updateCursor(rightCursor, beatmap.lasers.right, currentAudioTimeMs, delta, scoreManager);
+                laserManager.updateCursor(leftCursor, beatmap.lasers.left, currentAudioTimeMs, delta, scoreManager, slamSound);
+                laserManager.updateCursor(rightCursor, beatmap.lasers.right, currentAudioTimeMs, delta, scoreManager, slamSound);
             }
 
             // --- CLEAR SCREEN & SETUP CAMERA ---
@@ -493,5 +495,8 @@ public class PlayScreen implements Screen {
     public void dispose() {
         font.dispose();
         pauseStage.dispose();
+        if (slamSound != null) {
+            slamSound.dispose();
+        }
     }
 }

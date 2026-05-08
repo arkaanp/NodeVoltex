@@ -11,24 +11,57 @@ import com.nodevoltex.game.patterns.LockedState;
 
 public class LaserManager {
 
-    // --- HELPER 1: Detect if a tick is the exact end of a Slam (< 100ms) ---
-    private boolean isTickASlamEnd(Beatmap.LaserSequence seq, float tickTime) {
-        if (seq.nodes.size < 2) return false;
+    // --- HELPER 1: Finds the Slam and returns its exact Index (< 50ms threshold) ---
+    private int getSlamEndNodeIndex(Beatmap.LaserSequence seq, float tickTime) {
+        if (seq.nodes.size < 2) return -1;
 
-        // Check EVERY segment to see if this tick is the end of a fast movement
         for (int i = 1; i < seq.nodes.size; i++) {
             Beatmap.LaserNode prev = seq.nodes.get(i - 1);
             Beatmap.LaserNode curr = seq.nodes.get(i);
 
-            // If this tick aligns exactly with this node...
+            // If this tick aligns with this node, AND it's < 50ms, AND it moved horizontally
             if (Math.abs(curr.offset - tickTime) < 1.0f) {
-                // ...AND it is fast (<100ms) AND it moves horizontally (not a straight vertical line)
-                if (curr.offset - prev.offset <= 100f && Math.abs(curr.x - prev.x) > 0.01f) {
-                    return true;
+                if (curr.offset - prev.offset < 50f && Math.abs(curr.x - prev.x) > 0.01f) {
+                    return i;
                 }
             }
         }
-        return false;
+        return -1;
+    }
+
+    // --- HELPER 2: The Curve-Prevention Math (Look-Ahead / Look-Behind) ---
+    private boolean shouldPlayHitsound(Beatmap.LaserSequence seq, int slamNodeIndex) {
+        if (slamNodeIndex < 1) return false;
+
+        Beatmap.LaserNode curr = seq.nodes.get(slamNodeIndex);
+        Beatmap.LaserNode prev = seq.nodes.get(slamNodeIndex - 1);
+        float currentDirection = Math.signum(curr.x - prev.x);
+
+        // 1. LOOK-BEHIND: The segment BEFORE this must be vertical, nothing, OR in a DIFFERENT direction.
+        if (slamNodeIndex >= 2) {
+            Beatmap.LaserNode prevPrev = seq.nodes.get(slamNodeIndex - 2);
+            float prevDirection = Math.signum(prev.x - prevPrev.x);
+
+            // If the previous segment was moving in the EXACT SAME direction, it's a smooth curve!
+            // (e.g., Left -> Left, or Right -> Right). Do NOT play the sound.
+            if (prevDirection == currentDirection) {
+                return false;
+            }
+        }
+
+        // 2. LOOK-AHEAD: The segment AFTER this must not continue in the same direction.
+        if (slamNodeIndex < seq.nodes.size - 1) {
+            Beatmap.LaserNode next = seq.nodes.get(slamNodeIndex + 1);
+            float nextDirection = Math.signum(next.x - curr.x);
+
+            // If it keeps going the same way (e.g. 0.5 -> 0.6 -> 0.7), it's a curve!
+            if (nextDirection == currentDirection) {
+                return false;
+            }
+        }
+
+        // If it passed all checks, it is a true, isolated flick or a sharp zig-zag!
+        return true;
     }
 
     // --- HELPER 2: Mathematically calculate where the laser visually is at any given ms ---
@@ -50,7 +83,8 @@ public class LaserManager {
         return sequence.nodes.get(sequence.nodes.size - 1).x;
     }
 
-    public void updateCursor(LaserCursor cursor, Array<Beatmap.LaserSequence> laserData, float currentTime, float delta, ScoreManager scoreManager) {
+    public void updateCursor(LaserCursor cursor, Array<Beatmap.LaserSequence> laserData, float currentTime, float delta, ScoreManager scoreManager,
+                             com.badlogic.gdx.audio.Sound slamSound) {
         if (laserData == null) return;
         boolean isCurrentlyOnLaser = false;
 
@@ -95,41 +129,46 @@ public class LaserManager {
                     float expectedTickTime = sequence.tickTimes.get(sequence.nextTickIndex);
 
                     // If the song timeline has passed this baked tick's timestamp
+                    // If the song timeline has passed this baked tick's timestamp
                     if (currentTime >= expectedTickTime) {
                         boolean isStartTick = (sequence.nextTickIndex == 0);
-                        boolean isSlamEnd = isTickASlamEnd(sequence, expectedTickTime);
-                        float targetLaserPos = calculateLaserPositionAtTime(sequence, expectedTickTime);
 
+                        // NEW: Grab the exact index of the slam to speed up math
+                        int slamNodeIndex = getSlamEndNodeIndex(sequence, expectedTickTime);
+                        boolean isSlamEnd = (slamNodeIndex != -1);
+
+                        float targetLaserPos = calculateLaserPositionAtTime(sequence, expectedTickTime);
                         boolean isHit = false;
 
                         if (isStartTick) {
                             // --- START TICK LOGIC ---
-                            // If they just auto-snapped, or are physically close, it's a guaranteed hit!
                             if (cursor.wasAutoSnapped || Math.abs(cursor.x - targetLaserPos) <= 0.40f) {
                                 isHit = true;
-                                cursor.x = targetLaserPos; // Lock it in
+                                cursor.x = targetLaserPos;
                             }
                         } else if (isSlamEnd) {
                             // --- SLAM LOGIC ---
-                            float slamStartX = targetLaserPos;
-                            for (int i = 1; i < sequence.nodes.size; i++) {
-                                if (Math.abs(sequence.nodes.get(i).offset - expectedTickTime) < 1.0f) {
-                                    slamStartX = sequence.nodes.get(i - 1).x;
-                                    break;
-                                }
-                            }
-
+                            // We don't need a for-loop anymore! We know the exact start index!
+                            float slamStartX = sequence.nodes.get(slamNodeIndex - 1).x;
                             float slamDirection = Math.signum(targetLaserPos - slamStartX);
                             boolean correctFlick = false;
 
-                            // Check intent based on direction
+                            // Check Intent
                             if (slamDirection > 0 && cursor.isMovingRight) correctFlick = true;
                             if (slamDirection < 0 && cursor.isMovingLeft) correctFlick = true;
 
-                            // Hit if they flick correctly OR if they are physically parked there
+                            // Hit if correct flick, OR if they were just safely parked there
                             if (correctFlick || Math.abs(cursor.x - targetLaserPos) <= 0.30f) {
                                 isHit = true;
-                                cursor.x = targetLaserPos; // Instantly teleport cursor to end of slam!
+                                cursor.x = targetLaserPos;
+
+                                // --- HITSOUND LOGIC ---
+                                // ONLY play if they actively pressed the correct key AND it's not a curve
+                                if (correctFlick && slamSound != null) {
+                                    if (shouldPlayHitsound(sequence, slamNodeIndex)) {
+                                        slamSound.play(0.35f);
+                                    }
+                                }
                             }
                         } else {
                             // --- CONTINUOUS LOGIC ---
