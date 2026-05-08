@@ -1,5 +1,7 @@
 package com.nodevoltex.game; // Make sure this matches your actual package name!
 
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -31,7 +33,29 @@ public class NodeVoltex extends Game {
         pixmap.setColor(com.badlogic.gdx.graphics.Color.WHITE);
         pixmap.fill();
         skin.add("white", new com.badlogic.gdx.graphics.Texture(pixmap));
-        skin.add("default", new com.badlogic.gdx.graphics.g2d.BitmapFont());
+
+        // --- NEW: FREETYPE FONT GENERATION ---
+        // 1. Load the raw .ttf file
+        FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("Montserrat-Light.ttf"));
+        FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+
+        // 2. Customize the font parameters
+        parameter.size = 24; // Set your desired font size here
+        parameter.color = com.badlogic.gdx.graphics.Color.WHITE;
+
+        // Optional: You can add borders, shadows, or filters right here!
+        // parameter.borderWidth = 1f;
+        // parameter.borderColor = com.badlogic.gdx.graphics.Color.BLACK;
+        // parameter.minFilter = com.badlogic.gdx.graphics.Texture.TextureFilter.Linear;
+        // parameter.magFilter = com.badlogic.gdx.graphics.Texture.TextureFilter.Linear;
+
+        // 3. Generate the BitmapFont and immediately dispose of the generator
+        com.badlogic.gdx.graphics.g2d.BitmapFont customFont = generator.generateFont(parameter);
+        generator.dispose(); // CRITICAL: Always dispose to prevent memory leaks
+
+        // 4. Inject it into your skin as the default font!
+        skin.add("default", customFont);
+
 
         com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle textButtonStyle = new com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle();
 
@@ -56,6 +80,25 @@ public class NodeVoltex extends Game {
         skin.add("default", labelStyle);
 
         skin.add("default", new com.badlogic.gdx.scenes.scene2d.ui.ScrollPane.ScrollPaneStyle());
+
+        // --- NEW: Add TextField Style ---
+        com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle textFieldStyle = new com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle();
+
+        // 1. Set the font and text color
+        textFieldStyle.font = skin.getFont("default");
+        textFieldStyle.fontColor = com.badlogic.gdx.graphics.Color.WHITE;
+
+        // 2. CRITICAL: A TextField must have a cursor, or it will crash when you click it!
+        // We can just use a thin slice of your "white" texture colored white.
+        textFieldStyle.cursor = skin.newDrawable("white", com.badlogic.gdx.graphics.Color.WHITE);
+        // Make the cursor actually look like a cursor (1 pixel wide)
+        textFieldStyle.cursor.setMinWidth(1f);
+
+        // 3. Selection background (what it looks like when you highlight text to copy/paste)
+        textFieldStyle.selection = skin.newDrawable("white", com.badlogic.gdx.graphics.Color.valueOf("#FF339980")); // Semi-transparent pink
+
+        // 4. Inject it into the skin
+        skin.add("default", textFieldStyle);
     }
 
     @Override
