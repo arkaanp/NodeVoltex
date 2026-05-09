@@ -59,12 +59,13 @@ public class SongSelectScreen implements Screen {
         stage.addActor(rootTable);
 
         leftPanel = new StatsPanel(NodeVoltex.skin);
+        leftPanel.setTransform(true); //
 
-        // --- Pass mainMenuMusic into the right panel ---
         SongListPanel rightPanel = new SongListPanel(game, NodeVoltex.skin, leftPanel, mainMenuMusic);
         TopSearchBar searchBar = new TopSearchBar(NodeVoltex.skin, rightPanel);
 
         rightColumn = new Table();
+        rightColumn.setTransform(true); //
         rightColumn.add(searchBar).expandX().fillX().height(60).row();
         rightColumn.add(rightPanel).expand().fill();
 
@@ -128,13 +129,38 @@ public class SongSelectScreen implements Screen {
     private void animateInFromBottom() {
         float h = Gdx.graphics.getHeight();
 
-        // 1. Move only the UI down (Leave bgImage alone!)
-        rootTable.addAction(Actions.moveBy(0, -h));
+        leftPanel.addAction(Actions.moveBy(0, -h));
+        rightColumn.addAction(Actions.moveBy(0, -h));
         backTable.addAction(Actions.moveBy(0, -h));
 
-        // 2. Animate the UI up into place over the already-placed background
-        rootTable.addAction(Actions.moveBy(0, h, 0.7f, Interpolation.pow4Out));
-        backTable.addAction(Actions.sequence(Actions.delay(0.15f), Actions.moveBy(0, h, 0.7f, Interpolation.pow4Out)));
+        leftPanel.getColor().a = 0f;
+        rightColumn.getColor().a = 0f;
+        backTable.getColor().a = 0f;
+
+        leftPanel.addAction(Actions.sequence(
+            Actions.delay(0.05f),
+            Actions.parallel(
+                Actions.moveBy(0, h, 0.9f, Interpolation.pow3Out),
+                Actions.fadeIn(0.7f, Interpolation.pow2Out)
+            )
+        ));
+
+        // --- TWEAKED: Increased delay from 0.15s to 0.20s to make the stagger more visible ---
+        rightColumn.addAction(Actions.sequence(
+            Actions.delay(0.20f),
+            Actions.parallel(
+                Actions.moveBy(0, h, 0.9f, Interpolation.pow3Out),
+                Actions.fadeIn(0.8f, Interpolation.pow2Out)
+            )
+        ));
+
+        backTable.addAction(Actions.sequence(
+            Actions.delay(0.25f),
+            Actions.parallel(
+                Actions.moveBy(0, h, 0.8f, Interpolation.pow3Out),
+                Actions.fadeIn(0.5f, Interpolation.pow2Out)
+            )
+        ));
     }
 
     private void animateOutDownwards() {
@@ -143,13 +169,36 @@ public class SongSelectScreen implements Screen {
         bgImage.addAction(Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In));
         prevBgImage.addAction(Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In));
 
-        // Animate the entire UI down together
-        rootTable.addAction(Actions.moveBy(0, -h, 0.7f, Interpolation.pow4In));
+        // --- TWEAKED: The alpha fade waits 0.35s before triggering ---
+        leftPanel.addAction(Actions.parallel(
+            Actions.moveBy(0, -h, 0.7f, Interpolation.pow3In),
+            Actions.sequence(
+                Actions.delay(0.35f),
+                Actions.alpha(0.4f, 0.35f, Interpolation.linear)
+            )
+        ));
+
+        rightColumn.addAction(Actions.sequence(
+            Actions.delay(0.05f),
+            Actions.parallel(
+                Actions.moveBy(0, -h, 0.7f, Interpolation.pow3In),
+                Actions.sequence(
+                    Actions.delay(0.35f),
+                    Actions.alpha(0.4f, 0.35f, Interpolation.linear)
+                )
+            )
+        ));
 
         backTable.addAction(Actions.sequence(
-            Actions.delay(0.15f),
-            Actions.moveBy(0, -h, 0.7f, Interpolation.pow4In),
-            Actions.delay(0.15f),
+            Actions.delay(0.1f),
+            Actions.parallel(
+                Actions.moveBy(0, -h, 0.7f, Interpolation.pow3In),
+                Actions.sequence(
+                    Actions.delay(0.35f),
+                    Actions.alpha(0.4f, 0.35f, Interpolation.linear)
+                )
+            ),
+            Actions.delay(0.2f),
             Actions.run(() -> game.setScreen(new MainMenuScreen(game)))
         ));
     }
