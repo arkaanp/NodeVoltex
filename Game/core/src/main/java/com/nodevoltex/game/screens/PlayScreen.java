@@ -130,11 +130,21 @@ public class PlayScreen implements Screen {
         laserManager = new LaserManager();
         scoreManager = new ScoreManager(new StrictJudgment());
 
-        // --- THE FIX: Accurately count the Head and Tail of Hold Notes! ---
-        int totalNotes = countTotalNoteHits(this.beatmap);
+        // --- THE FIX: Separate Note Heads and Hold Tails ---
+        int totalNotes = 0;
+        int totalReleases = 0;
+        if (this.beatmap != null && this.beatmap.hitObjects != null) {
+            for (Beatmap.HitObject note : this.beatmap.hitObjects) {
+                totalNotes++; // Every single note has an initial press
+                if ("HOLD".equals(note.type)) {
+                    totalReleases++; // Only HOLD notes have a release tail
+                }
+            }
+        }
         int totalLaserTicks = bakeAndCountLaserTicks(this.beatmap);
 
-        scoreManager.setMaxPossibleScore(totalNotes, totalLaserTicks);
+        // Now it perfectly satisfies the new 3-argument requirement!
+        scoreManager.setMaxPossibleScore(totalNotes, totalReleases, totalLaserTicks);
 
         activeNotes = new Array<>();
         leftCursor = new LaserCursor(true, Input.Keys.NUM_2, Input.Keys.NUM_3);
@@ -304,7 +314,7 @@ public class PlayScreen implements Screen {
 
             // Miss Detection
             if (!note.wasHeadHit && !note.isMissed && currentAudioTimeMs - note.startTime > 150.0f) {
-                scoreManager.onMiss();
+                scoreManager.onMiss("NOTE"); // <--- ADD "NOTE" HERE
                 note.isMissed = true;
             }
 
@@ -517,20 +527,20 @@ public class PlayScreen implements Screen {
         return totalTicks;
     }
 
-    // --- NEW: Calculate exact note hits (Hold = 2, Chip = 1) ---
-    private int countTotalNoteHits(Beatmap beatmap) {
-        if (beatmap == null || beatmap.hitObjects == null) return 0;
-        int totalHits = 0;
-
-        for (Beatmap.HitObject note : beatmap.hitObjects) {
-            if ("HOLD".equals(note.type)) {
-                totalHits += 2; // 1 for the initial press, 1 for the release
-            } else {
-                totalHits += 1; // 1 for the standard tap
-            }
-        }
-        return totalHits;
-    }
+    // --- Calculate exact note hits (Hold = 2, Chip = 1) ---
+//    private int countTotalNoteHits(Beatmap beatmap) {
+//        if (beatmap == null || beatmap.hitObjects == null) return 0;
+//        int totalHits = 0;
+//
+//        for (Beatmap.HitObject note : beatmap.hitObjects) {
+//            if ("HOLD".equals(note.type)) {
+//                totalHits += 2; // 1 for the initial press, 1 for the release
+//            } else {
+//                totalHits += 1; // 1 for the standard tap
+//            }
+//        }
+//        return totalHits;
+//    }
 
     @Override
     public void dispose() {

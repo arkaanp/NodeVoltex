@@ -1,75 +1,97 @@
 package com.nodevoltex.game.managers;
 
-import com.nodevoltex.game.patterns.GameArchitecture;
+import com.nodevoltex.game.patterns.StrictJudgment;
 
-public class ScoreManager implements GameArchitecture.HitObserver {
+public class ScoreManager {
     public int combo = 0;
     public int maxCombo = 0;
     public String latestJudgment = "";
 
-    // --- NEW: Stat Trackers ---
-    public int sCriticals = 0;
-    public int criticals = 0;
-    public int nears = 0;
-    public int misses = 0;
+    // --- NEW: Detailed Arcade Stat Trackers ---
+    public static class StatCategory {
+        public int sCriticals = 0, criticals = 0, nears = 0, mids = 0, fars = 0, misses = 0;
+        public int early = 0, late = 0;
+    }
 
-    // Internal score weighting (e.g., S-Crit = 2, Crit = 1, Near = 0.5)
+    public StatCategory noteStats = new StatCategory();
+    public StatCategory releaseStats = new StatCategory();
+
+    public int laserTicks = 0;
+    public int laserMisses = 0;
+
     private float currentHitScore = 0f;
     private float maxHitScore = 0f;
 
-    private final GameArchitecture.JudgmentStrategy judgmentStrategy;
+    private final StrictJudgment judgmentStrategy;
 
-    public ScoreManager(GameArchitecture.JudgmentStrategy strategy) {
+    public ScoreManager(StrictJudgment strategy) {
         this.judgmentStrategy = strategy;
     }
 
-    // Call this before the map starts to set the maximum possible points
-    public void setMaxPossibleScore(int totalNotes, int totalLaserTicks) {
-        // Assuming S-Criticals are worth 2 points, and laser ticks are worth 2 points
-        this.maxHitScore = (totalNotes * 2f) + (totalLaserTicks * 1.5f);
+    // We now split Notes and Releases for the Max Score math!
+    public void setMaxPossibleScore(int totalNotes, int totalReleases, int totalLaserTicks) {
+        this.maxHitScore = (totalNotes * 2.0f) + (totalReleases * 2.0f) + (totalLaserTicks * 1.5f);
     }
 
-    @Override
-    public void onHit(float diffMs) {
-        latestJudgment = judgmentStrategy.evaluateJudgment(diffMs);
-        combo++;
-        if (combo > maxCombo) maxCombo = combo;
+    public void onHit(float diffMs, String type) {
+        StrictJudgment.JudgmentResult result = judgmentStrategy.evaluateJudgment(diffMs, type);
+        StatCategory stats = type.equals("RELEASE") ? releaseStats : noteStats;
 
-        switch (latestJudgment) {
-            case "S-CRITICAL": sCriticals++; currentHitScore += 2f; break;
-            case "CRITICAL":   criticals++;  currentHitScore += 2f; break;
-            case "NEAR":       nears++;      currentHitScore += 1f; break;
+        if (!result.tier.equals("MISS")) {
+            combo++;
+            if (combo > maxCombo) maxCombo = combo;
+        } else {
+            combo = 0;
+        }
+
+        // Only update UI text for Notes/Releases, and format it clearly (e.g., "NEAR EARLY")
+        if (!result.tier.equals("S-CRITICAL") && !result.tier.equals("MISS")) {
+            latestJudgment = result.tier + " " + result.timing;
+        } else {
+            latestJudgment = result.tier;
+        }
+
+        // Log Timing
+        if (result.timing.equals("EARLY")) stats.early++;
+        if (result.timing.equals("LATE"))  stats.late++;
+
+        // Apply Points (Weights can be tweaked here)
+        switch (result.tier) {
+            case "S-CRITICAL": stats.sCriticals++; currentHitScore += 2.0f; break;
+            case "CRITICAL":   stats.criticals++;  currentHitScore += 1.99f; break;
+            case "NEAR":       stats.nears++;      currentHitScore += 1.0f; break;
+            case "MID":        stats.mids++;       currentHitScore += 0.5f; break;
+            case "FAR":        stats.fars++;       currentHitScore += 0.1f; break;
+            case "MISS":       stats.misses++;     break;
         }
     }
 
-    @Override
-    public void onMiss() {
-        latestJudgment = "MISS";
+    public void onMiss(String type) {
         combo = 0;
-        misses++;
+        latestJudgment = "MISS";
+
+        if (type.equals("NOTE")) noteStats.misses++;
+        else if (type.equals("RELEASE")) releaseStats.misses++;
+        else if (type.equals("LASER")) laserMisses++;
     }
 
-    @Override
+    // Called natively by the LaserManager
     public void onLaserTick() {
         combo++;
         if (combo > maxCombo) maxCombo = combo;
-        // Lasers act like perfect holds
-        sCriticals++;
+        laserTicks++;
         currentHitScore += 1.5f;
+        // Notice we do NOT update latestJudgment here, keeping the UI clean!
     }
 
-    // --- NEW: Calculate 10,000,000 Score ---
     public int getFinalScore() {
         if (maxHitScore == 0) return 0;
-        // Formula adapted from the C++ source: (Current / Max) * 10,000,000
         double ratio = (double) currentHitScore / (double) maxHitScore;
         return (int) (ratio * 10000000.0);
     }
 
-    // --- NEW: Calculate Letter Grade ---
     public String getGrade() {
         int score = getFinalScore();
-
         if (score >= 9900000) return "S";
         if (score >= 9800000) return "AAA+";
         if (score >= 9700000) return "AAA";
@@ -79,7 +101,6 @@ public class ScoreManager implements GameArchitecture.HitObserver {
         if (score >= 8700000) return "A";
         if (score >= 7500000) return "B";
         if (score >= 6500000) return "C";
-
         return "D";
     }
 }

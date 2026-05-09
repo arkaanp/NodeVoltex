@@ -16,7 +16,6 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.nodevoltex.game.NodeVoltex;
 import com.nodevoltex.game.data.Beatmap;
 import com.nodevoltex.game.managers.ScoreManager;
-import com.badlogic.gdx.Preferences;
 
 public class ScoreScreen implements Screen {
     private final NodeVoltex game;
@@ -52,7 +51,6 @@ public class ScoreScreen implements Screen {
         Table statsTable = new Table();
         statsTable.align(Align.topRight);
 
-        // 1. Get the final score and grade
         int finalScore = scoreManager.getFinalScore();
         String grade = scoreManager.getGrade();
 
@@ -63,7 +61,6 @@ public class ScoreScreen implements Screen {
 
         com.nodevoltex.game.data.ScoreHistory history = new com.nodevoltex.game.data.ScoreHistory();
 
-        // Load the existing list of scores (if it exists)
         if (saveFile.exists()) {
             try {
                 history = json.fromJson(com.nodevoltex.game.data.ScoreHistory.class, saveFile);
@@ -77,56 +74,104 @@ public class ScoreScreen implements Screen {
         com.nodevoltex.game.data.SaveData newData = new com.nodevoltex.game.data.SaveData();
         newData.score = finalScore;
         newData.grade = grade;
-        newData.timestamp = System.currentTimeMillis(); // Stamp it with the current date/time
+        newData.timestamp = System.currentTimeMillis();
+
+        // --- NEW: Inject Arcade Stats into Save Data ---
+        // (We do this AFTER we calculated totalSCrit, totalEarly, etc. further down,
+        // so you might need to move this saving block slightly lower in your code,
+        // OR calculate the totals right here!)
+
+        int totalSCrit = scoreManager.noteStats.sCriticals + scoreManager.releaseStats.sCriticals;
+        int totalCrit = scoreManager.noteStats.criticals + scoreManager.releaseStats.criticals;
+        int totalNear = scoreManager.noteStats.nears + scoreManager.releaseStats.nears;
+        int totalMid = scoreManager.noteStats.mids + scoreManager.releaseStats.mids;
+        int totalFar = scoreManager.noteStats.fars + scoreManager.releaseStats.fars;
+        int totalMiss = scoreManager.noteStats.misses + scoreManager.releaseStats.misses;
+
+        int totalEarly = scoreManager.noteStats.early + scoreManager.releaseStats.early;
+        int totalLate = scoreManager.noteStats.late + scoreManager.releaseStats.late;
+
+        newData.maxCombo = scoreManager.maxCombo;
+        newData.sCriticals = totalSCrit;
+        newData.criticals = totalCrit;
+        newData.nears = totalNear;
+        newData.mids = totalMid;
+        newData.fars = totalFar;
+        newData.misses = totalMiss;
+        newData.laserTicks = scoreManager.laserTicks;
+        newData.laserMisses = scoreManager.laserMisses;
+        newData.early = totalEarly;
+        newData.late = totalLate;
 
         // Add it to the history array and save!
         history.plays.add(newData);
         saveFile.writeString(json.prettyPrint(history), false);
 
-        // --- NEW: THE GRADE DISPLAY ---
-        //String grade = scoreManager.getGrade();
+        // --- THE GRADE DISPLAY ---
         Label gradeLabel = new Label(grade, skin);
-        gradeLabel.setFontScale(6.0f); // Make the grade absolutely massive!
+        gradeLabel.setFontScale(6.0f);
 
-        // Add some arcade flair by color-coding the grade
         if (grade.equals("S")) gradeLabel.setColor(Color.GOLD);
         else if (grade.startsWith("A")) gradeLabel.setColor(Color.CYAN);
         else if (grade.equals("B")) gradeLabel.setColor(Color.GREEN);
         else if (grade.equals("C")) gradeLabel.setColor(Color.ORANGE);
-        else gradeLabel.setColor(Color.RED); // D grade
+        else gradeLabel.setColor(Color.RED);
 
         statsTable.add(gradeLabel).align(Align.right).padBottom(10).row();
 
-
-        // 1. Format the 8-Digit Score (e.g., "0987" and "6543")
-        //int finalScore = scoreManager.getFinalScore();
+        // --- THE SCORE DISPLAY ---
         String scoreString = String.format("%08d", finalScore);
         String firstHalf = scoreString.substring(0, 4);
         String secondHalf = scoreString.substring(4, 8);
 
         Table scoreNumberTable = new Table();
         Label bigScore = new Label(firstHalf, skin);
-        bigScore.setFontScale(3.5f); // Massive first 4 digits
+        bigScore.setFontScale(3.5f);
         bigScore.setColor(Color.YELLOW);
 
         Label smallScore = new Label(secondHalf, skin);
-        smallScore.setFontScale(2.0f); // Smaller last 4 digits
+        smallScore.setFontScale(2.0f);
         smallScore.setColor(Color.YELLOW);
 
         scoreNumberTable.add(bigScore).align(Align.bottom);
-        scoreNumberTable.add(smallScore).align(Align.bottom).padBottom(8); // Align baselines
+        scoreNumberTable.add(smallScore).align(Align.bottom).padBottom(8);
 
         statsTable.add(new Label("RESULT SCORE", skin)).align(Align.right).row();
         statsTable.add(scoreNumberTable).align(Align.right).padBottom(20).row();
 
+        // --- THE NEW ARCADE STATS AGGREGATION ---
+//        int totalSCrit = scoreManager.noteStats.sCriticals + scoreManager.releaseStats.sCriticals;
+//        int totalCrit = scoreManager.noteStats.criticals + scoreManager.releaseStats.criticals;
+//        int totalNear = scoreManager.noteStats.nears + scoreManager.releaseStats.nears;
+//        int totalMid = scoreManager.noteStats.mids + scoreManager.releaseStats.mids;
+//        int totalFar = scoreManager.noteStats.fars + scoreManager.releaseStats.fars;
+//        int totalMiss = scoreManager.noteStats.misses + scoreManager.releaseStats.misses;
+//
+//        int totalEarly = scoreManager.noteStats.early + scoreManager.releaseStats.early;
+//        int totalLate = scoreManager.noteStats.late + scoreManager.releaseStats.late;
 
-
-        // 2. Judgment Counts
+        // --- STATS RENDERING ---
         statsTable.add(createStatRow("MAX COMBO", String.valueOf(scoreManager.maxCombo), Color.WHITE)).align(Align.right).padBottom(10).row();
-        statsTable.add(createStatRow("S-CRITICAL", String.valueOf(scoreManager.sCriticals), Color.YELLOW)).align(Align.right).row();
-        statsTable.add(createStatRow("CRITICAL", String.valueOf(scoreManager.criticals), Color.ORANGE)).align(Align.right).row();
-        statsTable.add(createStatRow("NEAR", String.valueOf(scoreManager.nears), Color.GREEN)).align(Align.right).row();
-        statsTable.add(createStatRow("MISS", String.valueOf(scoreManager.misses), Color.RED)).align(Align.right).row();
+        statsTable.add(createStatRow("S-CRITICAL", String.valueOf(totalSCrit), Color.YELLOW)).align(Align.right).row();
+        statsTable.add(createStatRow("CRITICAL", String.valueOf(totalCrit), Color.ORANGE)).align(Align.right).row();
+        statsTable.add(createStatRow("NEAR", String.valueOf(totalNear), Color.GREEN)).align(Align.right).row();
+        statsTable.add(createStatRow("MID", String.valueOf(totalMid), Color.ROYAL)).align(Align.right).row();
+        statsTable.add(createStatRow("FAR", String.valueOf(totalFar), Color.SCARLET)).align(Align.right).row();
+        statsTable.add(createStatRow("MISS", String.valueOf(totalMiss), Color.RED)).align(Align.right).padBottom(10).row();
+
+        // --- LASER STATS ---
+        statsTable.add(createStatRow("LASER TICKS", String.valueOf(scoreManager.laserTicks), Color.CYAN)).align(Align.right).row();
+        statsTable.add(createStatRow("LASER MISS", String.valueOf(scoreManager.laserMisses), Color.MAGENTA)).align(Align.right).padBottom(10).row();
+
+        // --- EARLY / LATE TRACKING ---
+        Table timingTable = new Table();
+        Label earlyLbl = new Label("EARLY: " + totalEarly, skin);
+        earlyLbl.setColor(Color.SKY);
+        Label lateLbl = new Label("LATE: " + totalLate, skin);
+        lateLbl.setColor(Color.CORAL);
+        timingTable.add(earlyLbl).padRight(20);
+        timingTable.add(lateLbl);
+        statsTable.add(timingTable).align(Align.right).row();
 
         // Add panels to root
         rootTable.add(metaTable).expand().fill().align(Align.topLeft);
@@ -137,7 +182,6 @@ public class ScoreScreen implements Screen {
         exitBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                System.out.println("BATON PASS 1 (ScoreScreen): Handing off -> " + mapFilePath);
                 game.setScreen(new SongSelectScreen(game, null, mapFilePath));
             }
         });
