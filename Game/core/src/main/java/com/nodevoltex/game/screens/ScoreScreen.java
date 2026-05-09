@@ -137,7 +137,8 @@ public class ScoreScreen implements Screen {
         exitBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                game.setScreen(new SongSelectScreen(game));
+                System.out.println("BATON PASS 1 (ScoreScreen): Handing off -> " + mapFilePath);
+                game.setScreen(new SongSelectScreen(game, null, mapFilePath));
             }
         });
         rootTable.add(exitBtn).colspan(2).align(Align.bottomRight).padTop(20);

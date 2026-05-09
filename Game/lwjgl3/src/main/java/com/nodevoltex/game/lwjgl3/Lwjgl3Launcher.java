@@ -21,17 +21,24 @@ public class Lwjgl3Launcher {
         //// Vsync limits the frames per second to what your hardware can display, and helps eliminate
         //// screen tearing. This setting doesn't always work on Linux, so the line after is a safeguard.
         configuration.useVsync(true);
-        //// Limits FPS to the refresh rate of the currently active monitor, plus 1 to try to match fractional
-        //// refresh rates. The Vsync setting above should limit the actual FPS to match the monitor.
-        configuration.setForegroundFPS(Lwjgl3ApplicationConfiguration.getDisplayMode().refreshRate + 1);
-        //// If you remove the above line and set Vsync to false, you can get unlimited FPS, which can be
-        //// useful for testing performance, but can also be very stressful to some hardware.
-        //// You may also need to configure GPU drivers to fully disable Vsync; this can cause screen tearing.
+        // --- NEW: Windowed Fullscreen Settings ---
 
-        configuration.setWindowedMode(1280, 720);
-        //// You can change these files; they are in lwjgl3/src/main/resources/ .
-        //// They can also be loaded from the root of assets/ .
+        // 1. Maximize the window automatically on startup.
+        // This natively respects the Windows taskbar bounds.
+        configuration.setMaximized(true);
+
+        // 2. (Optional) Remove the top title bar and window borders.
+        // If you want the game to look completely borderless while still
+        // sitting above the taskbar, keep this set to false.
+        // If you want to keep the standard Windows "X" close button at the top right,
+        // you can delete this line.
+        //configuration.setDecorated(false);
+
+        // Frame rate settings
+        configuration.setForegroundFPS(Lwjgl3ApplicationConfiguration.getDisplayMode().refreshRate);
+        configuration.setWindowedMode(1280, 720); // Fallback size if it gets un-maximized
         configuration.setWindowIcon("libgdx128.png", "libgdx64.png", "libgdx32.png", "libgdx16.png");
+
         return configuration;
     }
 }

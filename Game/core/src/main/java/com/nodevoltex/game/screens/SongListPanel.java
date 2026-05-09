@@ -21,6 +21,7 @@ public class SongListPanel extends Table {
     private final StatsPanel statsPanel;
     private final Table songListTable;
     private final ScrollPane scrollPane;
+    private com.badlogic.gdx.audio.Music mainMenuMusic;
 
     // --- State Variables ---
     private Array<SongData> allSongs = new Array<>();
@@ -38,10 +39,11 @@ public class SongListPanel extends Table {
         boolean hasDiffs() { return novLv > 0 || advLv > 0 || exhLv > 0 || mxmLv > 0; }
     }
 
-    public SongListPanel(NodeVoltex game, Skin skin, StatsPanel statsPanel) {
+    public SongListPanel(NodeVoltex game, Skin skin, StatsPanel statsPanel, com.badlogic.gdx.audio.Music mainMenuMusic) {
         this.game = game;
         this.skin = skin;
         this.statsPanel = statsPanel;
+        this.mainMenuMusic = mainMenuMusic;
 
         songListTable = new Table();
         songListTable.top();
@@ -319,6 +321,14 @@ public class SongListPanel extends Table {
     }
 
     private void playAudio(String audioPath) {
+        // --- NEW: Seamlessly kill the Main Menu music the moment this starts! ---
+        if (mainMenuMusic != null) {
+            mainMenuMusic.stop();
+            mainMenuMusic.dispose();
+            mainMenuMusic = null;
+        }
+
+        // (Keep your existing previewMusic logic)
         if (previewMusic != null) {
             previewMusic.stop();
             previewMusic.dispose();
@@ -340,6 +350,12 @@ public class SongListPanel extends Table {
     }
 
     public void stopAudio() {
+        // Catch-all to make sure everything shuts up if you hit the Back button
+        if (mainMenuMusic != null) {
+            mainMenuMusic.stop();
+            mainMenuMusic.dispose();
+            mainMenuMusic = null;
+        }
         if (previewMusic != null) {
             previewMusic.stop();
             previewMusic.dispose();
@@ -376,5 +392,57 @@ public class SongListPanel extends Table {
             // Trigger the exact same logic as if the user clicked it!
             handleSongSelection(allSongs.get(randomIndex));
         }
+    }
+
+    public void selectSongByPath(String targetPath) {
+        if (targetPath == null || targetPath.trim().isEmpty()) {
+            selectRandomSong();
+            return;
+        }
+
+        String target = targetPath.replace("\\", "/").toLowerCase();
+
+        // 1. FIGURE OUT THE EXACT DIFFICULTY FIRST based on the file extension
+        String expectedDiff = "NOV"; // Default fallback
+        if (target.endsWith("mxm.json") || target.contains("/mxm.json")) expectedDiff = "MXM";
+        else if (target.endsWith("exh.json") || target.contains("/exh.json")) expectedDiff = "EXH";
+        else if (target.endsWith("adv.json") || target.contains("/adv.json")) expectedDiff = "ADV";
+
+        // 2. Extract the folder name
+        String[] targetParts = target.split("/");
+        String targetFolder = targetParts.length >= 2 ? targetParts[targetParts.length - 2] : target;
+
+        for (SongData song : allSongs) {
+            String nov = song.novPath != null ? song.novPath.replace("\\", "/").toLowerCase() : "";
+            String adv = song.advPath != null ? song.advPath.replace("\\", "/").toLowerCase() : "";
+            String exh = song.exhPath != null ? song.exhPath.replace("\\", "/").toLowerCase() : "";
+            String mxm = song.mxmPath != null ? song.mxmPath.replace("\\", "/").toLowerCase() : "";
+
+            // 3. Check if ANY of the paths match our target folder
+            if ((!nov.isEmpty() && nov.contains("/" + targetFolder + "/")) ||
+                (!adv.isEmpty() && adv.contains("/" + targetFolder + "/")) ||
+                (!exh.isEmpty() && exh.contains("/" + targetFolder + "/")) ||
+                (!mxm.isEmpty() && mxm.contains("/" + targetFolder + "/"))) {
+
+                // We found the song!
+                handleSongSelection(song); // Expand the UI box
+                selectedDiffName = expectedDiff; // Force the UI to highlight the correct difficulty
+
+                // 4. Safely pull the correct level and path for the StatsPanel update
+                String safePath = song.novPath;
+                int matchedLevel = song.novLv;
+
+                if (expectedDiff.equals("MXM") && song.mxmPath != null) { safePath = song.mxmPath; matchedLevel = song.mxmLv; }
+                else if (expectedDiff.equals("EXH") && song.exhPath != null) { safePath = song.exhPath; matchedLevel = song.exhLv; }
+                else if (expectedDiff.equals("ADV") && song.advPath != null) { safePath = song.advPath; matchedLevel = song.advLv; }
+
+                updateStatsPanel(song, expectedDiff, matchedLevel, safePath);
+                refreshSongList();
+                return;
+            }
+        }
+
+        System.out.println("WARNING: Could not find any song matching folder: " + targetFolder);
+        selectRandomSong();
     }
 }
