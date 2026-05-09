@@ -35,6 +35,7 @@ public class SongListPanel extends Table {
         String title, artist, mapper, audioPath;
         int novLv = 0, advLv = 0, exhLv = 0, mxmLv = 0;
         String novPath, advPath, exhPath, mxmPath;
+        float previewOffsetSeconds = 0f;
 
         boolean hasDiffs() { return novLv > 0 || advLv > 0 || exhLv > 0 || mxmLv > 0; }
     }
@@ -83,9 +84,12 @@ public class SongListPanel extends Table {
 
                         data.title = general.getString("title", data.title);
                         data.artist = general.getString("artist", data.artist);
-                        // --- NEW: Parse the mapper and audio ---
                         data.mapper = general.getString("mapper", data.mapper);
                         data.audioPath = folder.path() + "/" + general.getString("audioFilename", "audio.ogg");
+
+                        // --- Grab the offset (default to 0) and convert ms to seconds ---
+                        int offsetMs = general.getInt("previewOffset", 0);
+                        data.previewOffsetSeconds = offsetMs / 1000f;
 
                         int level = general.getInt("level", 0);
 
@@ -286,11 +290,11 @@ public class SongListPanel extends Table {
         else if (song.advLv > 0) { selectedDiffName = "ADV"; defaultLv = song.advLv; defaultPath = song.advPath; }
         else if (song.novLv > 0) { selectedDiffName = "NOV"; defaultLv = song.novLv; defaultPath = song.novPath; }
 
-        // 2. Play Audio
-        playAudio(song.audioPath);
+        // --- Pass the offset into the audio player ---
+        playAudio(song.audioPath, song.previewOffsetSeconds);
 
-        // 3. Update Left Panel with JSON data
         updateStatsPanel(song, selectedDiffName, defaultLv, defaultPath);
+        refreshSongList();
 
         // 4. Trigger UI Expansion & Auto-Scroll
         refreshSongList();
@@ -320,28 +324,33 @@ public class SongListPanel extends Table {
         statsPanel.updateSong(song.title, song.artist, diffName + " " + level, song.mapper, loadedScores);
     }
 
-    private void playAudio(String audioPath) {
-        // --- NEW: Seamlessly kill the Main Menu music the moment this starts! ---
+    private void playAudio(String audioPath, float offsetSeconds) {
         if (mainMenuMusic != null) {
             mainMenuMusic.stop();
             mainMenuMusic.dispose();
             mainMenuMusic = null;
         }
 
-        // (Keep your existing previewMusic logic)
         if (previewMusic != null) {
             previewMusic.stop();
             previewMusic.dispose();
             previewMusic = null;
         }
+
         try {
             if (audioPath != null) {
-                FileHandle file = Gdx.files.internal(audioPath);
+                com.badlogic.gdx.files.FileHandle file = Gdx.files.internal(audioPath);
                 if (file.exists()) {
                     previewMusic = Gdx.audio.newMusic(file);
                     previewMusic.setLooping(true);
                     previewMusic.setVolume(0.3f);
+
                     previewMusic.play();
+
+                    // --- NEW: Jump to the drop immediately after starting! ---
+                    if (offsetSeconds > 0) {
+                        previewMusic.setPosition(offsetSeconds);
+                    }
                 }
             }
         } catch (Exception e) {

@@ -15,6 +15,7 @@ public class Beatmap {
         public int level = 0;
         public String audioFilename = "audio.ogg";
         public float audioOffset = 0f;
+        public int previewOffset = 0;
     }
 
     public static class HitObject {

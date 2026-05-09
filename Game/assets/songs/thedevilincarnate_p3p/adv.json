@@ -3,9 +3,22 @@
     "title": "The Devil Incarnate",
     "artist": "Laur",
     "mapper": "\u30c7\u30a3\u30a2\u30d6\u30ed\u30b7\u30ba\uff5eP3P\uff5e",
+    "illustrator": "otorihara",
+    "difficulty": "challenge",
     "level": 14,
+    "baseBpm": "250",
     "audioFilename": "thedevilreincarnate.ogg",
-    "audioOffset": 0
+    "audioVolume": 100,
+    "audioOffset": 0,
+    "jacketFilename": "jak.png",
+    "background": "black.jpg",
+    "layer": "hvn_purple.gif",
+    "previewOffset": 109200,
+    "previewLength": 15000,
+    "defaultFilterType": "peak",
+    "filterGain": 46,
+    "slamAutoVolume": 0,
+    "slamVolume": 50
   },
   "hitObjects": [
     {

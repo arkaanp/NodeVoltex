@@ -3,9 +3,22 @@
     "title": "MAGGOD",
     "artist": "DJ Myosuke feat. \u3064\u3050",
     "mapper": "JESTER TACHINID",
+    "illustrator": "\u5317\u5c4b\u3051\u3051",
+    "difficulty": "light",
     "level": 7,
+    "baseBpm": "220",
     "audioFilename": "maggod.ogg",
-    "audioOffset": 0
+    "audioVolume": 100,
+    "audioOffset": 0,
+    "jacketFilename": "jak.jpg",
+    "background": "black.jpg",
+    "layer": "layer.jpg;2000;0",
+    "previewOffset": 90545,
+    "previewLength": 15000,
+    "defaultFilterType": "peak",
+    "filterGain": 50,
+    "slamAutoVolume": 0,
+    "slamVolume": 50
   },
   "hitObjects": [
     {

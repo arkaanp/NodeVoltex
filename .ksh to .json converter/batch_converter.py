@@ -12,18 +12,53 @@ def decode_laser_char(c):
     if 'a' <= c <= 'o': return (ord(c) - ord('a') + 36) / 50.0
     return None
 
-def convert_ksh_to_json(ksh_path, json_path):
+def map_difficulty_to_filename(diff_str):
+    """
+    Maps K-Shoot MANIA difficulty strings to standard SDVX JSON filenames.
+    """
+    diff_str = diff_str.lower().strip()
+    mapping = {
+        'light': 'nov',
+        'challenge': 'adv',
+        'extended': 'exh',
+        'infinite': 'mxm',
+        'novice': 'nov',
+        'advanced': 'adv',
+        'exhaust': 'exh',
+        'maximum': 'mxm',
+        'gravity': 'mxm',
+        'heavenly': 'mxm',
+        'vivid': 'mxm',
+        'exceed': 'mxm'
+    }
+    # Fallback to the original name if it's a custom/unrecognized difficulty
+    return mapping.get(diff_str, diff_str) + '.json'
+
+def convert_ksh_to_json(ksh_path, dest_folder):
     with open(ksh_path, 'r', encoding='utf-8-sig', errors='replace') as f:
         lines = [line.strip() for line in f.readlines()]
 
-    # General Defaults
+    # Expanded General Defaults
     general = {
         "title": "",
         "artist": "",
         "mapper": "",
+        "illustrator": "",
+        "difficulty": "light", # Defaults to light (nov.json) if missing
         "level": 1,
+        "baseBpm": "",
         "audioFilename": "audio.mp3",
-        "audioOffset": 0
+        "audioVolume": 100,
+        "audioOffset": 0,
+        "jacketFilename": "",
+        "background": "",
+        "layer": "",
+        "previewOffset": 0,
+        "previewLength": 0,
+        "defaultFilterType": "peak",
+        "filterGain": 50,
+        "slamAutoVolume": 0,
+        "slamVolume": 50
     }
     
     bpm = 120.0
@@ -50,14 +85,37 @@ def convert_ksh_to_json(ksh_path, json_path):
         if in_header:
             if '=' in line:
                 key, val = line.split('=', 1)
+                
+                # Metadata & Info
                 if key == 'title': general['title'] = val
                 elif key == 'artist': general['artist'] = val
                 elif key == 'effect': general['mapper'] = val
+                elif key == 'illustrator': general['illustrator'] = val
+                elif key == 'difficulty': general['difficulty'] = val
                 elif key == 'level': general['level'] = int(val) if val.isdigit() else 1
-                elif key == 'm': general['audioFilename'] = val
-                elif key == 'o': general['audioOffset'] = int(val)
+                
+                # Audio Settings
                 elif key == 't': 
+                    general['baseBpm'] = val
                     bpm = float(val.split('-')[0])
+                elif key == 'm': general['audioFilename'] = val
+                elif key == 'mvol': general['audioVolume'] = int(val) if val.isdigit() else 100
+                elif key == 'o': general['audioOffset'] = int(val)
+                elif key == 'po': general['previewOffset'] = int(val)
+                elif key == 'plength': general['previewLength'] = int(val)
+                
+                # Visuals
+                elif key == 'jacket': general['jacketFilename'] = val
+                elif key == 'bg': general['background'] = val
+                elif key == 'layer': general['layer'] = val
+                
+                # Effects & Lasers
+                elif key == 'filtertype': general['defaultFilterType'] = val
+                elif key == 'pfiltergain': general['filterGain'] = int(val) if val.isdigit() else 50
+                elif key == 'chokkakuautovol': general['slamAutoVolume'] = int(val) if val.isdigit() else 0
+                elif key == 'chokkakuvol': general['slamVolume'] = int(val) if val.isdigit() else 50
+                
+                # Time Signature
                 elif key == 'beat':
                     beat_num, beat_den = map(int, val.split('/'))
         else:
@@ -188,8 +246,15 @@ def convert_ksh_to_json(ksh_path, json_path):
         "lasers": lasers
     }
 
+    # Determine filename based on difficulty metadata
+    json_filename = map_difficulty_to_filename(general["difficulty"])
+    json_path = os.path.join(dest_folder, json_filename)
+
     with open(json_path, 'w', encoding='utf-8') as f:
         json.dump(output_data, f, indent=2)
+
+    return json_filename
+
 
 def run_batch_conversion():
     base_dir = os.getcwd()
@@ -200,51 +265,46 @@ def run_batch_conversion():
 
     folders_processed = 0
 
-    # Iterate through all items in the current directory
     for item in os.listdir(base_dir):
         source_folder = os.path.join(base_dir, item)
 
-        # Skip the Export folder itself and any files (we only want directories)
         if not os.path.isdir(source_folder) or item == "Export":
             continue
 
-        # Find .ksh files in this directory
         ksh_files = [f for f in os.listdir(source_folder) if f.lower().endswith('.ksh')]
         
         if not ksh_files:
-            continue # Skip folders that don't have .ksh files
+            continue
 
         folders_processed += 1
         print(f"\nProcessing folder: '{item}'")
         
-        # Create corresponding destination folder inside /Export
         dest_folder = os.path.join(export_dir, item)
         os.makedirs(dest_folder, exist_ok=True)
 
-        # 1. Convert all .ksh files
+        # 1. Convert all .ksh files (Filename is now determined inside the function)
         for ksh_file in ksh_files:
             ksh_path = os.path.join(source_folder, ksh_file)
-            json_filename = os.path.splitext(ksh_file)[0] + '.json'
-            json_path = os.path.join(dest_folder, json_filename)
             
             try:
-                convert_ksh_to_json(ksh_path, json_path)
+                json_filename = convert_ksh_to_json(ksh_path, dest_folder)
                 print(f"  [+] Converted: {ksh_file} -> {json_filename}")
             except Exception as e:
                 print(f"  [!] Error converting {ksh_file}: {e}")
 
-        # 2. Copy audio files (.mp3 and .ogg)
-        audio_files = [f for f in os.listdir(source_folder) if f.lower().endswith(('.mp3', '.ogg'))]
-        for audio_file in audio_files:
-            src_audio = os.path.join(source_folder, audio_file)
-            dst_audio = os.path.join(dest_folder, audio_file)
+        # 2. Copy all necessary media files (Audio + Images)
+        valid_extensions = ('.mp3', '.ogg', '.wav', '.png', '.jpg', '.jpeg')
+        media_files = [f for f in os.listdir(source_folder) if f.lower().endswith(valid_extensions)]
+        
+        for media_file in media_files:
+            src_media = os.path.join(source_folder, media_file)
+            dst_media = os.path.join(dest_folder, media_file)
             
-            # Copy only if it doesn't already exist to save time on reruns
-            if not os.path.exists(dst_audio):
-                shutil.copy2(src_audio, dst_audio)
-                print(f"  [>] Copied audio: {audio_file}")
+            if not os.path.exists(dst_media):
+                shutil.copy2(src_media, dst_media)
+                print(f"  [>] Copied media: {media_file}")
             else:
-                print(f"  [=] Audio already exists: {audio_file}")
+                print(f"  [=] Media already exists: {media_file}")
 
     print(f"\nBatch processing complete! Processed {folders_processed} folder(s).")
     print(f"Check the '{export_dir}' folder for your files.")

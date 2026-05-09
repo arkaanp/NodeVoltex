@@ -22,10 +22,23 @@ def convert_ksh_to_json(ksh_path, json_path):
     general = {
         "title": "",
         "artist": "",
-        "mapper": "",
-        "level": 1,
-        "audioFilename": "audio.mp3",
-        "audioOffset": 0
+        "mapper": "",               # from 'effect'
+        "illustrator": "",          # Jacket artist
+        "difficulty": "light",      # String difficulty name
+        "level": 1,                 # Numeric difficulty level
+        "baseBpm": "",              # from 't' (Storing as string in case of ranges like "139-150")
+        "audioFilename": "audio.mp3", # from 'm'
+        "audioVolume": 100,         # from 'mvol'
+        "audioOffset": 0,           # from 'o'
+        "jacketFilename": "",       # from 'jacket'
+        "background": "",           # from 'bg'
+        "layer": "",                # from 'layer'
+        "previewOffset": 0,         # from 'po'
+        "previewLength": 0,         # from 'plength'
+        "defaultFilterType": "peak",# from 'filtertype'
+        "filterGain": 50,           # from 'pfiltergain'
+        "slamAutoVolume": 0,        # from 'chokkakuautovol' (0 or 1)
+        "slamVolume": 50            # from 'chokkakuvol'
     }
     
     bpm = 120.0
@@ -53,15 +66,37 @@ def convert_ksh_to_json(ksh_path, json_path):
         if in_header:
             if '=' in line:
                 key, val = line.split('=', 1)
-                # Map standard .ksh header fields
+                
+                # Metadata & Info
                 if key == 'title': general['title'] = val
                 elif key == 'artist': general['artist'] = val
                 elif key == 'effect': general['mapper'] = val
+                elif key == 'illustrator': general['illustrator'] = val
+                elif key == 'difficulty': general['difficulty'] = val
                 elif key == 'level': general['level'] = int(val) if val.isdigit() else 1
-                elif key == 'm': general['audioFilename'] = val
-                elif key == 'o': general['audioOffset'] = int(val)
+                
+                # Audio Settings
                 elif key == 't': 
-                    bpm = float(val.split('-')[0]) # Use initial if a range is present
+                    general['baseBpm'] = val
+                    bpm = float(val.split('-')[0]) # Still grab the initial float for chronological syncing
+                elif key == 'm': general['audioFilename'] = val
+                elif key == 'mvol': general['audioVolume'] = int(val) if val.isdigit() else 100
+                elif key == 'o': general['audioOffset'] = int(val)
+                elif key == 'po': general['previewOffset'] = int(val)
+                elif key == 'plength': general['previewLength'] = int(val)
+                
+                # Visuals
+                elif key == 'jacket': general['jacketFilename'] = val
+                elif key == 'bg': general['background'] = val
+                elif key == 'layer': general['layer'] = val
+                
+                # Effects & Lasers
+                elif key == 'filtertype': general['defaultFilterType'] = val
+                elif key == 'pfiltergain': general['filterGain'] = int(val) if val.isdigit() else 50
+                elif key == 'chokkakuautovol': general['slamAutoVolume'] = int(val) if val.isdigit() else 0
+                elif key == 'chokkakuvol': general['slamVolume'] = int(val) if val.isdigit() else 50
+                
+                # Time Signature
                 elif key == 'beat':
                     beat_num, beat_den = map(int, val.split('/'))
         else:

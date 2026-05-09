@@ -3,9 +3,22 @@
     "title": "YOAKE",
     "artist": "Capchii feat. Uzumaki",
     "mapper": "P3P the MorningStar",
+    "illustrator": "48Oku",
+    "difficulty": "light",
     "level": 6,
+    "baseBpm": "202",
     "audioFilename": "yoake.ogg",
-    "audioOffset": 0
+    "audioVolume": 100,
+    "audioOffset": 0,
+    "jacketFilename": "jak.png",
+    "background": "bg0.jpg;bg1.jpg",
+    "layer": "layer.png;300;3",
+    "previewOffset": 52574,
+    "previewLength": 15000,
+    "defaultFilterType": "peak",
+    "filterGain": 46,
+    "slamAutoVolume": 0,
+    "slamVolume": 50
   },
   "hitObjects": [
     {

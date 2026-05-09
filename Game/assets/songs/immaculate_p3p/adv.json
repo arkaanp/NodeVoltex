@@ -1,0 +1,5309 @@
+{
+  "general": {
+    "title": "Immaculate",
+    "artist": "\u307a\u306e\u308c\u308a",
+    "mapper": "P3P the Virtuous",
+    "illustrator": "-",
+    "difficulty": "challenge",
+    "level": 14,
+    "baseBpm": "200-204",
+    "audioFilename": "immaculate.ogg",
+    "audioVolume": 75,
+    "audioOffset": 0,
+    "jacketFilename": "jak.png",
+    "background": "bg0.jpg;bg1.jpg",
+    "layer": "layer.png;230",
+    "previewOffset": 145582,
+    "previewLength": 15000,
+    "defaultFilterType": "peak",
+    "filterGain": 46,
+    "slamAutoVolume": 0,
+    "slamVolume": 50
+  },
+  "hitObjects": [
+    {
+      "lane": 6,
+      "startTime": 1800,
+      "type": "HOLD",
+      "endTime": 2400
+    },
+    {
+      "lane": 4,
+      "startTime": 2400,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 2550,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 2700,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 2850,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 3000,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 3150,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 3300,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 3450,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 3600,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 3750,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 3900,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 4050,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 4200,
+      "type": "HOLD",
+      "endTime": 4800
+    },
+    {
+      "lane": 3,
+      "startTime": 4800,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 4950,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 5100,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 5250,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 5400,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 5550,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 5700,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 5850,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 6000,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 6150,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 6300,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 6450,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 6600,
+      "type": "HOLD",
+      "endTime": 6900
+    },
+    {
+      "lane": 6,
+      "startTime": 6900,
+      "type": "HOLD",
+      "endTime": 7200
+    },
+    {
+      "lane": 5,
+      "startTime": 7200,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 7350,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 7500,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 7650,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 7950,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 8100,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 8250,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 8400,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 8550,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 8850,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 9000,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 9075,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 9150,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 9300,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 9600,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 9750,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 9900,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 10050,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 10350,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 10500,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 10650,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 10800,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 10950,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 11250,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 11400,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 11475,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 11550,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 11700,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 12000,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 12300,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 12450,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 12600,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 12900,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 13200,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 13500,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 13800,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 13950,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 14100,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 14700,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 15000,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 15300,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 15600,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 15900,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 16050,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 16500,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 16650,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 16800,
+      "type": "HOLD",
+      "endTime": 17700
+    },
+    {
+      "lane": 3,
+      "startTime": 17100,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 17250,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 17400,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 17700,
+      "type": "HOLD",
+      "endTime": 18000
+    },
+    {
+      "lane": 5,
+      "startTime": 18000,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 18150,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 18300,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 18450,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 18600,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 18750,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 18900,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 19050,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 19500,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 19800,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 19950,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 20250,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 20400,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 20700,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 20850,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 21000,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 21900,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 22050,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 22200,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 22500,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 22800,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 23100,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 23250,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 23400,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 23700,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 24300,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 24600,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 24750,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 25050,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 25200,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 25650,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 26100,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 26250,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 26400,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 26550,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 26700,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 26850,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 27000,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 27150,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 27300,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 27450,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 27600,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 27750,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 27900,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 28050,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 28200,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 28275,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 28350,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 28500,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 28800,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 28950,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 29100,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 29250,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 29400,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 29550,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 29700,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 29850,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 30000,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 30150,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 30300,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 30450,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 30600,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 30675,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 30750,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 30900,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 31200,
+      "type": "HOLD",
+      "endTime": 31500
+    },
+    {
+      "lane": 6,
+      "startTime": 31500,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 31650,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 31800,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 31950,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 32100,
+      "type": "HOLD",
+      "endTime": 32400
+    },
+    {
+      "lane": 6,
+      "startTime": 32400,
+      "type": "HOLD",
+      "endTime": 32700
+    },
+    {
+      "lane": 2,
+      "startTime": 32700,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 32850,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 33000,
+      "type": "HOLD",
+      "endTime": 33300
+    },
+    {
+      "lane": 3,
+      "startTime": 33300,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 33450,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 33600,
+      "type": "HOLD",
+      "endTime": 33900
+    },
+    {
+      "lane": 5,
+      "startTime": 33900,
+      "type": "HOLD",
+      "endTime": 34200
+    },
+    {
+      "lane": 6,
+      "startTime": 34200,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 34350,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 34500,
+      "type": "HOLD",
+      "endTime": 34800
+    },
+    {
+      "lane": 2,
+      "startTime": 34800,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 34950,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 35100,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 35250,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 35400,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 35550,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 35700,
+      "type": "HOLD",
+      "endTime": 36000
+    },
+    {
+      "lane": 5,
+      "startTime": 36000,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 36150,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 36300,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 36450,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 36750,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 36900,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 37050,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 37200,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 37350,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 37650,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 37800,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 37800,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 38100,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 38100,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 38400,
+      "type": "HOLD",
+      "endTime": 38700
+    },
+    {
+      "lane": 6,
+      "startTime": 38700,
+      "type": "HOLD",
+      "endTime": 39000
+    },
+    {
+      "lane": 5,
+      "startTime": 39000,
+      "type": "HOLD",
+      "endTime": 39300
+    },
+    {
+      "lane": 3,
+      "startTime": 39300,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 39450,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 39600,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 39750,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 39900,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 40050,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 40200,
+      "type": "HOLD",
+      "endTime": 40500
+    },
+    {
+      "lane": 5,
+      "startTime": 40500,
+      "type": "HOLD",
+      "endTime": 40800
+    },
+    {
+      "lane": 2,
+      "startTime": 40800,
+      "type": "HOLD",
+      "endTime": 42000
+    },
+    {
+      "lane": 6,
+      "startTime": 41100,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 41700,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 42000,
+      "type": "HOLD",
+      "endTime": 42600
+    },
+    {
+      "lane": 6,
+      "startTime": 42300,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 42600,
+      "type": "HOLD",
+      "endTime": 43200
+    },
+    {
+      "lane": 5,
+      "startTime": 42900,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 43200,
+      "type": "HOLD",
+      "endTime": 44400
+    },
+    {
+      "lane": 6,
+      "startTime": 43500,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 43950,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 44100,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 44400,
+      "type": "HOLD",
+      "endTime": 45000
+    },
+    {
+      "lane": 5,
+      "startTime": 44700,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 45000,
+      "type": "HOLD",
+      "endTime": 45600
+    },
+    {
+      "lane": 5,
+      "startTime": 45300,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 45600,
+      "type": "HOLD",
+      "endTime": 46050
+    },
+    {
+      "lane": 5,
+      "startTime": 45900,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 46050,
+      "type": "HOLD",
+      "endTime": 46500
+    },
+    {
+      "lane": 6,
+      "startTime": 46500,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 46500,
+      "type": "HOLD",
+      "endTime": 46950
+    },
+    {
+      "lane": 1,
+      "startTime": 46950,
+      "type": "HOLD",
+      "endTime": 47400
+    },
+    {
+      "lane": 6,
+      "startTime": 47100,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 47400,
+      "type": "HOLD",
+      "endTime": 47700
+    },
+    {
+      "lane": 6,
+      "startTime": 47700,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 48000,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 48150,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 48300,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 48450,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 48600,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 48750,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 48900,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 49050,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 49200,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 49350,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 49500,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 49800,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 49950,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 50100,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 50400,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 50850,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 50850,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 51300,
+      "type": "HOLD",
+      "endTime": 51600
+    },
+    {
+      "lane": 2,
+      "startTime": 52350,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 52500,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 52650,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 52800,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 52950,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 53100,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 53250,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 53400,
+      "type": "HOLD",
+      "endTime": 53700
+    },
+    {
+      "lane": 5,
+      "startTime": 53700,
+      "type": "HOLD",
+      "endTime": 54000
+    },
+    {
+      "lane": 3,
+      "startTime": 54000,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 54150,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 54300,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 54450,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 54600,
+      "type": "HOLD",
+      "endTime": 54900
+    },
+    {
+      "lane": 6,
+      "startTime": 54900,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 55200,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 55650,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 55650,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 56100,
+      "type": "HOLD",
+      "endTime": 56400
+    },
+    {
+      "lane": 3,
+      "startTime": 57150,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 57300,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 57450,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 57600,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 57750,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 57900,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 58050,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 58200,
+      "type": "HOLD",
+      "endTime": 58500
+    },
+    {
+      "lane": 6,
+      "startTime": 58500,
+      "type": "HOLD",
+      "endTime": 58800
+    },
+    {
+      "lane": 2,
+      "startTime": 58800,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 58950,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 59100,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 59250,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 59400,
+      "type": "HOLD",
+      "endTime": 59700
+    },
+    {
+      "lane": 5,
+      "startTime": 59700,
+      "type": "HOLD",
+      "endTime": 60000
+    },
+    {
+      "lane": 4,
+      "startTime": 60000,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 60150,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 60300,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 60450,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 60750,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 60900,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 61050,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 61200,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 61350,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 61650,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 62850,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 63300,
+      "type": "HOLD",
+      "endTime": 63900
+    },
+    {
+      "lane": 2,
+      "startTime": 63300,
+      "type": "HOLD",
+      "endTime": 63900
+    },
+    {
+      "lane": 6,
+      "startTime": 63900,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 64050,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 64200,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 64350,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 64500,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 64650,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 64800,
+      "type": "HOLD",
+      "endTime": 65250
+    },
+    {
+      "lane": 6,
+      "startTime": 65700,
+      "type": "HOLD",
+      "endTime": 66150
+    },
+    {
+      "lane": 3,
+      "startTime": 67200,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 67200,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 67500,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 67650,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 67650,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 67950,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 68100,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 68100,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 68550,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 68550,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 68700,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 68700,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 68850,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 68850,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 69300,
+      "type": "HOLD",
+      "endTime": 69600
+    },
+    {
+      "lane": 4,
+      "startTime": 69600,
+      "type": "HOLD",
+      "endTime": 70050
+    },
+    {
+      "lane": 3,
+      "startTime": 70050,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 70125,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 70200,
+      "type": "HOLD",
+      "endTime": 70800
+    },
+    {
+      "lane": 6,
+      "startTime": 70500,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 70800,
+      "type": "HOLD",
+      "endTime": 71100
+    },
+    {
+      "lane": 6,
+      "startTime": 71100,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 71400,
+      "type": "HOLD",
+      "endTime": 71625
+    },
+    {
+      "lane": 3,
+      "startTime": 71625,
+      "type": "HOLD",
+      "endTime": 71850
+    },
+    {
+      "lane": 4,
+      "startTime": 71850,
+      "type": "HOLD",
+      "endTime": 72000
+    },
+    {
+      "lane": 2,
+      "startTime": 72000,
+      "type": "HOLD",
+      "endTime": 72450
+    },
+    {
+      "lane": 4,
+      "startTime": 72450,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 72600,
+      "type": "HOLD",
+      "endTime": 73200
+    },
+    {
+      "lane": 5,
+      "startTime": 72900,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 73200,
+      "type": "HOLD",
+      "endTime": 73500
+    },
+    {
+      "lane": 2,
+      "startTime": 73200,
+      "type": "HOLD",
+      "endTime": 73500
+    },
+    {
+      "lane": 3,
+      "startTime": 73500,
+      "type": "HOLD",
+      "endTime": 73800
+    },
+    {
+      "lane": 4,
+      "startTime": 73500,
+      "type": "HOLD",
+      "endTime": 73800
+    },
+    {
+      "lane": 5,
+      "startTime": 73800,
+      "type": "HOLD",
+      "endTime": 74100
+    },
+    {
+      "lane": 6,
+      "startTime": 74100,
+      "type": "HOLD",
+      "endTime": 74400
+    },
+    {
+      "lane": 4,
+      "startTime": 74400,
+      "type": "HOLD",
+      "endTime": 74850
+    },
+    {
+      "lane": 3,
+      "startTime": 74850,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 74925,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 75000,
+      "type": "HOLD",
+      "endTime": 75600
+    },
+    {
+      "lane": 6,
+      "startTime": 75300,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 75600,
+      "type": "HOLD",
+      "endTime": 75900
+    },
+    {
+      "lane": 6,
+      "startTime": 75900,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 76200,
+      "type": "HOLD",
+      "endTime": 76500
+    },
+    {
+      "lane": 4,
+      "startTime": 76500,
+      "type": "HOLD",
+      "endTime": 76800
+    },
+    {
+      "lane": 3,
+      "startTime": 76800,
+      "type": "HOLD",
+      "endTime": 77250
+    },
+    {
+      "lane": 1,
+      "startTime": 77250,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 77400,
+      "type": "HOLD",
+      "endTime": 78000
+    },
+    {
+      "lane": 6,
+      "startTime": 77700,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 78000,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 78150,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 78300,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 78450,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 78600,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 78825,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 79050,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 79200,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 79500,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 79800,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 80100,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 80400,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 80700,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 81000,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 81300,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 81600,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 81825,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 82050,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 82200,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 82425,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 82650,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 82800,
+      "type": "HOLD",
+      "endTime": 83400
+    },
+    {
+      "lane": 6,
+      "startTime": 82800,
+      "type": "HOLD",
+      "endTime": 83400
+    },
+    {
+      "lane": 2,
+      "startTime": 83400,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 83400,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 83700,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 83700,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 84000,
+      "type": "HOLD",
+      "endTime": 84300
+    },
+    {
+      "lane": 1,
+      "startTime": 84600,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 84825,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 85050,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 85200,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 85425,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 85650,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 87300,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 87300,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 87600,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 87900,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 88200,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 88500,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 88800,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 88950,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 89100,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 89250,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 89400,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 89550,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 89700,
+      "type": "HOLD",
+      "endTime": 90600
+    },
+    {
+      "lane": 1,
+      "startTime": 89850,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 90000,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 90150,
+      "type": "HOLD",
+      "endTime": 90600
+    },
+    {
+      "lane": 2,
+      "startTime": 90600,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 90600,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 90900,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 90900,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 91200,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 91350,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 91500,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 91650,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 91800,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 91950,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 92100,
+      "type": "HOLD",
+      "endTime": 93000
+    },
+    {
+      "lane": 4,
+      "startTime": 92250,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 92400,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 92550,
+      "type": "HOLD",
+      "endTime": 93000
+    },
+    {
+      "lane": 2,
+      "startTime": 93000,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 93000,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 93300,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 93300,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 93750,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 93900,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 94350,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 94650,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 94800,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 95250,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 95400,
+      "type": "HOLD",
+      "endTime": 95700
+    },
+    {
+      "lane": 4,
+      "startTime": 95550,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 95700,
+      "type": "HOLD",
+      "endTime": 96000
+    },
+    {
+      "lane": 1,
+      "startTime": 95850,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 96000,
+      "type": "HOLD",
+      "endTime": 96300
+    },
+    {
+      "lane": 6,
+      "startTime": 96300,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 96450,
+      "type": "HOLD",
+      "endTime": 96750
+    },
+    {
+      "lane": 4,
+      "startTime": 96750,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 96900,
+      "type": "HOLD",
+      "endTime": 97350
+    },
+    {
+      "lane": 5,
+      "startTime": 97350,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 97500,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 97650,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 97800,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 97950,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 98100,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 98250,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 98400,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 98625,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 98850,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 99150,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 99300,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 99450,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 99600,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 99750,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 99900,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 100050,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 100200,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 100350,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 100500,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 100650,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 100800,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 101025,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 101250,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 101550,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 101700,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 101850,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 102000,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 102150,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 102300,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 102450,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 102600,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 102750,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 102900,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 103050,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 103200,
+      "type": "HOLD",
+      "endTime": 103650
+    },
+    {
+      "lane": 2,
+      "startTime": 103875,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 103875,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 104100,
+      "type": "HOLD",
+      "endTime": 104400
+    },
+    {
+      "lane": 4,
+      "startTime": 104550,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 104700,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 104850,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 105000,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 105150,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 105300,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 105450,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 105600,
+      "type": "HOLD",
+      "endTime": 106050
+    },
+    {
+      "lane": 2,
+      "startTime": 106050,
+      "type": "HOLD",
+      "endTime": 106500
+    },
+    {
+      "lane": 1,
+      "startTime": 106500,
+      "type": "HOLD",
+      "endTime": 106950
+    },
+    {
+      "lane": 5,
+      "startTime": 106950,
+      "type": "HOLD",
+      "endTime": 107400
+    },
+    {
+      "lane": 1,
+      "startTime": 107400,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 107550,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 107700,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 107850,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 112800,
+      "type": "HOLD",
+      "endTime": 113700
+    },
+    {
+      "lane": 4,
+      "startTime": 113700,
+      "type": "HOLD",
+      "endTime": 115200
+    },
+    {
+      "lane": 3,
+      "startTime": 115200,
+      "type": "HOLD",
+      "endTime": 116400
+    },
+    {
+      "lane": 2,
+      "startTime": 116400,
+      "type": "HOLD",
+      "endTime": 117000
+    },
+    {
+      "lane": 1,
+      "startTime": 117000,
+      "type": "HOLD",
+      "endTime": 117600
+    },
+    {
+      "lane": 6,
+      "startTime": 117600,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 117750,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 117900,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 118050,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 118200,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 118350,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 118500,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 118650,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 118800,
+      "type": "HOLD",
+      "endTime": 119100
+    },
+    {
+      "lane": 6,
+      "startTime": 119100,
+      "type": "HOLD",
+      "endTime": 119400
+    },
+    {
+      "lane": 5,
+      "startTime": 119400,
+      "type": "HOLD",
+      "endTime": 119700
+    },
+    {
+      "lane": 6,
+      "startTime": 119700,
+      "type": "HOLD",
+      "endTime": 120000
+    },
+    {
+      "lane": 5,
+      "startTime": 120000,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 120150,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 120300,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 120450,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 120600,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 120750,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 120900,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 121050,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 121200,
+      "type": "HOLD",
+      "endTime": 121500
+    },
+    {
+      "lane": 5,
+      "startTime": 121500,
+      "type": "HOLD",
+      "endTime": 121800
+    },
+    {
+      "lane": 6,
+      "startTime": 121800,
+      "type": "HOLD",
+      "endTime": 122100
+    },
+    {
+      "lane": 5,
+      "startTime": 122100,
+      "type": "HOLD",
+      "endTime": 122400
+    },
+    {
+      "lane": 4,
+      "startTime": 122400,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 122550,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 122700,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 122850,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 123000,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 123150,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 123300,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 123450,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 123600,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 123750,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 123900,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 124050,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 124200,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 124350,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 124500,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 124650,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 124800,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 126000,
+      "type": "HOLD",
+      "endTime": 126900
+    },
+    {
+      "lane": 6,
+      "startTime": 126000,
+      "type": "HOLD",
+      "endTime": 126900
+    },
+    {
+      "lane": 4,
+      "startTime": 127200,
+      "type": "HOLD",
+      "endTime": 127788
+    },
+    {
+      "lane": 3,
+      "startTime": 127788,
+      "type": "HOLD",
+      "endTime": 128376
+    },
+    {
+      "lane": 6,
+      "startTime": 128670,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 128964,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 129185,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 129405,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 129552,
+      "type": "HOLD",
+      "endTime": 129994
+    },
+    {
+      "lane": 4,
+      "startTime": 129994,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 130141,
+      "type": "HOLD",
+      "endTime": 130729
+    },
+    {
+      "lane": 6,
+      "startTime": 130729,
+      "type": "HOLD",
+      "endTime": 131023
+    },
+    {
+      "lane": 5,
+      "startTime": 131023,
+      "type": "HOLD",
+      "endTime": 131317
+    },
+    {
+      "lane": 6,
+      "startTime": 131317,
+      "type": "HOLD",
+      "endTime": 131611
+    },
+    {
+      "lane": 5,
+      "startTime": 131611,
+      "type": "HOLD",
+      "endTime": 131905
+    },
+    {
+      "lane": 1,
+      "startTime": 131905,
+      "type": "HOLD",
+      "endTime": 132494
+    },
+    {
+      "lane": 2,
+      "startTime": 132494,
+      "type": "HOLD",
+      "endTime": 133082
+    },
+    {
+      "lane": 5,
+      "startTime": 133376,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 133670,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 133964,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 134258,
+      "type": "HOLD",
+      "endTime": 134847
+    },
+    {
+      "lane": 5,
+      "startTime": 134847,
+      "type": "HOLD",
+      "endTime": 135435
+    },
+    {
+      "lane": 3,
+      "startTime": 135435,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 135582,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 135729,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 135876,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 136023,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 136244,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 136464,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 136611,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 136905,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 136905,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 137199,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 137494,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 137494,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 137788,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 137788,
+      "type": "HOLD",
+      "endTime": 138082
+    },
+    {
+      "lane": 6,
+      "startTime": 138082,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 138376,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 138376,
+      "type": "HOLD",
+      "endTime": 138670
+    },
+    {
+      "lane": 5,
+      "startTime": 138670,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 138964,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 139185,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 139405,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 139552,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 139773,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 139994,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 140141,
+      "type": "HOLD",
+      "endTime": 140729
+    },
+    {
+      "lane": 6,
+      "startTime": 140141,
+      "type": "HOLD",
+      "endTime": 140729
+    },
+    {
+      "lane": 2,
+      "startTime": 140729,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 140729,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 141023,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 141023,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 141317,
+      "type": "HOLD",
+      "endTime": 141611
+    },
+    {
+      "lane": 1,
+      "startTime": 141611,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 141758,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 141832,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 141905,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 142126,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 142347,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 142494,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 142714,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 142935,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 143082,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 143302,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 143523,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 143670,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 143817,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 144258,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 144405,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 144847,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 144847,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 145141,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 145141,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 145435,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 145435,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 146023,
+      "type": "HOLD",
+      "endTime": 146611
+    },
+    {
+      "lane": 3,
+      "startTime": 146611,
+      "type": "HOLD",
+      "endTime": 147199
+    },
+    {
+      "lane": 6,
+      "startTime": 147199,
+      "type": "HOLD",
+      "endTime": 147788
+    },
+    {
+      "lane": 4,
+      "startTime": 147788,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 148008,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 148229,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 148376,
+      "type": "HOLD",
+      "endTime": 148964
+    },
+    {
+      "lane": 2,
+      "startTime": 148964,
+      "type": "HOLD",
+      "endTime": 149552
+    },
+    {
+      "lane": 5,
+      "startTime": 149552,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 149847,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 150141,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 150435,
+      "type": "HOLD",
+      "endTime": 150729
+    },
+    {
+      "lane": 4,
+      "startTime": 150729,
+      "type": "HOLD",
+      "endTime": 151317
+    },
+    {
+      "lane": 3,
+      "startTime": 151317,
+      "type": "HOLD",
+      "endTime": 151905
+    },
+    {
+      "lane": 6,
+      "startTime": 151905,
+      "type": "HOLD",
+      "endTime": 152199
+    },
+    {
+      "lane": 4,
+      "startTime": 152199,
+      "type": "HOLD",
+      "endTime": 152494
+    },
+    {
+      "lane": 3,
+      "startTime": 152494,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 152788,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 153082,
+      "type": "HOLD",
+      "endTime": 153670
+    },
+    {
+      "lane": 2,
+      "startTime": 153670,
+      "type": "HOLD",
+      "endTime": 154258
+    },
+    {
+      "lane": 5,
+      "startTime": 154258,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 154552,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 154847,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 155141,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 155435,
+      "type": "HOLD",
+      "endTime": 155876
+    },
+    {
+      "lane": 3,
+      "startTime": 156023,
+      "type": "HOLD",
+      "endTime": 156611
+    },
+    {
+      "lane": 5,
+      "startTime": 156905,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 156905,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 157199,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 157347,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 157494,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 157494,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 157788,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 157788,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 158229,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 158229,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 158670,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 158670,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 160729,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 160949,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 161170,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 161317,
+      "type": "HOLD",
+      "endTime": 161758
+    },
+    {
+      "lane": 2,
+      "startTime": 161758,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 161905,
+      "type": "HOLD",
+      "endTime": 162347
+    },
+    {
+      "lane": 3,
+      "startTime": 162347,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 162494,
+      "type": "HOLD",
+      "endTime": 162935
+    },
+    {
+      "lane": 4,
+      "startTime": 162935,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 163082,
+      "type": "HOLD",
+      "endTime": 163670
+    },
+    {
+      "lane": 3,
+      "startTime": 163670,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 163817,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 163964,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 164111,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 164258,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 164405,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 164699,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 164994,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 165288,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 165582,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 166023,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 166170,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 166317,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 166464,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 166611,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 166758,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 167052,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 167347,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 167641,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 167935,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 168376,
+      "type": "HOLD",
+      "endTime": 168670
+    },
+    {
+      "lane": 5,
+      "startTime": 168670,
+      "type": "HOLD",
+      "endTime": 168964
+    },
+    {
+      "lane": 5,
+      "startTime": 170729,
+      "type": "HOLD",
+      "endTime": 171023
+    },
+    {
+      "lane": 6,
+      "startTime": 171023,
+      "type": "HOLD",
+      "endTime": 171317
+    },
+    {
+      "lane": 5,
+      "startTime": 172788,
+      "type": "HOLD",
+      "endTime": 173082
+    },
+    {
+      "lane": 3,
+      "startTime": 173082,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 173229,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 173376,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 173523,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 173670,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 173817,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 173964,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 174111,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 174258,
+      "type": "HOLD",
+      "endTime": 174552
+    },
+    {
+      "lane": 5,
+      "startTime": 174552,
+      "type": "HOLD",
+      "endTime": 174847
+    },
+    {
+      "lane": 4,
+      "startTime": 174847,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 174994,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 175141,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 175288,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 175435,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 175582,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 175729,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 175876,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 176023,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 176170,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 176317,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 176464,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 176611,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 176758,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 176905,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 177052,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 177199,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 177347,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 177494,
+      "type": "HOLD",
+      "endTime": 177788
+    },
+    {
+      "lane": 4,
+      "startTime": 177788,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 178229,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 178229,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 178670,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 179111,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 179111,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 180141,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 180141,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 180435,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 180582,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 180582,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 180876,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 181023,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 181023,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 181317,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 181464,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 181464,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 181758,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 181905,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 181905,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 182199,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 182199,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 182494,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 182641,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 182788,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 182935,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 183082,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 183229,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 183376,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 183523,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 183670,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 183817,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 183964,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 184111,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 184258,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 184258,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 184405,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 184405,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 184552,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 184552,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 184699,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 184699,
+      "type": "TAP"
+    }
+  ],
+  "lasers": {
+    "left": [
+      {
+        "nodes": [
+          {
+            "offset": 12000.0,
+            "x": 0.0
+          },
+          {
+            "offset": 13200.0,
+            "x": 1.0
+          },
+          {
+            "offset": 13800.0,
+            "x": 0.0
+          },
+          {
+            "offset": 14400.0,
+            "x": 0.34
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 19200.0,
+            "x": 0.0
+          },
+          {
+            "offset": 20400.0,
+            "x": 1.0
+          },
+          {
+            "offset": 21000.0,
+            "x": 0.0
+          },
+          {
+            "offset": 21600.0,
+            "x": 0.34
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 24000.0,
+            "x": 0.5
+          },
+          {
+            "offset": 25200.0,
+            "x": 0.0
+          },
+          {
+            "offset": 26400.0,
+            "x": 0.5
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 50400.0,
+            "x": 0.0
+          },
+          {
+            "offset": 50437.5,
+            "x": 1.0
+          },
+          {
+            "offset": 50850.0,
+            "x": 0.0
+          },
+          {
+            "offset": 50887.5,
+            "x": 1.0
+          },
+          {
+            "offset": 51300.0,
+            "x": 0.0
+          },
+          {
+            "offset": 51337.5,
+            "x": 1.0
+          },
+          {
+            "offset": 51600.0,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 56400.0,
+            "x": 0.0
+          },
+          {
+            "offset": 56700.0,
+            "x": 0.0
+          },
+          {
+            "offset": 56737.5,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 61800.0,
+            "x": 0.0
+          },
+          {
+            "offset": 62100.0,
+            "x": 0.5
+          },
+          {
+            "offset": 62400.0,
+            "x": 0.0
+          },
+          {
+            "offset": 62437.5,
+            "x": 0.5
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 65700.0,
+            "x": 0.0
+          },
+          {
+            "offset": 65737.5,
+            "x": 1.0
+          },
+          {
+            "offset": 66150.0,
+            "x": 1.0
+          },
+          {
+            "offset": 66187.5,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 66900.0,
+            "x": 0.0
+          },
+          {
+            "offset": 66937.5,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 79200.0,
+            "x": 0.0
+          },
+          {
+            "offset": 79800.0,
+            "x": 1.0
+          },
+          {
+            "offset": 80400.0,
+            "x": 0.0
+          },
+          {
+            "offset": 80700.0,
+            "x": 1.0
+          },
+          {
+            "offset": 81000.0,
+            "x": 0.0
+          },
+          {
+            "offset": 81300.0,
+            "x": 0.5
+          },
+          {
+            "offset": 81600.0,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 86400.0,
+            "x": 0.0
+          },
+          {
+            "offset": 86450.0,
+            "x": 0.32
+          },
+          {
+            "offset": 86500.0,
+            "x": 0.52
+          },
+          {
+            "offset": 86550.0,
+            "x": 0.66
+          },
+          {
+            "offset": 86625.0,
+            "x": 0.74
+          },
+          {
+            "offset": 86700.0,
+            "x": 0.66
+          },
+          {
+            "offset": 86750.0,
+            "x": 0.5
+          },
+          {
+            "offset": 86800.0,
+            "x": 0.28
+          },
+          {
+            "offset": 86850.0,
+            "x": 0.0
+          },
+          {
+            "offset": 86887.5,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 88200.0,
+            "x": 0.0
+          },
+          {
+            "offset": 88237.5,
+            "x": 1.0
+          },
+          {
+            "offset": 88500.0,
+            "x": 1.0
+          },
+          {
+            "offset": 88537.5,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 93600.0,
+            "x": 0.0
+          },
+          {
+            "offset": 93637.5,
+            "x": 0.5
+          },
+          {
+            "offset": 94050.0,
+            "x": 0.5
+          },
+          {
+            "offset": 94087.5,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 104100.0,
+            "x": 0.0
+          },
+          {
+            "offset": 104137.5,
+            "x": 0.5
+          },
+          {
+            "offset": 104250.0,
+            "x": 0.5
+          },
+          {
+            "offset": 104287.5,
+            "x": 1.0
+          },
+          {
+            "offset": 104400.0,
+            "x": 1.0
+          },
+          {
+            "offset": 104437.5,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 108000.0,
+            "x": 0.12
+          },
+          {
+            "offset": 108037.5,
+            "x": 0.88
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 127200.0,
+            "x": 0.0
+          },
+          {
+            "offset": 128376.4705882353,
+            "x": 1.0
+          },
+          {
+            "offset": 128964.7058823529,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 143670.58823529308,
+            "x": 0.0
+          },
+          {
+            "offset": 143719.6078431362,
+            "x": 0.3
+          },
+          {
+            "offset": 143768.62745097934,
+            "x": 0.54
+          },
+          {
+            "offset": 143817.64705882248,
+            "x": 0.74
+          },
+          {
+            "offset": 143866.6666666656,
+            "x": 0.88
+          },
+          {
+            "offset": 143915.68627450874,
+            "x": 0.96
+          },
+          {
+            "offset": 143964.70588235187,
+            "x": 1.0
+          },
+          {
+            "offset": 144001.47058823422,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 146023.52941176356,
+            "x": 0.12
+          },
+          {
+            "offset": 146060.2941176459,
+            "x": 0.26
+          },
+          {
+            "offset": 146317.64705882236,
+            "x": 0.26
+          },
+          {
+            "offset": 146354.4117647047,
+            "x": 0.38
+          },
+          {
+            "offset": 146611.76470588116,
+            "x": 0.38
+          },
+          {
+            "offset": 146648.5294117635,
+            "x": 0.5
+          },
+          {
+            "offset": 146905.88235293995,
+            "x": 0.5
+          },
+          {
+            "offset": 146942.6470588223,
+            "x": 0.62
+          },
+          {
+            "offset": 147199.99999999875,
+            "x": 0.62
+          },
+          {
+            "offset": 147236.7647058811,
+            "x": 0.5
+          },
+          {
+            "offset": 147494.11764705754,
+            "x": 0.5
+          },
+          {
+            "offset": 147530.8823529399,
+            "x": 0.38
+          },
+          {
+            "offset": 147788.23529411634,
+            "x": 0.38
+          },
+          {
+            "offset": 147824.9999999987,
+            "x": 0.26
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 150729.4117647043,
+            "x": 0.12
+          },
+          {
+            "offset": 150766.17647058665,
+            "x": 0.26
+          },
+          {
+            "offset": 151023.5294117631,
+            "x": 0.26
+          },
+          {
+            "offset": 151060.29411764545,
+            "x": 0.38
+          },
+          {
+            "offset": 151317.6470588219,
+            "x": 0.38
+          },
+          {
+            "offset": 151354.41176470424,
+            "x": 0.5
+          },
+          {
+            "offset": 151611.7647058807,
+            "x": 0.5
+          },
+          {
+            "offset": 151648.52941176304,
+            "x": 0.38
+          },
+          {
+            "offset": 151905.8823529395,
+            "x": 0.38
+          },
+          {
+            "offset": 151942.64705882184,
+            "x": 0.26
+          },
+          {
+            "offset": 152199.99999999828,
+            "x": 0.26
+          },
+          {
+            "offset": 152236.76470588063,
+            "x": 0.5
+          },
+          {
+            "offset": 152494.11764705708,
+            "x": 0.5
+          },
+          {
+            "offset": 152530.88235293943,
+            "x": 0.12
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 154847.05882352745,
+            "x": 0.12
+          },
+          {
+            "offset": 154883.8235294098,
+            "x": 0.88
+          },
+          {
+            "offset": 155141.17647058624,
+            "x": 0.88
+          },
+          {
+            "offset": 155177.9411764686,
+            "x": 0.12
+          },
+          {
+            "offset": 155435.29411764504,
+            "x": 0.12
+          },
+          {
+            "offset": 156317.64705882143,
+            "x": 0.74
+          },
+          {
+            "offset": 156354.41176470378,
+            "x": 0.26
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 167052.9411764676,
+            "x": 0.0
+          },
+          {
+            "offset": 167089.70588234995,
+            "x": 0.5
+          },
+          {
+            "offset": 167347.0588235264,
+            "x": 0.5
+          },
+          {
+            "offset": 167383.82352940875,
+            "x": 1.0
+          },
+          {
+            "offset": 167641.1764705852,
+            "x": 1.0
+          },
+          {
+            "offset": 167677.94117646755,
+            "x": 0.5
+          },
+          {
+            "offset": 167935.294117644,
+            "x": 0.5
+          },
+          {
+            "offset": 167972.05882352634,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 169405.88235293797,
+            "x": 0.0
+          },
+          {
+            "offset": 170288.23529411436,
+            "x": 1.0
+          },
+          {
+            "offset": 170324.9999999967,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 171317.64705882015,
+            "x": 0.0
+          },
+          {
+            "offset": 171354.4117647025,
+            "x": 0.5
+          },
+          {
+            "offset": 171464.70588234955,
+            "x": 0.5
+          },
+          {
+            "offset": 171501.4705882319,
+            "x": 1.0
+          },
+          {
+            "offset": 171758.82352940834,
+            "x": 1.0
+          },
+          {
+            "offset": 171795.5882352907,
+            "x": 0.0
+          },
+          {
+            "offset": 172052.94117646714,
+            "x": 0.0
+          },
+          {
+            "offset": 172089.7058823495,
+            "x": 1.0
+          },
+          {
+            "offset": 172347.05882352593,
+            "x": 1.0
+          },
+          {
+            "offset": 172383.82352940828,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 177788.23529411366,
+            "x": 0.0
+          },
+          {
+            "offset": 177824.999999996,
+            "x": 1.0
+          },
+          {
+            "offset": 178229.41176470186,
+            "x": 0.0
+          },
+          {
+            "offset": 178266.1764705842,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 179552.94117646644,
+            "x": 0.0
+          },
+          {
+            "offset": 179589.7058823488,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 185435.29411764236,
+            "x": 0.0
+          },
+          {
+            "offset": 185472.0588235247,
+            "x": 1.0
+          },
+          {
+            "offset": 187199.99999999526,
+            "x": 1.0
+          },
+          {
+            "offset": 187788.2352941129,
+            "x": 0.5
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 188376.47058823056,
+            "x": 0.74
+          },
+          {
+            "offset": 188670.58823528935,
+            "x": 0.26
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 188964.70588234815,
+            "x": 0.5
+          },
+          {
+            "offset": 189258.82352940695,
+            "x": 0.0
+          }
+        ]
+      }
+    ],
+    "right": [
+      {
+        "nodes": [
+          {
+            "offset": 14400.0,
+            "x": 0.34
+          },
+          {
+            "offset": 15600.0,
+            "x": 1.0
+          },
+          {
+            "offset": 16800.0,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 21600.0,
+            "x": 0.34
+          },
+          {
+            "offset": 22800.0,
+            "x": 1.0
+          },
+          {
+            "offset": 24000.0,
+            "x": 0.5
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 51600.0,
+            "x": 1.0
+          },
+          {
+            "offset": 51900.0,
+            "x": 1.0
+          },
+          {
+            "offset": 51937.5,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 55200.0,
+            "x": 1.0
+          },
+          {
+            "offset": 55237.5,
+            "x": 0.0
+          },
+          {
+            "offset": 55650.0,
+            "x": 1.0
+          },
+          {
+            "offset": 55687.5,
+            "x": 0.0
+          },
+          {
+            "offset": 56100.0,
+            "x": 1.0
+          },
+          {
+            "offset": 56137.5,
+            "x": 0.0
+          },
+          {
+            "offset": 56400.0,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 62100.0,
+            "x": 1.0
+          },
+          {
+            "offset": 62400.0,
+            "x": 0.5
+          },
+          {
+            "offset": 62437.5,
+            "x": 1.0
+          },
+          {
+            "offset": 62850.0,
+            "x": 0.5
+          },
+          {
+            "offset": 62887.5,
+            "x": 1.0
+          },
+          {
+            "offset": 63300.0,
+            "x": 0.5
+          },
+          {
+            "offset": 63337.5,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 64800.0,
+            "x": 1.0
+          },
+          {
+            "offset": 64837.5,
+            "x": 0.0
+          },
+          {
+            "offset": 65250.0,
+            "x": 0.0
+          },
+          {
+            "offset": 65287.5,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 66600.0,
+            "x": 1.0
+          },
+          {
+            "offset": 66637.5,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 84000.0,
+            "x": 1.0
+          },
+          {
+            "offset": 84050.0,
+            "x": 0.7
+          },
+          {
+            "offset": 84100.0,
+            "x": 0.46
+          },
+          {
+            "offset": 84150.0,
+            "x": 0.26
+          },
+          {
+            "offset": 84200.0,
+            "x": 0.12
+          },
+          {
+            "offset": 84250.0,
+            "x": 0.04
+          },
+          {
+            "offset": 84300.0,
+            "x": 0.0
+          },
+          {
+            "offset": 84600.0,
+            "x": 0.0
+          },
+          {
+            "offset": 84750.0,
+            "x": 0.02
+          },
+          {
+            "offset": 84800.0,
+            "x": 0.04
+          },
+          {
+            "offset": 84850.0,
+            "x": 0.08
+          },
+          {
+            "offset": 84900.0,
+            "x": 0.12
+          },
+          {
+            "offset": 84950.0,
+            "x": 0.16
+          },
+          {
+            "offset": 85000.0,
+            "x": 0.22
+          },
+          {
+            "offset": 85050.0,
+            "x": 0.28
+          },
+          {
+            "offset": 85100.0,
+            "x": 0.34
+          },
+          {
+            "offset": 85150.0,
+            "x": 0.42
+          },
+          {
+            "offset": 85200.0,
+            "x": 0.5
+          },
+          {
+            "offset": 85250.0,
+            "x": 0.56
+          },
+          {
+            "offset": 85300.0,
+            "x": 0.64
+          },
+          {
+            "offset": 85350.0,
+            "x": 0.7
+          },
+          {
+            "offset": 85400.0,
+            "x": 0.76
+          },
+          {
+            "offset": 85450.0,
+            "x": 0.82
+          },
+          {
+            "offset": 85500.0,
+            "x": 0.86
+          },
+          {
+            "offset": 85550.0,
+            "x": 0.9
+          },
+          {
+            "offset": 85600.0,
+            "x": 0.94
+          },
+          {
+            "offset": 85650.0,
+            "x": 0.96
+          },
+          {
+            "offset": 85700.0,
+            "x": 0.98
+          },
+          {
+            "offset": 85800.0,
+            "x": 1.0
+          },
+          {
+            "offset": 85837.5,
+            "x": 0.62
+          },
+          {
+            "offset": 86025.0,
+            "x": 0.62
+          },
+          {
+            "offset": 86062.5,
+            "x": 0.38
+          },
+          {
+            "offset": 86250.0,
+            "x": 0.38
+          },
+          {
+            "offset": 86287.5,
+            "x": 0.0
+          },
+          {
+            "offset": 86400.0,
+            "x": 0.0
+          },
+          {
+            "offset": 86437.5,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 87600.0,
+            "x": 1.0
+          },
+          {
+            "offset": 87637.5,
+            "x": 0.0
+          },
+          {
+            "offset": 87900.0,
+            "x": 0.0
+          },
+          {
+            "offset": 87937.5,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 94500.0,
+            "x": 1.0
+          },
+          {
+            "offset": 94537.5,
+            "x": 0.5
+          },
+          {
+            "offset": 94950.0,
+            "x": 0.5
+          },
+          {
+            "offset": 94987.5,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 103200.0,
+            "x": 1.0
+          },
+          {
+            "offset": 103237.5,
+            "x": 0.5
+          },
+          {
+            "offset": 103425.0,
+            "x": 0.5
+          },
+          {
+            "offset": 103462.5,
+            "x": 0.0
+          },
+          {
+            "offset": 103650.0,
+            "x": 0.0
+          },
+          {
+            "offset": 103687.5,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 105600.0,
+            "x": 1.0
+          },
+          {
+            "offset": 106500.0,
+            "x": 0.0
+          },
+          {
+            "offset": 107400.0,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 131905.88235294088,
+            "x": 1.0
+          },
+          {
+            "offset": 133082.35294117618,
+            "x": 0.0
+          },
+          {
+            "offset": 133670.58823529378,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 144258.82352941067,
+            "x": 1.0
+          },
+          {
+            "offset": 144307.8431372538,
+            "x": 0.7
+          },
+          {
+            "offset": 144356.86274509694,
+            "x": 0.46
+          },
+          {
+            "offset": 144405.88235294007,
+            "x": 0.26
+          },
+          {
+            "offset": 144454.9019607832,
+            "x": 0.12
+          },
+          {
+            "offset": 144503.92156862633,
+            "x": 0.04
+          },
+          {
+            "offset": 144552.94117646947,
+            "x": 0.0
+          },
+          {
+            "offset": 144589.70588235182,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 148376.47058823393,
+            "x": 0.88
+          },
+          {
+            "offset": 148413.23529411628,
+            "x": 0.74
+          },
+          {
+            "offset": 148670.58823529273,
+            "x": 0.74
+          },
+          {
+            "offset": 148707.35294117508,
+            "x": 0.62
+          },
+          {
+            "offset": 148964.70588235153,
+            "x": 0.62
+          },
+          {
+            "offset": 149001.47058823387,
+            "x": 0.5
+          },
+          {
+            "offset": 149258.82352941032,
+            "x": 0.5
+          },
+          {
+            "offset": 149295.58823529267,
+            "x": 0.38
+          },
+          {
+            "offset": 149552.94117646912,
+            "x": 0.38
+          },
+          {
+            "offset": 149589.70588235147,
+            "x": 0.5
+          },
+          {
+            "offset": 149847.0588235279,
+            "x": 0.5
+          },
+          {
+            "offset": 149883.82352941026,
+            "x": 0.62
+          },
+          {
+            "offset": 150141.1764705867,
+            "x": 0.62
+          },
+          {
+            "offset": 150177.94117646906,
+            "x": 0.74
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 153082.35294117467,
+            "x": 0.88
+          },
+          {
+            "offset": 153119.11764705702,
+            "x": 0.62
+          },
+          {
+            "offset": 153376.47058823347,
+            "x": 0.62
+          },
+          {
+            "offset": 153413.23529411582,
+            "x": 0.38
+          },
+          {
+            "offset": 153670.58823529226,
+            "x": 0.38
+          },
+          {
+            "offset": 153707.3529411746,
+            "x": 0.62
+          },
+          {
+            "offset": 153964.70588235106,
+            "x": 0.62
+          },
+          {
+            "offset": 154001.4705882334,
+            "x": 0.88
+          },
+          {
+            "offset": 154258.82352940986,
+            "x": 0.88
+          },
+          {
+            "offset": 154295.5882352922,
+            "x": 0.12
+          },
+          {
+            "offset": 154552.94117646865,
+            "x": 0.12
+          },
+          {
+            "offset": 154589.705882351,
+            "x": 0.88
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 157788.2352941154,
+            "x": 1.0
+          },
+          {
+            "offset": 157824.99999999776,
+            "x": 0.0
+          },
+          {
+            "offset": 158229.4117647036,
+            "x": 1.0
+          },
+          {
+            "offset": 158266.17647058595,
+            "x": 0.0
+          },
+          {
+            "offset": 158670.5882352918,
+            "x": 1.0
+          },
+          {
+            "offset": 158707.35294117415,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 164699.99999999724,
+            "x": 1.0
+          },
+          {
+            "offset": 164736.76470587958,
+            "x": 0.5
+          },
+          {
+            "offset": 164994.11764705603,
+            "x": 0.5
+          },
+          {
+            "offset": 165030.88235293838,
+            "x": 0.0
+          },
+          {
+            "offset": 165288.23529411483,
+            "x": 0.0
+          },
+          {
+            "offset": 165324.99999999718,
+            "x": 0.5
+          },
+          {
+            "offset": 165582.35294117362,
+            "x": 0.5
+          },
+          {
+            "offset": 165619.11764705597,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 168964.70588234978,
+            "x": 1.0
+          },
+          {
+            "offset": 169001.47058823213,
+            "x": 0.5
+          },
+          {
+            "offset": 169111.76470587918,
+            "x": 0.5
+          },
+          {
+            "offset": 169148.52941176153,
+            "x": 0.0
+          },
+          {
+            "offset": 169405.88235293797,
+            "x": 0.0
+          },
+          {
+            "offset": 169442.64705882032,
+            "x": 1.0
+          },
+          {
+            "offset": 169699.99999999677,
+            "x": 1.0
+          },
+          {
+            "offset": 169736.76470587912,
+            "x": 0.0
+          },
+          {
+            "offset": 169994.11764705557,
+            "x": 0.0
+          },
+          {
+            "offset": 170030.88235293792,
+            "x": 1.0
+          },
+          {
+            "offset": 170288.23529411436,
+            "x": 1.0
+          },
+          {
+            "offset": 170324.9999999967,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 171758.82352940834,
+            "x": 1.0
+          },
+          {
+            "offset": 172347.05882352593,
+            "x": 0.0
+          },
+          {
+            "offset": 172494.11764705533,
+            "x": 0.0
+          },
+          {
+            "offset": 172530.88235293768,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 178670.58823529005,
+            "x": 1.0
+          },
+          {
+            "offset": 178707.3529411724,
+            "x": 0.0
+          },
+          {
+            "offset": 179111.76470587825,
+            "x": 1.0
+          },
+          {
+            "offset": 179148.5294117606,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 179847.05882352524,
+            "x": 1.0
+          },
+          {
+            "offset": 179883.8235294076,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 187788.2352941129,
+            "x": 0.5
+          },
+          {
+            "offset": 188376.47058823056,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 188670.58823528935,
+            "x": 1.0
+          },
+          {
+            "offset": 188964.70588234815,
+            "x": 0.5
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 189258.82352940695,
+            "x": 0.74
+          },
+          {
+            "offset": 189552.94117646574,
+            "x": 0.26
+          }
+        ]
+      }
+    ]
+  }
+}

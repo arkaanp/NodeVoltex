@@ -175,39 +175,38 @@ public class SongSelectScreen implements Screen {
     private void animateOutDownwards() {
         float h = Gdx.graphics.getHeight();
 
+        // 1. The Background moves down in 1.0s with pow2In acceleration
         bgImage.addAction(Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In));
         prevBgImage.addAction(Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In));
 
-        // Target the independent layers!
+        // 2. Left Layer syncs the movement perfectly
         leftLayer.addAction(Actions.parallel(
-            Actions.moveBy(0, -h, 0.7f, Interpolation.pow3In),
+            Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In), // Exact same speed and easing
             Actions.sequence(
-                Actions.delay(0.35f),
-                Actions.alpha(0.4f, 0.35f, Interpolation.linear)
+                Actions.delay(0.5f), // Wait until halfway down...
+                Actions.alpha(1.0f, 0.5f, Interpolation.linear) // ...then fade out completely
             )
         ));
 
-        rightLayer.addAction(Actions.sequence(
-            Actions.delay(0.05f),
-            Actions.parallel(
-                Actions.moveBy(0, -h, 0.7f, Interpolation.pow3In),
-                Actions.sequence(
-                    Actions.delay(0.35f),
-                    Actions.alpha(0.4f, 0.35f, Interpolation.linear)
-                )
+        // 3. Right Layer syncs perfectly
+        rightLayer.addAction(Actions.parallel(
+            Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In),
+            Actions.sequence(
+                Actions.delay(0.5f),
+                Actions.alpha(1.0f, 0.5f, Interpolation.linear)
             )
         ));
 
+        // 4. Back Button syncs perfectly, and changes the screen the moment the animation finishes
         backTable.addAction(Actions.sequence(
-            Actions.delay(0.1f),
             Actions.parallel(
-                Actions.moveBy(0, -h, 0.7f, Interpolation.pow3In),
+                Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In),
                 Actions.sequence(
-                    Actions.delay(0.35f),
-                    Actions.alpha(0.4f, 0.35f, Interpolation.linear)
+                    Actions.delay(0.5f),
+                    Actions.alpha(1.0f, 0.5f, Interpolation.linear)
                 )
             ),
-            Actions.delay(0.2f),
+            // Fire the screen change the exact frame the 1.0s movement completes
             Actions.run(() -> game.setScreen(new MainMenuScreen(game)))
         ));
     }
