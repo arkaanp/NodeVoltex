@@ -26,7 +26,7 @@ public class ScoreManager implements GameArchitecture.HitObserver {
     // Call this before the map starts to set the maximum possible points
     public void setMaxPossibleScore(int totalNotes, int totalLaserTicks) {
         // Assuming S-Criticals are worth 2 points, and laser ticks are worth 2 points
-        this.maxHitScore = (totalNotes * 2f) + (totalLaserTicks * 2f);
+        this.maxHitScore = (totalNotes * 2f) + (totalLaserTicks * 1.5f);
     }
 
     @Override
@@ -55,7 +55,7 @@ public class ScoreManager implements GameArchitecture.HitObserver {
         if (combo > maxCombo) maxCombo = combo;
         // Lasers act like perfect holds
         sCriticals++;
-        currentHitScore += 2f;
+        currentHitScore += 1.5f;
     }
 
     // --- NEW: Calculate 10,000,000 Score ---

@@ -122,7 +122,7 @@ public class PlayScreen implements Screen {
         }
 
         // Initialize UI Font
-        font = new BitmapFont();
+        font = com.nodevoltex.game.NodeVoltex.skin.getFont("default");
         font.getData().setScale(2f);
 
         // --- 4. INITIALIZE MANAGERS & ENTITIES ---
@@ -130,11 +130,10 @@ public class PlayScreen implements Screen {
         laserManager = new LaserManager();
         scoreManager = new ScoreManager(new StrictJudgment());
 
-        // FOOLPROOF SCORE MATH: Calculate actual total notes and exact laser ticks!
-        int totalNotes = (this.beatmap != null && this.beatmap.hitObjects != null) ? this.beatmap.hitObjects.size : 0;
-
-        // --- THE FIX: Replace the 500 placeholder with the actual calculation ---
+        // --- THE FIX: Accurately count the Head and Tail of Hold Notes! ---
+        int totalNotes = countTotalNoteHits(this.beatmap);
         int totalLaserTicks = bakeAndCountLaserTicks(this.beatmap);
+
         scoreManager.setMaxPossibleScore(totalNotes, totalLaserTicks);
 
         activeNotes = new Array<>();
@@ -363,11 +362,15 @@ public class PlayScreen implements Screen {
         }
 
         // Reset the font size back to normal for the Combo text
-        font.getData().setScale(2f);
+        font.getData().setScale(1f);
 
 
         font.setColor(Color.WHITE);
         font.draw(game.batch, "Combo: " + scoreManager.combo, WORLD_WIDTH / 2f - 80, WORLD_HEIGHT - 125);
+
+        // --- NEW: Draw Live Score (Top Right) ---
+        String liveScore = String.format("%08d", scoreManager.getFinalScore());
+        font.draw(game.batch, "SCORE: " + liveScore, WORLD_WIDTH - 250, WORLD_HEIGHT - 20);
 
         // Dynamic Judgment Color
         if (scoreManager.latestJudgment.contains("CRITICAL")) font.setColor(Color.GOLD);
@@ -490,6 +493,43 @@ public class PlayScreen implements Screen {
             ticks += seq.tickTimes.size; // Count exactly how many ticks were baked
         }
         return ticks;
+    }
+
+    // --- NEW: Calculate exact ticks for Long Notes ---
+    private int bakeAndCountNoteTicks(Beatmap beatmap) {
+        if (beatmap == null || beatmap.hitObjects == null) return 0;
+        int totalTicks = 0;
+
+        for (Beatmap.HitObject note : beatmap.hitObjects) {
+            if ("HOLD".equals(note.type)) {
+                // If your InputController gives a combo tick every 100ms, we calculate it here!
+                // Change the 100.0f if your InputController uses a different interval.
+                float duration = note.endTime - note.startTime;
+                int holdTicks = (int) (duration / 100.0f);
+
+                // 1 tick for the initial hit, plus all the continuous hold ticks
+                totalTicks += (1 + holdTicks);
+            } else {
+                // Standard chip note
+                totalTicks += 1;
+            }
+        }
+        return totalTicks;
+    }
+
+    // --- NEW: Calculate exact note hits (Hold = 2, Chip = 1) ---
+    private int countTotalNoteHits(Beatmap beatmap) {
+        if (beatmap == null || beatmap.hitObjects == null) return 0;
+        int totalHits = 0;
+
+        for (Beatmap.HitObject note : beatmap.hitObjects) {
+            if ("HOLD".equals(note.type)) {
+                totalHits += 2; // 1 for the initial press, 1 for the release
+            } else {
+                totalHits += 1; // 1 for the standard tap
+            }
+        }
+        return totalHits;
     }
 
     @Override
