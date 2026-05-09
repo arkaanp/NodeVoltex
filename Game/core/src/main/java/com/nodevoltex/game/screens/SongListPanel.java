@@ -445,4 +445,46 @@ public class SongListPanel extends Table {
         System.out.println("WARNING: Could not find any song matching folder: " + targetFolder);
         selectRandomSong();
     }
+
+    @Override
+    public void act(float delta) {
+        // 1. Let the ScrollPane and normal Table layout do their math first
+        super.act(delta);
+
+        // 2. Calculate the slope ratio for a 5-degree incline
+        // (tan(5) is roughly 0.087. We use this to find X based on Y)
+        float angleInDegrees = 5f;
+        float tanAngle = (float) Math.tan(Math.toRadians(angleInDegrees));
+
+        // 3. Iterate through every song box inside your scrollable list.
+        if (songListTable != null) {
+            for (com.badlogic.gdx.scenes.scene2d.Actor songBox : songListTable.getChildren()) {
+
+                // A. Find where this specific box is currently drawn on the screen
+                com.badlogic.gdx.math.Vector2 pos = new com.badlogic.gdx.math.Vector2(0, songBox.getY());
+                songListTable.localToAscendantCoordinates(this, pos);
+
+                // B. Calculate how far down the screen the box is from the top of the panel
+                // (Assuming your search bar is at the top of this panel)
+                float distanceDown = this.getHeight() - pos.y;
+
+                // C. Calculate the required X offset to match the line.
+                // NOTE: If the boxes slide the wrong direction ( \ instead of / ),
+                // simply add a minus sign here: distanceDown * -tanAngle;
+                float targetX = distanceDown * tanAngle;
+
+                // D. Force the box to slide over to the diagonal line!
+                songBox.setX(targetX);
+            }
+        }
+    }
+
+    // --- NEW: Manual Scroll Driver ---
+    public void scroll(float amountY) {
+        if (scrollPane != null) {
+            // 75f is slightly faster for the song list since it's much longer
+            float newScroll = scrollPane.getScrollY() + (amountY * 75f);
+            scrollPane.setScrollY(newScroll);
+        }
+    }
 }

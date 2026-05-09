@@ -12,7 +12,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
-import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.nodevoltex.game.NodeVoltex;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
@@ -33,7 +32,9 @@ public class SongSelectScreen implements Screen {
     private Texture prevBgTexture;
     private Image prevBgImage;
 
-    private Table rootTable;
+    // --- NEW: Independent Layers replacing rootTable ---
+    private Table leftLayer;
+    private Table rightLayer;
 
     public SongSelectScreen(NodeVoltex game, com.badlogic.gdx.audio.Music mainMenuMusic, String preselectedMapPath) {
         this.game = game;
@@ -41,48 +42,50 @@ public class SongSelectScreen implements Screen {
         this.skin = NodeVoltex.skin;
         Gdx.input.setInputProcessor(stage);
 
-        // 2. Update the background setup in the constructor
+        // Background setup
         bgTexture = new Texture(Gdx.files.internal("assets/Back.png"));
         bgImage = new Image(bgTexture);
         bgImage.setFillParent(true);
         stage.addActor(bgImage);
 
-        // --- NEW: Load the Main Menu background and place it directly above ---
+        // Main Menu background
         prevBgTexture = new Texture(Gdx.files.internal("assets/background_gaussianblurupscaled.jpeg"));
         prevBgImage = new Image(prevBgTexture);
         prevBgImage.setFillParent(true);
-        prevBgImage.setY(Gdx.graphics.getHeight()); // Start above the screen
+        prevBgImage.setY(Gdx.graphics.getHeight());
         stage.addActor(prevBgImage);
 
-        rootTable = new Table();
-        rootTable.setFillParent(true);
-        stage.addActor(rootTable);
-
+        // --- CREATE PANELS ---
         leftPanel = new StatsPanel(NodeVoltex.skin);
-        leftPanel.setTransform(true); //
 
         SongListPanel rightPanel = new SongListPanel(game, NodeVoltex.skin, leftPanel, mainMenuMusic);
         TopSearchBar searchBar = new TopSearchBar(NodeVoltex.skin, rightPanel);
 
         rightColumn = new Table();
-        rightColumn.setTransform(true); //
         rightColumn.add(searchBar).expandX().fillX().height(60).row();
         rightColumn.add(rightPanel).expand().fill();
 
-        // 3. Add to root table with percentage widths
-        rootTable.add(leftPanel)
-            .width(com.badlogic.gdx.scenes.scene2d.ui.Value.percentWidth(0.40f, rootTable))
+        // --- INDEPENDENT LEFT LAYER ---
+        leftLayer = new Table();
+        leftLayer.setFillParent(true);
+        leftLayer.left(); // Anchor to the left edge
+        leftLayer.add(leftPanel)
+            .width(com.badlogic.gdx.scenes.scene2d.ui.Value.percentWidth(0.40f, leftLayer))
             .expandY().fillY()
             .padLeft(40).padTop(40).padBottom(40);
+        stage.addActor(leftLayer);
 
-        rootTable.add().expandX(); // Spacer
-
-        rootTable.add(rightColumn)
-            .width(com.badlogic.gdx.scenes.scene2d.ui.Value.percentWidth(0.45f, rootTable))
+        // --- INDEPENDENT RIGHT LAYER ---
+        rightLayer = new Table();
+        rightLayer.setFillParent(true);
+        rightLayer.right(); // Anchor to the right edge
+        rightLayer.add(rightColumn)
+            .width(com.badlogic.gdx.scenes.scene2d.ui.Value.percentWidth(0.45f, rightLayer))
             .expandY().fillY()
             .padRight(40).padTop(40).padBottom(40);
+        stage.addActor(rightLayer);
 
-        // 4. --- NEW: Floating Back Button ---
+        // --- FLOATING BACK BUTTON ---
         backTable = new Table();
         backTable.setFillParent(true);
         backTable.bottom().left();
@@ -92,11 +95,8 @@ public class SongSelectScreen implements Screen {
         backBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                // 1. Lock screen
                 stage.getRoot().setTouchable(Touchable.disabled);
                 rightPanel.stopAudio();
-
-                // 2. Trigger the reverse Flow animation
                 animateOutDownwards();
             }
         });
@@ -104,19 +104,25 @@ public class SongSelectScreen implements Screen {
         backTable.add(backBtn).width(150).height(50).pad(20);
         stage.addActor(backTable);
 
-        // --- NEW: Trigger entry animation flowing UP ---
+        // --- TRIGGER ENTRY ANIMATION ---
         animateInFromBottom();
 
-        // --- Auto-focus scrolling and pick a random song on startup ---
+        // --- GLOBAL HOVERLESS SCROLL SYSTEM ---
+        stage.addCaptureListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
+            @Override
+            public boolean scrolled(InputEvent event, float x, float y, float amountX, float amountY) {
+                float screenWidth = stage.getWidth();
+                if (x < screenWidth / 2f) {
+                    leftPanel.scroll(amountY);
+                } else {
+                    rightPanel.scroll(amountY);
+                }
+                event.cancel();
+                return true;
+            }
+        });
 
-        // 1. Give the mouse wheel focus to the right panel immediately
-        rightPanel.requestScrollFocus(stage);
-
-        // 2. Pick a random song
-        // We wrap this in a postRunnable. This waits exactly 1 frame before firing,
-        // which guarantees the Stage has finished calculating your percentage-based layouts.
-        // If we don't wait 1 frame, the auto-center math might calculate off of a height of 0!
-        //System.out.println("BATON PASS 2 (SongSelect): Received -> " + preselectedMapPath);
+        // --- PICK SELECTED/RANDOM SONG ---
         Gdx.app.postRunnable(() -> {
             if (preselectedMapPath != null) {
                 rightPanel.selectSongByPath(preselectedMapPath);
@@ -129,15 +135,16 @@ public class SongSelectScreen implements Screen {
     private void animateInFromBottom() {
         float h = Gdx.graphics.getHeight();
 
-        leftPanel.addAction(Actions.moveBy(0, -h));
-        rightColumn.addAction(Actions.moveBy(0, -h));
+        // Target the independent layers!
+        leftLayer.addAction(Actions.moveBy(0, -h));
+        rightLayer.addAction(Actions.moveBy(0, -h));
         backTable.addAction(Actions.moveBy(0, -h));
 
-        leftPanel.getColor().a = 0f;
-        rightColumn.getColor().a = 0f;
+        leftLayer.getColor().a = 0f;
+        rightLayer.getColor().a = 0f;
         backTable.getColor().a = 0f;
 
-        leftPanel.addAction(Actions.sequence(
+        leftLayer.addAction(Actions.sequence(
             Actions.delay(0.05f),
             Actions.parallel(
                 Actions.moveBy(0, h, 0.9f, Interpolation.pow3Out),
@@ -145,8 +152,7 @@ public class SongSelectScreen implements Screen {
             )
         ));
 
-        // --- TWEAKED: Increased delay from 0.15s to 0.20s to make the stagger more visible ---
-        rightColumn.addAction(Actions.sequence(
+        rightLayer.addAction(Actions.sequence(
             Actions.delay(0.20f),
             Actions.parallel(
                 Actions.moveBy(0, h, 0.9f, Interpolation.pow3Out),
@@ -169,8 +175,8 @@ public class SongSelectScreen implements Screen {
         bgImage.addAction(Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In));
         prevBgImage.addAction(Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In));
 
-        // --- TWEAKED: The alpha fade waits 0.35s before triggering ---
-        leftPanel.addAction(Actions.parallel(
+        // Target the independent layers!
+        leftLayer.addAction(Actions.parallel(
             Actions.moveBy(0, -h, 0.7f, Interpolation.pow3In),
             Actions.sequence(
                 Actions.delay(0.35f),
@@ -178,7 +184,7 @@ public class SongSelectScreen implements Screen {
             )
         ));
 
-        rightColumn.addAction(Actions.sequence(
+        rightLayer.addAction(Actions.sequence(
             Actions.delay(0.05f),
             Actions.parallel(
                 Actions.moveBy(0, -h, 0.7f, Interpolation.pow3In),

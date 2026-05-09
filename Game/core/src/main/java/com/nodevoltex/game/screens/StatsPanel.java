@@ -17,6 +17,7 @@ public class StatsPanel extends Table {
     private Table leaderboardTable;
     private com.badlogic.gdx.utils.Array<com.nodevoltex.game.data.SaveData> currentScores = new com.badlogic.gdx.utils.Array<>();
     private boolean sortScoreAscending = true; // true = score, false = date
+    private ScrollPane leaderboardScrollPane;
 
     public StatsPanel(Skin skin) {
         this.skin = skin;
@@ -107,28 +108,70 @@ public class StatsPanel extends Table {
     }
 
     private void buildLeaderboard() {
-        leaderboardTable = new Table();
-        leaderboardTable.top().left();
+        // --- NEW: 3-Degree Diagonal Table scaled to the 8th Box ---
+        leaderboardTable = new Table() {
+            @Override
+            public void act(float delta) {
+                super.act(delta);
+                float tanAngle = (float) Math.tan(Math.toRadians(3f));
 
-        // Let's add a placeholder score row based on your mockup
-        leaderboardTable.add(createScoreRow("stelle123", "09946732", "AAA+", "1,004x", "2026-6-7")).expandX().fillX().padBottom(5).row();
-        leaderboardTable.add(createScoreRow("Guest", "08500000", "A", "450x", "2026-6-8")).expandX().fillX().padBottom(5).row();
+                // 1. Define the starting anchors at the very top
+                float rightWallTopX = StatsPanel.this.getWidth() - 20f;
+                float leftWallX = 10f; // Left side of "sorted by"
 
-        ScrollPane scrollPane = new ScrollPane(leaderboardTable, skin);
-        scrollPane.setScrollingDisabled(true, false);
-        scrollPane.setFadeScrollBars(false);
+                // 2. Calculate the theoretical depth of the 8th box.
+                // A standard row with a profile pic is usually ~70px tall + 5px padding.
+                float estimatedRowHeight = 75f;
+                float depthOf8thBox = 8f * estimatedRowHeight;
 
-        // Add it to the main panel with a translucent background
+                // 3. Find exactly where the 3-degree diagonal line is at that depth
+                float rightWall8thBoxX = rightWallTopX - (depthOf8thBox * tanAngle);
+
+                // 4. Lock the width! (Rightmost X of 8th box - Leftmost X of sorted by)
+                // We subtract 5f as a tiny safety margin so it never visually touches the edge.
+                float safetyMargin = 5f;
+                float fixedBoxWidth = rightWall8thBoxX - leftWallX - safetyMargin;
+
+                for (com.badlogic.gdx.scenes.scene2d.Actor child : getChildren()) {
+                    // 5. Force every single box to be this exact width
+                    child.setWidth(fixedBoxWidth);
+
+                    // Find where the TOP of this specific row is vertically
+                    com.badlogic.gdx.math.Vector2 pos = new com.badlogic.gdx.math.Vector2(0, child.getY() + child.getHeight());
+                    localToAscendantCoordinates(StatsPanel.this, pos);
+
+                    float distanceDown = StatsPanel.this.getHeight() - pos.y;
+
+                    // 6. The diagonal line sloping left (/)
+                    float diagonalLineX = rightWallTopX - (distanceDown * tanAngle);
+
+                    // 7. Anchor the RIGHT edge of the box to the diagonal line
+                    child.setX(diagonalLineX - fixedBoxWidth);
+                }
+            }
+        };
+
+        leaderboardTable.top().right();
+
+        // Placeholder scores (Notice we use .right() instead of .fillX() now!)
+        leaderboardTable.add(createScoreRow("stelle123", "09946732", "AAA+", "1,004x", "2026-6-7")).expandX().right().padBottom(5).row();
+        leaderboardTable.add(createScoreRow("Guest", "08500000", "A", "450x", "2026-6-8")).expandX().right().padBottom(5).row();
+
+        leaderboardScrollPane = new ScrollPane(leaderboardTable, skin);
+        leaderboardScrollPane.setScrollingDisabled(true, false);
+        leaderboardScrollPane.setFadeScrollBars(false);
+
         Table scrollContainer = new Table();
-        scrollContainer.background(skin.newDrawable("white", new Color(0, 0, 0, 0.5f)));
-        scrollContainer.add(scrollPane).expand().fill().pad(10);
+        scrollContainer.add(leaderboardScrollPane).expand().fill().pad(10); // Update this line too!
 
         this.add(scrollContainer).expand().fill().padTop(10);
     }
 
     private Table createScoreRow(String name, String score, String grade, String combo, String date) {
         Table row = new Table();
-        row.background(skin.newDrawable("white", new Color(1, 1, 1, 0.1f))); // Very faint highlight
+
+        // --- UPDATED: 65% Opacity background for the individual row! ---
+        row.background(skin.newDrawable("white", new Color(0.1f, 0.1f, 0.15f, 0.65f)));
         row.pad(10);
 
         // Left side (Profile Pic placeholder & Name)
@@ -138,7 +181,7 @@ public class StatsPanel extends Table {
 
         Table nameDateTable = new Table();
         nameDateTable.add(new Label(name, skin)).align(Align.left).row();
-        nameDateTable.add(new Label(date, skin)).align(Align.left); // You could use a smaller font here
+        nameDateTable.add(new Label(date, skin)).align(Align.left);
         profileTable.add(nameDateTable);
 
         row.add(profileTable).align(Align.left).expandX();
@@ -153,7 +196,6 @@ public class StatsPanel extends Table {
         Table scoreTable = new Table();
         Label scoreLabel = new Label(score, skin);
         Label gradeLabel = new Label(grade, skin);
-        // You'll likely want to use a larger font for the score and grade later
 
         scoreTable.add(scoreLabel).align(Align.right).row();
         scoreTable.add(gradeLabel).align(Align.right);
@@ -161,7 +203,6 @@ public class StatsPanel extends Table {
 
         return row;
     }
-
     public void updateSong(String newTitle, String newArtist, String diffText, String mapperText, com.badlogic.gdx.utils.Array<com.nodevoltex.game.data.SaveData> scores) {
         titleLabel.setText(newTitle);
         artistLabel.setText(newArtist);
@@ -179,7 +220,7 @@ public class StatsPanel extends Table {
         refreshLeaderboard();
     }
 
-    // --- NEW: Dedicated drawing method that respects the sort toggle ---
+    // --- Dedicated drawing method that respects the sort toggle ---
     private void refreshLeaderboard() {
         leaderboardTable.clear();
 
@@ -190,12 +231,9 @@ public class StatsPanel extends Table {
             return;
         }
 
-        // Apply the active sorting rule
         if (sortScoreAscending) {
-            // Highest score first
             currentScores.sort((a, b) -> Integer.compare(b.score, a.score));
         } else {
-            // Most recent date first
             currentScores.sort((a, b) -> Long.compare(b.timestamp, a.timestamp));
         }
 
@@ -205,8 +243,16 @@ public class StatsPanel extends Table {
             String dateStr = sdf.format(new java.util.Date(data.timestamp));
             String scoreStr = String.format("%08d", data.score);
 
+            // --- THE CUTOFF FIX: Changed .fillX() to .right() here too! ---
             leaderboardTable.add(createScoreRow("Guest", scoreStr, data.grade, "---", dateStr))
-                .expandX().fillX().padBottom(5).row();
+                .expandX().right().padBottom(5).row();
+        }
+    }
+
+    public void scroll(float amountY) {
+        if (leaderboardScrollPane != null) {
+            float newScroll = leaderboardScrollPane.getScrollY() + (amountY * 60f);
+            leaderboardScrollPane.setScrollY(newScroll);
         }
     }
 }
