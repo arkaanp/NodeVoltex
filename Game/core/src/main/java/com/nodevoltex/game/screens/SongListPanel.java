@@ -122,8 +122,21 @@ public class SongListPanel extends Table {
         // Auto-Center the scroll pane on the selected song
         if (currentlyExpandedActor != null) {
             Gdx.app.postRunnable(() -> {
-                // The last argument 'true' tells LibGDX to perfectly center it vertically!
-                scrollPane.scrollTo(0, currentlyExpandedActor.getY(), currentlyExpandedActor.getWidth(), currentlyExpandedActor.getHeight(), false, true);
+                // 1. Force the UI to calculate the new expanded sizes FIRST
+                songListTable.layout();
+                scrollPane.layout();
+
+                // 2. Find the exact vertical center of our expanded song box
+                float itemCenterY = currentlyExpandedActor.getY() + (currentlyExpandedActor.getHeight() / 2f);
+
+                // 3. Find how far down that center point is from the very top of the list
+                float distanceFromTop = songListTable.getHeight() - itemCenterY;
+
+                // 4. Subtract half of the visible scroll window to perfectly center it
+                float targetScrollY = distanceFromTop - (scrollPane.getHeight() / 2f);
+
+                // 5. Instantly snap the scrollbar to that exact mathematical center
+                scrollPane.setScrollY(targetScrollY);
             });
         }
     }
@@ -347,5 +360,21 @@ public class SongListPanel extends Table {
 
         // Scroll back to the top when a new sort is applied
         Gdx.app.postRunnable(() -> scrollPane.setScrollY(0));
+    }
+
+    // --- NEW: Method to capture mouse wheel focus ---
+    public void requestScrollFocus(com.badlogic.gdx.scenes.scene2d.Stage stage) {
+        stage.setScrollFocus(this.scrollPane);
+    }
+
+    // --- NEW: Method to pick a random song ---
+    public void selectRandomSong() {
+        if (allSongs.size > 0) {
+            // Pick a random number between 0 and the last index of the array
+            int randomIndex = com.badlogic.gdx.math.MathUtils.random(allSongs.size - 1);
+
+            // Trigger the exact same logic as if the user clicked it!
+            handleSongSelection(allSongs.get(randomIndex));
+        }
     }
 }

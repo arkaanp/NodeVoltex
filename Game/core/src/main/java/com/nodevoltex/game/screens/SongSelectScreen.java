@@ -77,6 +77,19 @@ public class SongSelectScreen implements Screen {
 
         backTable.add(backBtn).width(150).height(50).pad(20);
         stage.addActor(backTable);
+
+        // --- Auto-focus scrolling and pick a random song on startup ---
+
+        // 1. Give the mouse wheel focus to the right panel immediately
+        rightPanel.requestScrollFocus(stage);
+
+        // 2. Pick a random song
+        // We wrap this in a postRunnable. This waits exactly 1 frame before firing,
+        // which guarantees the Stage has finished calculating your percentage-based layouts.
+        // If we don't wait 1 frame, the auto-center math might calculate off of a height of 0!
+        Gdx.app.postRunnable(() -> {
+            rightPanel.selectRandomSong();
+        });
     }
 
     @Override public void render(float delta) {
