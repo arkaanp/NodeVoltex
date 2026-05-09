@@ -62,27 +62,30 @@ public class SongSelectScreen implements Screen {
         TopSearchBar searchBar = new TopSearchBar(NodeVoltex.skin, rightPanel);
 
         rightColumn = new Table();
-        rightColumn.add(searchBar).expandX().fillX().height(60).row();
+        // Add 40px right padding ONLY to the search bar so it doesn't touch the glass!
+        rightColumn.add(searchBar).expandX().fillX().padRight(40).height(60).row();
+        // The list panel gets NO padding so it stretches to the absolute edge
         rightColumn.add(rightPanel).expand().fill();
 
         // --- INDEPENDENT LEFT LAYER ---
         leftLayer = new Table();
         leftLayer.setFillParent(true);
-        leftLayer.left(); // Anchor to the left edge
+        leftLayer.left();
         leftLayer.add(leftPanel)
-            .width(com.badlogic.gdx.scenes.scene2d.ui.Value.percentWidth(0.40f, leftLayer))
+            // Increased to 48% width to fill the newly opened space
+            .width(com.badlogic.gdx.scenes.scene2d.ui.Value.percentWidth(0.48f, leftLayer))
             .expandY().fillY()
-            .padLeft(40).padTop(40).padBottom(40);
+            .padTop(40).padBottom(40); // REMOVED padLeft!
         stage.addActor(leftLayer);
 
         // --- INDEPENDENT RIGHT LAYER ---
         rightLayer = new Table();
         rightLayer.setFillParent(true);
-        rightLayer.right(); // Anchor to the right edge
+        rightLayer.right();
         rightLayer.add(rightColumn)
-            .width(com.badlogic.gdx.scenes.scene2d.ui.Value.percentWidth(0.45f, rightLayer))
+            .width(com.badlogic.gdx.scenes.scene2d.ui.Value.percentWidth(0.48f, rightLayer))
             .expandY().fillY()
-            .padRight(40).padTop(40).padBottom(40);
+            .padTop(40).padBottom(40); // REMOVED padRight!
         stage.addActor(rightLayer);
 
         // --- FLOATING BACK BUTTON ---
