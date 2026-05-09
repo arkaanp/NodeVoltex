@@ -11,6 +11,8 @@ import com.nodevoltex.game.patterns.LockedState;
 
 public class LaserManager {
 
+    public boolean isAutoPlay = false;
+
     private int getSlamEndNodeIndex(Beatmap.LaserSequence seq, float tickTime) {
         if (seq.nodes.size < 2) return -1;
         for (int i = 1; i < seq.nodes.size; i++) {
@@ -63,8 +65,8 @@ public class LaserManager {
         return sequence.nodes.get(sequence.nodes.size - 1).x;
     }
 
-    public void updateCursor(LaserCursor cursor, Array<Beatmap.LaserSequence> laserData, float currentTime, float delta, ScoreManager scoreManager,
-                             com.badlogic.gdx.audio.Sound slamSound) {
+    public void updateCursor(LaserCursor cursor, Array<Beatmap.LaserSequence> laserData, float currentTime, float delta,
+                             ScoreManager scoreManager, com.badlogic.gdx.audio.Sound slamSound, InputController inputController) {
         if (laserData == null) return;
         boolean isCurrentlyOnLaser = false;
 
@@ -87,18 +89,16 @@ public class LaserManager {
 
                 float currentLaserX = calculateLaserPositionAtTime(sequence, currentTime);
 
-                // --- NEW: INSTANT RECOVERY & GRACE TIMER LOGIC ---
+                // --- INSTANT RECOVERY & GRACE TIMER LOGIC ---
                 if (cursor.isMissed) {
                     if (Math.abs(cursor.x - currentLaserX) <= 0.35f) {
-                        // They steered back! Instantly recover the visual state!
                         cursor.isMissed = false;
                         cursor.missedTimer = 0f;
                         cursor.setState(new LockedState());
                     } else {
-                        // Still detached. Accumulate the grace timer.
                         cursor.missedTimer += delta * 1000f;
                         if (cursor.missedTimer >= 200f && !cursor.hasComboBroken) {
-                            scoreManager.onMiss("LASER"); // Combo officially breaks here
+                            scoreManager.onMiss("LASER");
                             cursor.hasComboBroken = true;
                         }
                     }
@@ -114,7 +114,27 @@ public class LaserManager {
 
                 cursor.targetLaserX = currentLaserX;
                 cursor.requiresInput = (direction != 0);
-                cursor.pollInputs(direction);
+
+                // Read the human physical keyboard first...
+                cursor.pollInputs(direction, inputController, currentTime);
+
+                // --- THE LASER ROBOT OVERRIDE ---
+                if (isAutoPlay) {
+                    cursor.x = currentLaserX;
+                    // Fool the engine into thinking the player is holding the exact right keys!
+                    cursor.isHoldingCorrectKey = true;
+
+                    if (direction < 0) {
+                        cursor.isMovingLeft = true;
+                        cursor.isMovingRight = false;
+                    } else if (direction > 0) {
+                        cursor.isMovingRight = true;
+                        cursor.isMovingLeft = false;
+                    } else {
+                        cursor.isMovingLeft = false;
+                        cursor.isMovingRight = false;
+                    }
+                }
             }
 
             // --- PART 2: THE PRE-BAKED TICK ENGINE (SCORING) ---
@@ -139,8 +159,13 @@ public class LaserManager {
                             float slamDirection = Math.signum(targetLaserPos - slamStartX);
                             boolean correctFlick = false;
 
-                            if (slamDirection > 0 && cursor.isMovingRight) correctFlick = true;
-                            if (slamDirection < 0 && cursor.isMovingLeft) correctFlick = true;
+                            // --- ROBOT FLICK OVERRIDE ---
+                            if (isAutoPlay) {
+                                correctFlick = true; // The robot never misses a flick!
+                            } else {
+                                if (slamDirection > 0 && cursor.isMovingRight) correctFlick = true;
+                                if (slamDirection < 0 && cursor.isMovingLeft) correctFlick = true;
+                            }
 
                             if (correctFlick || Math.abs(cursor.x - targetLaserPos) <= 0.30f) {
                                 isHit = true;
@@ -158,7 +183,6 @@ public class LaserManager {
                             }
                         }
 
-                        // Process the Judgment
                         if (isHit) {
                             scoreManager.onLaserTick();
                             cursor.isMissed = false;
@@ -166,13 +190,9 @@ public class LaserManager {
                             cursor.hasComboBroken = false;
                             cursor.setState(new LockedState());
                         } else {
-                            // Visually drop the laser, but don't break the combo instantly!
                             cursor.isMissed = true;
                             cursor.setState(new com.nodevoltex.game.patterns.FreeState());
 
-                            // --- THE FORGIVING TICK ---
-                            // If they are detached, but the 200ms grace period hasn't expired yet,
-                            // we give them the combo points anyway!
                             if (!cursor.hasComboBroken && cursor.missedTimer < 200f) {
                                 scoreManager.onLaserTick();
                             }
@@ -189,7 +209,7 @@ public class LaserManager {
         // --- PART 3: CLEANUP & UPCOMING LASERS ---
         if (!isCurrentlyOnLaser) {
             cursor.requiresInput = false;
-            cursor.pollInputs(0);
+            cursor.pollInputs(0, inputController, currentTime);
             cursor.wasAutoSnapped = false;
             cursor.missedTimer = 0f;
             cursor.hasComboBroken = false;

@@ -128,6 +128,12 @@ public class PlayScreen implements Screen {
         // --- 4. INITIALIZE MANAGERS & ENTITIES ---
         inputController = new InputController();
         laserManager = new LaserManager();
+
+        // --- TURN ON/OFF RECORDING ---
+        inputController.isRecording = true;
+        // --- TURN ON/OFF AUTO-MOD FOR TESTING ---
+        //inputController.isAutoPlay = true;
+        //laserManager.isAutoPlay = true;
         scoreManager = new ScoreManager(new StrictJudgment());
 
         // --- THE FIX: Separate Note Heads and Hold Tails ---
@@ -151,7 +157,30 @@ public class PlayScreen implements Screen {
         rightCursor = new LaserCursor(false, Input.Keys.NUM_9, Input.Keys.NUM_0);
 
 
+        // --- THE REPLAY LOADER ---
+        try {
+            // 1. Point to the exact file you recorded
+            com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("assets/replays/replay_1778315319697.json");
 
+            // 2. Read the JSON back into Java memory
+            com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
+            com.nodevoltex.game.data.ReplayData savedReplay = json.fromJson(com.nodevoltex.game.data.ReplayData.class, replayFile);
+
+            // 3. Hand the loaded data to the InputController
+            if (savedReplay != null) {
+                inputController.currentReplay = savedReplay;
+
+                // 4. Turn Playback ON, and ensure everything else is OFF
+                inputController.isReplayPlayback = false;
+                inputController.isRecording = false;
+                inputController.isAutoPlay = false;
+                laserManager.isAutoPlay = false;
+
+                System.out.println("SUCCESS: Loaded Replay with " + savedReplay.events.size + " events!");
+            }
+        } catch (Exception e) {
+            System.out.println("ERROR: Could not load replay file! " + e.getMessage());
+        }
 
 
         // --- 6. PAUSE MENU SETUP ---
@@ -192,7 +221,7 @@ public class PlayScreen implements Screen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 music.stop();
-                System.out.println("BATON PASS 1 (PlayScreen): Handing off -> " + mapFilePath);
+                //System.out.println("BATON PASS 1 (PlayScreen): Handing off -> " + mapFilePath);
                 game.setScreen(new SongSelectScreen(game, null, mapFilePath));
             }
         });
@@ -231,8 +260,20 @@ public class PlayScreen implements Screen {
                     else if (mapFilePath.contains("exh.json")) diffName = "EXH";
                     else if (mapFilePath.contains("mxm.json")) diffName = "MXM";
 
+                    // --- SAVE THE REPLAY ---
+                    if (inputController.isRecording) {
+                        inputController.currentReplay.songTitle = beatmap.general.title;
+                        inputController.currentReplay.difficulty = diffName;
+                        inputController.currentReplay.finalScore = scoreManager.getFinalScore();
+                        inputController.currentReplay.timestamp = System.currentTimeMillis();
+
+                        com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("assets/replays/replay_" + inputController.currentReplay.timestamp + ".json");
+                        com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
+                        replayFile.writeString(json.prettyPrint(inputController.currentReplay), false);
+                    }
+
                     game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, diffName, mapFilePath));
-                    return; // Stop rendering this frame immediately
+                    return;
                 }
                 // 3. Once playing, anchor the visual timeline to the music hardware so they never drift.
                 // We add the offset back here so the visual timer stays accurately synced to the audio.
@@ -246,8 +287,8 @@ public class PlayScreen implements Screen {
 
             // Process Laser Interpolation & States
             if (beatmap.lasers != null) {
-                laserManager.updateCursor(leftCursor, beatmap.lasers.left, currentAudioTimeMs, delta, scoreManager, slamSound);
-                laserManager.updateCursor(rightCursor, beatmap.lasers.right, currentAudioTimeMs, delta, scoreManager, slamSound);
+                laserManager.updateCursor(leftCursor, beatmap.lasers.left, currentAudioTimeMs, delta, scoreManager, slamSound, inputController);
+                laserManager.updateCursor(rightCursor, beatmap.lasers.right, currentAudioTimeMs, delta, scoreManager, slamSound, inputController);
             }
 
             // --- CLEAR SCREEN & SETUP CAMERA ---

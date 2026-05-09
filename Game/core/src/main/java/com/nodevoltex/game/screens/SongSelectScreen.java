@@ -115,7 +115,7 @@ public class SongSelectScreen implements Screen {
         // We wrap this in a postRunnable. This waits exactly 1 frame before firing,
         // which guarantees the Stage has finished calculating your percentage-based layouts.
         // If we don't wait 1 frame, the auto-center math might calculate off of a height of 0!
-        System.out.println("BATON PASS 2 (SongSelect): Received -> " + preselectedMapPath);
+        //System.out.println("BATON PASS 2 (SongSelect): Received -> " + preselectedMapPath);
         Gdx.app.postRunnable(() -> {
             if (preselectedMapPath != null) {
                 rightPanel.selectSongByPath(preselectedMapPath);

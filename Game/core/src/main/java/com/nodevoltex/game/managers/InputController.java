@@ -4,36 +4,104 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.utils.Array;
 import com.nodevoltex.game.entities.Note;
+import com.nodevoltex.game.data.ReplayData;
 
 public class InputController {
 
+    public boolean isAutoPlay = false;
+
+    // --- REPLAY VARIABLES ---
+    public boolean isRecording = false;
+    public boolean isReplayPlayback = false;
+    public ReplayData currentReplay = new ReplayData();
+    private int replayPlaybackIndex = 0;
+
+    // THE GHOST KEYBOARD
+    public java.util.HashMap<String, Boolean> virtualKeyboard = new java.util.HashMap<>();
+
+    private boolean[] laneJustPressed = new boolean[7];
+    private boolean[] laneIsPressed = new boolean[7];
+
+    private void recordEventIfChanged(int lane, String label, boolean currentState, float timeMs) {
+        if (laneJustPressed[lane]) {
+            currentReplay.events.add(new ReplayData.InputEvent(timeMs, label, true));
+        } else if (!currentState && laneIsPressed[lane]) {
+            currentReplay.events.add(new ReplayData.InputEvent(timeMs, label, false));
+        }
+    }
+
+    // --- NEW: THE PLAYBACK ENGINE ---
+    public void updatePlayback(float currentAudioTimeMs) {
+        if (!isReplayPlayback || currentReplay == null) return;
+
+        while (replayPlaybackIndex < currentReplay.events.size) {
+            ReplayData.InputEvent event = currentReplay.events.get(replayPlaybackIndex);
+
+            // If the timeline has reached this exact event, press/release the virtual key!
+            if (currentAudioTimeMs >= event.audioTimeMs) {
+                virtualKeyboard.put(event.inputType, event.isPressed);
+                replayPlaybackIndex++;
+            } else {
+                break;
+            }
+        }
+    }
+
     public void processNoteInputs(Array<Note> activeNotes, float currentAudioTimeMs, ScoreManager scoreManager) {
-        boolean[] laneJustPressed = new boolean[7];
-        boolean[] laneIsPressed = new boolean[7];
+        if (isAutoPlay) {
+            for (Note note : activeNotes) {
+                if (note.isMissed || note.isCompleted) continue;
+                if (!note.wasHeadHit && currentAudioTimeMs >= note.startTime) {
+                    scoreManager.onHit(0f, "NOTE");
+                    note.wasHeadHit = true;
+                    if (!note.isHold) note.isCompleted = true;
+                }
+                if (note.isHold && note.wasHeadHit && currentAudioTimeMs >= note.endTime) {
+                    scoreManager.onHit(0f, "RELEASE");
+                    note.isCompleted = true;
+                }
+            }
+            return;
+        }
 
-        // BT Buttons
-        laneJustPressed[1] = Gdx.input.isKeyJustPressed(Input.Keys.W) || Gdx.input.isKeyJustPressed(Input.Keys.Y);
-        laneJustPressed[2] = Gdx.input.isKeyJustPressed(Input.Keys.E) || Gdx.input.isKeyJustPressed(Input.Keys.U);
-        laneJustPressed[3] = Gdx.input.isKeyJustPressed(Input.Keys.R) || Gdx.input.isKeyJustPressed(Input.Keys.I);
-        laneJustPressed[4] = Gdx.input.isKeyJustPressed(Input.Keys.T) || Gdx.input.isKeyJustPressed(Input.Keys.O);
+        // 1. Advance the Ghost Keyboard
+        updatePlayback(currentAudioTimeMs);
 
-        laneIsPressed[1] = Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.Y);
-        laneIsPressed[2] = Gdx.input.isKeyPressed(Input.Keys.E) || Gdx.input.isKeyPressed(Input.Keys.U);
-        laneIsPressed[3] = Gdx.input.isKeyPressed(Input.Keys.R) || Gdx.input.isKeyPressed(Input.Keys.I);
-        laneIsPressed[4] = Gdx.input.isKeyPressed(Input.Keys.T) || Gdx.input.isKeyPressed(Input.Keys.O);
+        // 2. Poll Physical OR Virtual Keys
+        boolean currentBT1 = isReplayPlayback ? virtualKeyboard.getOrDefault("BT1", false) : (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.Y));
+        boolean currentBT2 = isReplayPlayback ? virtualKeyboard.getOrDefault("BT2", false) : (Gdx.input.isKeyPressed(Input.Keys.E) || Gdx.input.isKeyPressed(Input.Keys.U));
+        boolean currentBT3 = isReplayPlayback ? virtualKeyboard.getOrDefault("BT3", false) : (Gdx.input.isKeyPressed(Input.Keys.R) || Gdx.input.isKeyPressed(Input.Keys.I));
+        boolean currentBT4 = isReplayPlayback ? virtualKeyboard.getOrDefault("BT4", false) : (Gdx.input.isKeyPressed(Input.Keys.T) || Gdx.input.isKeyPressed(Input.Keys.O));
+        boolean currentFXL = isReplayPlayback ? virtualKeyboard.getOrDefault("FXL", false) : (Gdx.input.isKeyPressed(Input.Keys.X) || Gdx.input.isKeyPressed(Input.Keys.N));
+        boolean currentFXR = isReplayPlayback ? virtualKeyboard.getOrDefault("FXR", false) : (Gdx.input.isKeyPressed(Input.Keys.M) || Gdx.input.isKeyPressed(Input.Keys.C));
 
-        // FX Buttons
-        laneJustPressed[5] = Gdx.input.isKeyJustPressed(Input.Keys.X) || Gdx.input.isKeyJustPressed(Input.Keys.N);
-        laneJustPressed[6] = Gdx.input.isKeyJustPressed(Input.Keys.M) || Gdx.input.isKeyJustPressed(Input.Keys.C);
+        laneJustPressed[1] = currentBT1 && !laneIsPressed[1];
+        laneJustPressed[2] = currentBT2 && !laneIsPressed[2];
+        laneJustPressed[3] = currentBT3 && !laneIsPressed[3];
+        laneJustPressed[4] = currentBT4 && !laneIsPressed[4];
+        laneJustPressed[5] = currentFXL && !laneIsPressed[5];
+        laneJustPressed[6] = currentFXR && !laneIsPressed[6];
 
-        laneIsPressed[5] = Gdx.input.isKeyPressed(Input.Keys.X) || Gdx.input.isKeyPressed(Input.Keys.N);
-        laneIsPressed[6] = Gdx.input.isKeyPressed(Input.Keys.M) || Gdx.input.isKeyPressed(Input.Keys.C);
+        if (isRecording) {
+            recordEventIfChanged(1, "BT1", currentBT1, currentAudioTimeMs);
+            recordEventIfChanged(2, "BT2", currentBT2, currentAudioTimeMs);
+            recordEventIfChanged(3, "BT3", currentBT3, currentAudioTimeMs);
+            recordEventIfChanged(4, "BT4", currentBT4, currentAudioTimeMs);
+            recordEventIfChanged(5, "FXL", currentFXL, currentAudioTimeMs);
+            recordEventIfChanged(6, "FXR", currentFXR, currentAudioTimeMs);
+        }
 
-        // --- 1. HEAD HITS (Taps & Initial Hold Presses) ---
+        laneIsPressed[1] = currentBT1;
+        laneIsPressed[2] = currentBT2;
+        laneIsPressed[3] = currentBT3;
+        laneIsPressed[4] = currentBT4;
+        laneIsPressed[5] = currentFXL;
+        laneIsPressed[6] = currentFXR;
+
+        // ... (Keep the rest of your scoring logic exactly the same!) ...
         for (int lane = 1; lane <= 6; lane++) {
             if (laneJustPressed[lane]) {
                 Note targetNote = null;
-
                 for (Note note : activeNotes) {
                     if (note.lane == lane && !note.isMissed && !note.isCompleted && !note.wasHeadHit) {
                         if (targetNote == null || note.startTime < targetNote.startTime) {
@@ -41,38 +109,26 @@ public class InputController {
                         }
                     }
                 }
-
                 if (targetNote != null) {
-                    // FIX: Remove Math.abs() here.
-                    // Negative diff = Early, Positive diff = Late
                     float diffMs = currentAudioTimeMs - targetNote.startTime;
-
-                    // Boundary check pushed to 300ms so it properly catches the FAR MISS penalty
                     if (Math.abs(diffMs) <= 300.0f) {
                         scoreManager.onHit(diffMs, "NOTE");
                         targetNote.wasHeadHit = true;
-
                         if (!targetNote.isHold) targetNote.isCompleted = true;
                     }
                 }
             }
         }
 
-        // --- 2. CONTINUOUS HOLD TRACKING ---
         for (Note note : activeNotes) {
             if (note.isMissed || note.isCompleted || !note.isHold || !note.wasHeadHit) continue;
-
             if (laneIsPressed[note.lane]) {
-                // Kept holding until the absolute end
                 if (currentAudioTimeMs >= note.endTime) {
                     note.isCompleted = true;
                     scoreManager.onHit(0f, "RELEASE");
                 }
             } else {
-                // HOLD RELEASE LOGIC
                 float diffMs = currentAudioTimeMs - note.endTime;
-
-                // Release window is doubled, so we use 300ms here as well
                 if (Math.abs(diffMs) <= 300.0f) {
                     note.isCompleted = true;
                     scoreManager.onHit(diffMs, "RELEASE");
