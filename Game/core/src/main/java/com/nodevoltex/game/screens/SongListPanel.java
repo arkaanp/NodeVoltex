@@ -161,21 +161,21 @@ public class SongListPanel extends Table {
         artistLabel.setColor(Color.LIGHT_GRAY);
         textTable.add(artistLabel).align(Align.left);
 
-        // --- ADD .left() HERE ---
         item.add(textTable).expandX().fillX().left().pad(10).padLeft(20).row();
 
-        Table diffBars = new Table();
-        Color novCol = song.novLv > 0 ? Color.valueOf("#599F00") : Color.DARK_GRAY;
-        Color advCol = song.advLv > 0 ? Color.valueOf("#FFBD59") : Color.DARK_GRAY;
-        Color exhCol = song.exhLv > 0 ? Color.RED : Color.DARK_GRAY;
-        Color mxmCol = song.mxmLv > 0 ? Color.valueOf("#1800AD") : Color.DARK_GRAY;
+        Table thinBars = new Table();
+        // --- Colors now dynamically pull from the integer level ---
+        Color novCol = song.novLv > 0 ? getColorForLevel(song.novLv) : Color.DARK_GRAY;
+        Color advCol = song.advLv > 0 ? getColorForLevel(song.advLv) : Color.DARK_GRAY;
+        Color exhCol = song.exhLv > 0 ? getColorForLevel(song.exhLv) : Color.DARK_GRAY;
+        Color mxmCol = song.mxmLv > 0 ? getColorForLevel(song.mxmLv) : Color.DARK_GRAY;
 
-        diffBars.add(new Image(skin.newDrawable("white", novCol))).height(6).expandX().fillX().padRight(4);
-        diffBars.add(new Image(skin.newDrawable("white", advCol))).height(6).expandX().fillX().padRight(4);
-        diffBars.add(new Image(skin.newDrawable("white", exhCol))).height(6).expandX().fillX().padRight(4);
-        diffBars.add(new Image(skin.newDrawable("white", mxmCol))).height(6).expandX().fillX();
+        thinBars.add(new Image(skin.newDrawable("white", novCol))).height(6).expandX().fillX().padRight(4);
+        thinBars.add(new Image(skin.newDrawable("white", advCol))).height(6).expandX().fillX().padRight(4);
+        thinBars.add(new Image(skin.newDrawable("white", exhCol))).height(6).expandX().fillX().padRight(4);
+        thinBars.add(new Image(skin.newDrawable("white", mxmCol))).height(6).expandX().fillX();
 
-        item.add(diffBars).expandX().fillX().padLeft(20).padRight(20).padBottom(5);
+        item.add(thinBars).expandX().fillX().padLeft(20).padRight(20).padBottom(5);
 
         item.setTouchable(Touchable.enabled);
         item.addListener(new ClickListener() {
@@ -208,10 +208,12 @@ public class SongListPanel extends Table {
 
         // The thin colored strips from the collapsed view
         Table thinBars = new Table();
-        Color novCol = song.novLv > 0 ? Color.valueOf("#599F00") : Color.DARK_GRAY;
-        Color advCol = song.advLv > 0 ? Color.valueOf("#FFBD59") : Color.DARK_GRAY;
-        Color exhCol = song.exhLv > 0 ? Color.RED : Color.DARK_GRAY;
-        Color mxmCol = song.mxmLv > 0 ? Color.valueOf("#1800AD") : Color.DARK_GRAY;
+
+        // --- Use the dynamic level colors here ---
+        Color novCol = song.novLv > 0 ? getColorForLevel(song.novLv) : Color.DARK_GRAY;
+        Color advCol = song.advLv > 0 ? getColorForLevel(song.advLv) : Color.DARK_GRAY;
+        Color exhCol = song.exhLv > 0 ? getColorForLevel(song.exhLv) : Color.DARK_GRAY;
+        Color mxmCol = song.mxmLv > 0 ? getColorForLevel(song.mxmLv) : Color.DARK_GRAY;
 
         thinBars.add(new Image(skin.newDrawable("white", novCol))).height(6).expandX().fillX().padRight(4);
         thinBars.add(new Image(skin.newDrawable("white", advCol))).height(6).expandX().fillX().padRight(4);
@@ -224,10 +226,12 @@ public class SongListPanel extends Table {
 
         // 3. The Difficulties Dropdown
         Table diffDropdown = new Table();
-        if (song.novLv > 0) diffDropdown.add(createDiffRow(song, "NOV", song.novLv, Color.valueOf("#599F00"), song.novPath)).expandX().fillX().padBottom(2).row();
-        if (song.advLv > 0) diffDropdown.add(createDiffRow(song, "ADV", song.advLv, Color.valueOf("#FFBD59"), song.advPath)).expandX().fillX().padBottom(2).row();
-        if (song.exhLv > 0) diffDropdown.add(createDiffRow(song, "EXH", song.exhLv, Color.RED, song.exhPath)).expandX().fillX().padBottom(2).row();
-        if (song.mxmLv > 0) diffDropdown.add(createDiffRow(song, "MXM", song.mxmLv, Color.valueOf("#1800AD"), song.mxmPath)).expandX().fillX().padBottom(2).row();
+
+        // --- Swapped hardcoded colors for getColorForLevel() ---
+        if (song.novLv > 0) diffDropdown.add(createDiffRow(song, "NOV", song.novLv, getColorForLevel(song.novLv), song.novPath)).expandX().fillX().padBottom(2).row();
+        if (song.advLv > 0) diffDropdown.add(createDiffRow(song, "ADV", song.advLv, getColorForLevel(song.advLv), song.advPath)).expandX().fillX().padBottom(2).row();
+        if (song.exhLv > 0) diffDropdown.add(createDiffRow(song, "EXH", song.exhLv, getColorForLevel(song.exhLv), song.exhPath)).expandX().fillX().padBottom(2).row();
+        if (song.mxmLv > 0) diffDropdown.add(createDiffRow(song, "MXM", song.mxmLv, getColorForLevel(song.mxmLv), song.mxmPath)).expandX().fillX().padBottom(2).row();
 
         // Add the dropdown BELOW the header.
         // padLeft(30) indents the diffs to the right.
@@ -247,11 +251,18 @@ public class SongListPanel extends Table {
         row.background(skin.newDrawable("white", new Color(color.r, color.g, color.b, alpha)));
 
         Label diffLabel = new Label(diffName + " " + level, skin);
-        diffLabel.setColor(Color.WHITE);
 
-        // --- FIX 1: Align text to the LEFT and indent it to match the title/artist ---
+        // --- NEW: Black text for levels 1-12, White for everything else! ---
+        if (level >= 1 && level <= 12) {
+            diffLabel.setColor(Color.BLACK);
+        } else {
+            diffLabel.setColor(Color.WHITE);
+        }
+
         // Added .expandX() and simplified align to .left()
         row.add(diffLabel).expandX().left().pad(8).padLeft(20);
+
+        // ... (keep the rest of your click listener exactly the same) ...
 
         row.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.enabled);
         row.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
@@ -488,12 +499,26 @@ public class SongListPanel extends Table {
         }
     }
 
-    // --- NEW: Manual Scroll Driver ---
+    // --- Manual Scroll Driver ---
     public void scroll(float amountY) {
         if (scrollPane != null) {
             // 75f is slightly faster for the song list since it's much longer
             float newScroll = scrollPane.getScrollY() + (amountY * 75f);
             scrollPane.setScrollY(newScroll);
         }
+    }
+
+    // --- Centralized Level Color Logic ---
+    private Color getColorForLevel(int level) {
+        if (level >= 1 && level <= 6) return Color.valueOf("#c1ff72");
+        if (level >= 7 && level <= 12) return Color.valueOf("#599f00");
+        if (level >= 13 && level <= 14) return Color.valueOf("#ff751f");
+        if (level >= 15 && level <= 16) return Color.valueOf("#da142b");
+        if (level == 17) return Color.valueOf("#003794");
+        if (level == 18) return Color.valueOf("#120484");
+        if (level == 19) return Color.valueOf("#2c0640");
+        if (level >= 20) return Color.valueOf("#000000");
+
+        return Color.DARK_GRAY; // Fallback for 0 or missing levels
     }
 }
