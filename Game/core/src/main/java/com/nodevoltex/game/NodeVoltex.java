@@ -40,7 +40,7 @@ public class NodeVoltex extends Game {
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
 
         // 2. Customize the font parameters
-        parameter.size = 24; // Set your desired font size here
+        parameter.size = 16; // Set your desired font size here
         parameter.color = com.badlogic.gdx.graphics.Color.WHITE;
 
         // Optional: You can add borders, shadows, or filters right here!

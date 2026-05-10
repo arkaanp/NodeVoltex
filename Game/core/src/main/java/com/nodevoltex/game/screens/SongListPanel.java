@@ -36,6 +36,7 @@ public class SongListPanel extends Table {
         int novLv = 0, advLv = 0, exhLv = 0, mxmLv = 0;
         String novPath, advPath, exhPath, mxmPath;
         float previewOffsetSeconds = 0f;
+        String jacketPath;
 
         boolean hasDiffs() { return novLv > 0 || advLv > 0 || exhLv > 0 || mxmLv > 0; }
     }
@@ -86,6 +87,7 @@ public class SongListPanel extends Table {
                         data.artist = general.getString("artist", data.artist);
                         data.mapper = general.getString("mapper", data.mapper);
                         data.audioPath = folder.path() + "/" + general.getString("audioFilename", "audio.ogg");
+                        data.jacketPath = folder.path() + "/" + general.getString("jacketFilename", "jak.png");
 
                         // --- Grab the offset (default to 0) and convert ms to seconds ---
                         int offsetMs = general.getInt("previewOffset", 0);
@@ -331,8 +333,15 @@ public class SongListPanel extends Table {
             }
         }
 
-        // Pass the mapper string along with everything else
-        statsPanel.updateSong(song.title, song.artist, diffName + " " + level, song.mapper, loadedScores);
+        // --- Grab the exact counts ---
+        int[] stats = calculateMapStats(mapPath);
+        int displayNotes = stats[0];
+        int displayHolds = stats[1];
+        int totalLaserTicks = stats[2];
+
+        // Pass everything to the left panel
+        statsPanel.updateSong(song.title, song.artist, diffName + " " + level, getColorForLevel(level),
+            song.mapper, song.jacketPath, displayNotes, displayHolds, totalLaserTicks, loadedScores);
     }
 
     private void playAudio(String audioPath, float offsetSeconds) {
@@ -520,5 +529,53 @@ public class SongListPanel extends Table {
         if (level >= 20) return Color.valueOf("#000000");
 
         return Color.DARK_GRAY; // Fallback for 0 or missing levels
+    }
+
+    // --- Calculate map stats instantly on selection ---
+    private int[] calculateMapStats(String mapPath) {
+        int tapCount = 0;
+        int holdCount = 0;
+        int totalLaserTicks = 0;
+
+        if (mapPath != null) {
+            try {
+                com.badlogic.gdx.files.FileHandle file = Gdx.files.internal(mapPath);
+                if (file.exists()) {
+                    com.badlogic.gdx.utils.JsonValue root = new com.badlogic.gdx.utils.JsonReader().parse(file);
+
+                    // 1. Count Taps & Holds
+                    com.badlogic.gdx.utils.JsonValue hitObjects = root.get("hitObjects");
+                    if (hitObjects != null) {
+                        for (com.badlogic.gdx.utils.JsonValue ho : hitObjects) {
+                            String type = ho.getString("type", "TAP"); // Default to TAP
+                            if (type.equals("TAP")) tapCount++;
+                            else if (type.equals("HOLD")) holdCount++;
+                        }
+                    }
+
+                    // 2. Count Lasers (Currently counts Nodes as a baseline)
+                    com.badlogic.gdx.utils.JsonValue lasers = root.get("lasers");
+                    if (lasers != null) {
+                        com.badlogic.gdx.utils.JsonValue left = lasers.get("left");
+                        if (left != null) {
+                            for (com.badlogic.gdx.utils.JsonValue seq : left) {
+                                com.badlogic.gdx.utils.JsonValue nodes = seq.get("nodes");
+                                if (nodes != null) totalLaserTicks += nodes.size;
+                            }
+                        }
+                        com.badlogic.gdx.utils.JsonValue right = lasers.get("right");
+                        if (right != null) {
+                            for (com.badlogic.gdx.utils.JsonValue seq : right) {
+                                com.badlogic.gdx.utils.JsonValue nodes = seq.get("nodes");
+                                if (nodes != null) totalLaserTicks += nodes.size;
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("Failed to calculate map stats: " + e.getMessage());
+            }
+        }
+        return new int[]{tapCount, holdCount, totalLaserTicks};
     }
 }

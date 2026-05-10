@@ -16,6 +16,7 @@ public class Beatmap {
         public String audioFilename = "audio.ogg";
         public float audioOffset = 0f;
         public int previewOffset = 0;
+        public String jacketFilename = "jak.png";
     }
 
     public static class HitObject {
