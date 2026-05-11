@@ -111,7 +111,7 @@ public class InputController {
                 }
                 if (targetNote != null) {
                     float diffMs = currentAudioTimeMs - targetNote.startTime;
-                    if (Math.abs(diffMs) <= 300.0f) {
+                    if (Math.abs(diffMs) <= 200.0f) {
                         scoreManager.onHit(diffMs, "NOTE");
                         targetNote.wasHeadHit = true;
                         if (!targetNote.isHold) targetNote.isCompleted = true;
@@ -129,7 +129,7 @@ public class InputController {
                 }
             } else {
                 float diffMs = currentAudioTimeMs - note.endTime;
-                if (Math.abs(diffMs) <= 300.0f) {
+                if (Math.abs(diffMs) <= 200.0f) { // ### change soon
                     note.isCompleted = true;
                     scoreManager.onHit(diffMs, "RELEASE");
                 } else {

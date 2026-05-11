@@ -26,6 +26,7 @@ public class Lwjgl3Launcher {
         // 1. Maximize the window automatically on startup.
         // This natively respects the Windows taskbar bounds.
         configuration.setMaximized(true);
+        //configuration.setFullscreenMode(Lwjgl3ApplicationConfiguration.getDisplayMode(Lwjgl3ApplicationConfiguration.getPrimaryMonitor()));
 
         // 2. (Optional) Remove the top title bar and window borders.
         // If you want the game to look completely borderless while still

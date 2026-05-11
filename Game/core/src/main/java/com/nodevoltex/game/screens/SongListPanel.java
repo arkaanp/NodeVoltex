@@ -27,8 +27,16 @@ public class SongListPanel extends Table {
     private Array<SongData> allSongs = new Array<>();
     private SongData selectedSong = null;
     private String selectedDiffName = "";
-    private Actor currentlyExpandedActor = null; // Used to track where to auto-scroll
+    private Actor currentlyExpandedActor = null;
     private Music previewMusic;
+
+    // --- NEW: Camera Tracking Variables ---
+    private Actor cameraTarget = null;
+    private float cameraLerpTime = 0f;
+
+    // --- NEW: Zero-Allocation Vectors for 60fps math! ---
+    private final com.badlogic.gdx.math.Vector2 tempPos1 = new com.badlogic.gdx.math.Vector2();
+    private final com.badlogic.gdx.math.Vector2 tempPos2 = new com.badlogic.gdx.math.Vector2();
 
     // --- Data Container Class ---
     private static class SongData {
@@ -47,7 +55,18 @@ public class SongListPanel extends Table {
         this.statsPanel = statsPanel;
         this.mainMenuMusic = mainMenuMusic;
 
-        songListTable = new Table();
+        // --- THE HOLY GRAIL FIX: Override the Table's core layout engine! ---
+        songListTable = new Table() {
+            @Override
+            public void layout() {
+                // 1. Let LibGDX calculate all the heights and vertical Y coordinates normally
+                super.layout();
+
+                // 2. Immediately inject our 5-degree slant before it draws to the screen!
+                float tanAngle = (float) Math.tan(Math.toRadians(5f));
+                applySlant(this, tanAngle);
+            }
+        };
         songListTable.top();
 
         scrollPane = new ScrollPane(songListTable, skin);
@@ -116,47 +135,39 @@ public class SongListPanel extends Table {
         songListTable.clearChildren();
         currentlyExpandedActor = null;
 
+        // 1. Force a hard width so the layout manager CANNOT stretch it
+        float fixedWidth = this.getWidth() - 100f;
+        if (fixedWidth <= 0) fixedWidth = 800f; // Safe fallback
+
         for (SongData song : allSongs) {
             Table item;
             if (song == selectedSong) {
-                item = buildExpandedItem(song);
-                currentlyExpandedActor = item; // Mark this so we can scroll to it
+                // Pass the strict width down into the builders
+                item = buildExpandedItem(song, fixedWidth);
+                currentlyExpandedActor = item;
             } else {
                 item = buildCollapsedItem(song);
             }
-            songListTable.add(item).expandX().fillX().padBottom(5).row();
+            // 2. Lock the cell to left alignment and force the width
+            songListTable.add(item).width(fixedWidth).left().padBottom(5).row();
         }
 
-        // Auto-Center the scroll pane on the selected song
+        // 3. Prime the Smooth Camera Tracker!
         if (currentlyExpandedActor != null) {
-            Gdx.app.postRunnable(() -> {
-                // 1. Force the UI to calculate the new expanded sizes FIRST
-                songListTable.layout();
-                scrollPane.layout();
-
-                // 2. Find the exact vertical center of our expanded song box
-                float itemCenterY = currentlyExpandedActor.getY() + (currentlyExpandedActor.getHeight() / 2f);
-
-                // 3. Find how far down that center point is from the very top of the list
-                float distanceFromTop = songListTable.getHeight() - itemCenterY;
-
-                // 4. Subtract half of the visible scroll window to perfectly center it
-                float targetScrollY = distanceFromTop - (scrollPane.getHeight() / 2f);
-
-                // 5. Instantly snap the scrollbar to that exact mathematical center
-                scrollPane.setScrollY(targetScrollY);
-            });
+            // We pull the headerBox we hid inside the UserObject (see buildExpandedItem)
+            cameraTarget = (Actor) currentlyExpandedActor.getUserObject();
+            cameraLerpTime = 0f;
         }
     }
 
     // View: When the song is NOT clicked
     private Table buildCollapsedItem(SongData song) {
         Table item = new Table();
+        item.setName("slantHeader");
         item.background(skin.newDrawable("white", new Color(0.1f, 0.1f, 0.15f, 0.7f)));
 
-        // Do this in BOTH buildCollapsedItem and buildExpandedItem
         Table textTable = new Table();
-        textTable.left(); // Force internal contents left
+        textTable.left();
         textTable.add(new Label(song.title, skin)).align(Align.left).padBottom(2).row();
 
         Label artistLabel = new Label(song.artist, skin);
@@ -166,7 +177,6 @@ public class SongListPanel extends Table {
         item.add(textTable).expandX().fillX().left().pad(10).padLeft(20).row();
 
         Table thinBars = new Table();
-        // --- Colors now dynamically pull from the integer level ---
         Color novCol = song.novLv > 0 ? getColorForLevel(song.novLv) : Color.DARK_GRAY;
         Color advCol = song.advLv > 0 ? getColorForLevel(song.advLv) : Color.DARK_GRAY;
         Color exhCol = song.exhLv > 0 ? getColorForLevel(song.exhLv) : Color.DARK_GRAY;
@@ -189,13 +199,11 @@ public class SongListPanel extends Table {
     }
 
     // View: When the song IS clicked (Accordion open)
-    private Table buildExpandedItem(SongData song) {
-        // 1. The Invisible Wrapper
-        // This holds the original song box AND the dropdown difficulties below it.
+    private Table buildExpandedItem(SongData song, float fixedWidth) {
         Table wrapper = new Table();
 
-        // 2. The Original Black Box (Exactly as it is when collapsed)
         Table headerBox = new Table();
+        headerBox.setName("slantHeader");
         headerBox.background(skin.newDrawable("white", new Color(0.1f, 0.1f, 0.15f, 0.7f)));
 
         Table textTable = new Table();
@@ -208,10 +216,7 @@ public class SongListPanel extends Table {
 
         headerBox.add(textTable).expandX().fillX().left().pad(10).padLeft(20).row();
 
-        // The thin colored strips from the collapsed view
         Table thinBars = new Table();
-
-        // --- Use the dynamic level colors here ---
         Color novCol = song.novLv > 0 ? getColorForLevel(song.novLv) : Color.DARK_GRAY;
         Color advCol = song.advLv > 0 ? getColorForLevel(song.advLv) : Color.DARK_GRAY;
         Color exhCol = song.exhLv > 0 ? getColorForLevel(song.exhLv) : Color.DARK_GRAY;
@@ -223,63 +228,42 @@ public class SongListPanel extends Table {
         thinBars.add(new Image(skin.newDrawable("white", mxmCol))).height(6).expandX().fillX();
         headerBox.add(thinBars).expandX().fillX().padLeft(20).padRight(20).padBottom(5);
 
-        // Add the untouched header to the top of the wrapper
-        wrapper.add(headerBox).expandX().fillX().row();
+        // LOCK WIDTH
+        wrapper.add(headerBox).width(fixedWidth).left().row();
 
-        // 3. The Difficulties Dropdown
-        Table diffDropdown = new Table();
+        // --- THE FIX: Start the counter at 0! ---
+        int cascadeIndex = 0;
 
-        // --- Swapped hardcoded colors for getColorForLevel() ---
-        if (song.novLv > 0) diffDropdown.add(createDiffRow(song, "NOV", song.novLv, getColorForLevel(song.novLv), song.novPath)).expandX().fillX().padBottom(2).row();
-        if (song.advLv > 0) diffDropdown.add(createDiffRow(song, "ADV", song.advLv, getColorForLevel(song.advLv), song.advPath)).expandX().fillX().padBottom(2).row();
-        if (song.exhLv > 0) diffDropdown.add(createDiffRow(song, "EXH", song.exhLv, getColorForLevel(song.exhLv), song.exhPath)).expandX().fillX().padBottom(2).row();
-        if (song.mxmLv > 0) diffDropdown.add(createDiffRow(song, "MXM", song.mxmLv, getColorForLevel(song.mxmLv), song.mxmPath)).expandX().fillX().padBottom(2).row();
+        if (song.novLv > 0) wrapper.add(createAnimatedDiffRow(song, "NOV", song.novLv, getColorForLevel(song.novLv), song.novPath, cascadeIndex++, fixedWidth)).left().row();
+        if (song.advLv > 0) wrapper.add(createAnimatedDiffRow(song, "ADV", song.advLv, getColorForLevel(song.advLv), song.advPath, cascadeIndex++, fixedWidth)).left().row();
+        if (song.exhLv > 0) wrapper.add(createAnimatedDiffRow(song, "EXH", song.exhLv, getColorForLevel(song.exhLv), song.exhPath, cascadeIndex++, fixedWidth)).left().row();
+        if (song.mxmLv > 0) wrapper.add(createAnimatedDiffRow(song, "MXM", song.mxmLv, getColorForLevel(song.mxmLv), song.mxmPath, cascadeIndex++, fixedWidth)).left().row();
 
-        // Add the dropdown BELOW the header.
-        // padLeft(30) indents the diffs to the right.
-        // padTop(2) adds a tiny gap so it doesn't touch the header.
-        wrapper.add(diffDropdown).expandX().fillX().padLeft(30).padTop(2);
-
+        // Hide the headerBox inside the Wrapper so the Camera can track it!
+        wrapper.setUserObject(headerBox);
         return wrapper;
     }
 
-    // The individual clickable difficulties inside an expanded song
-    private Table createDiffRow(SongData song, String diffName, int level, Color color, String mapPath) {
+    // --- TRUE CASCADE ANIMATION ---
+    private com.badlogic.gdx.scenes.scene2d.ui.Container<Table> createAnimatedDiffRow(SongData song, String diffName, int level, Color color, String mapPath, int delayIndex, float fixedWidth) {
         Table row = new Table();
         boolean isSelected = selectedDiffName.equals(diffName);
-
-        // Opacity: Bright (0.8f) for selected, Dark/Muted (0.3f) for unselected
         float alpha = isSelected ? 0.8f : 0.3f;
         row.background(skin.newDrawable("white", new Color(color.r, color.g, color.b, alpha)));
 
         Label diffLabel = new Label(diffName + " " + level, skin);
+        if (level >= 1 && level <= 12) diffLabel.setColor(Color.BLACK);
+        else diffLabel.setColor(Color.WHITE);
 
-        // --- NEW: Black text for levels 1-12, White for everything else! ---
-        if (level >= 1 && level <= 12) {
-            diffLabel.setColor(Color.BLACK);
-        } else {
-            diffLabel.setColor(Color.WHITE);
-        }
-
-        // Added .expandX() and simplified align to .left()
         row.add(diffLabel).expandX().left().pad(8).padLeft(20);
-
-        // ... (keep the rest of your click listener exactly the same) ...
 
         row.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.enabled);
         row.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
             @Override public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
-                // --- FIX 2: Check if this difficulty is already selected ---
                 if (selectedDiffName.equals(diffName)) {
-                    // If it is already selected, pressing it again plays the map!
-                    stopAudio(); // Crucial: shut off the preview music before loading the game
-                    if (mapPath != null) {
-                        game.setScreen(new PlayScreen(game, mapPath));
-                    } else {
-                        System.out.println("Warning: mapPath is null, cannot start map.");
-                    }
+                    stopAudio();
+                    if (mapPath != null) game.setScreen(new PlayScreen(game, mapPath));
                 } else {
-                    // If it is NOT selected, select it and update the UI
                     selectedDiffName = diffName;
                     updateStatsPanel(song, diffName, level, mapPath);
                     refreshSongList();
@@ -287,7 +271,45 @@ public class SongListPanel extends Table {
             }
         });
 
-        return row;
+        float exactHeight = 35f;
+
+        // The Invisible Wrapper
+        com.badlogic.gdx.scenes.scene2d.ui.Container<Table> clipWrapper = new com.badlogic.gdx.scenes.scene2d.ui.Container<>(row);
+        clipWrapper.setName("slantDiff");
+        clipWrapper.align(com.badlogic.gdx.utils.Align.top);
+
+        clipWrapper.setUserObject(800f);
+        clipWrapper.prefWidth(fixedWidth - 30f);
+        clipWrapper.minHeight(0f);
+        clipWrapper.prefHeight(0f);
+
+        clipWrapper.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
+            float time = 0;
+            float delay = delayIndex * 0.1f; // 100ms sequential stagger
+            float duration = 0.45f;
+            @Override
+            public boolean act(float delta) {
+                // --- THE LAG SPIKE FIX ---
+                // Cap the frame time at 30ms. If the game freezes to load audio,
+                // the animation pauses and resumes flawlessly instead of teleporting!
+                float safeDelta = Math.min(delta, 0.03f);
+
+                if (delay > 0) { delay -= safeDelta; return false; }
+
+                time += safeDelta;
+                float progress = com.badlogic.gdx.math.Interpolation.pow3Out.apply(Math.min(time / duration, 1f));
+
+                // 1. MAKE ROOM: Smoothly increase container height directly!
+                clipWrapper.prefHeight(exactHeight * progress);
+                clipWrapper.invalidateHierarchy();
+
+                // 2. VISIBLE SLIDE: Move from Right to Left!
+                clipWrapper.setUserObject(800f * (1f - progress));
+                return time >= duration;
+            }
+        });
+
+        return clipWrapper;
     }
 
     // Fired when you click a collapsed song
@@ -477,33 +499,68 @@ public class SongListPanel extends Table {
 
     @Override
     public void act(float delta) {
-        // 1. Let the ScrollPane and normal Table layout do their math first
         super.act(delta);
 
-        // 2. Calculate the slope ratio for a 5-degree incline
-        // (tan(5) is roughly 0.087. We use this to find X based on Y)
-        float angleInDegrees = 5f;
-        float tanAngle = (float) Math.tan(Math.toRadians(angleInDegrees));
+        // === SMOOTH CAMERA TRACKER ===
+        if (cameraTarget != null && cameraLerpTime < 1.0f) {
+            float safeDelta = Math.min(delta, 0.03f);
+            cameraLerpTime += safeDelta / 0.6f;
+            float progress = com.badlogic.gdx.math.Interpolation.pow3Out.apply(Math.min(cameraLerpTime, 1f));
 
-        // 3. Iterate through every song box inside your scrollable list.
+            songListTable.validate();
+
+            // USE PRE-ALLOCATED VECTOR
+            tempPos1.set(0, cameraTarget.getHeight() / 2f);
+            cameraTarget.localToAscendantCoordinates(songListTable, tempPos1);
+
+            float distanceToTop = songListTable.getHeight() - tempPos1.y;
+            float targetScroll = distanceToTop - (scrollPane.getHeight() / 2f);
+
+            float currentScroll = scrollPane.getScrollY();
+            scrollPane.setScrollY(currentScroll + (targetScroll - currentScroll) * progress);
+        }
+
+        // --- THE SCROLL FIX: Continuously update the slant every frame! ---
+        float tanAngle = (float) Math.tan(Math.toRadians(5f));
         if (songListTable != null) {
-            for (com.badlogic.gdx.scenes.scene2d.Actor songBox : songListTable.getChildren()) {
+            applySlant(songListTable, tanAngle);
+        }
+    }
 
-                // A. Find where this specific box is currently drawn on the screen
-                com.badlogic.gdx.math.Vector2 pos = new com.badlogic.gdx.math.Vector2(0, songBox.getY());
-                songListTable.localToAscendantCoordinates(this, pos);
+    // --- FIXED: Zero-Allocation Absolute Slant Engine ---
+    private void applySlant(com.badlogic.gdx.scenes.scene2d.Group group, float tanAngle) {
+        float baseLeftX = 40f;
 
-                // B. Calculate how far down the screen the box is from the top of the panel
-                // (Assuming your search bar is at the top of this panel)
-                float distanceDown = this.getHeight() - pos.y;
+        for (com.badlogic.gdx.scenes.scene2d.Actor child : group.getChildren()) {
 
-                // C. Calculate the required X offset to match the line.
-                // NOTE: If the boxes slide the wrong direction ( \ instead of / ),
-                // simply add a minus sign here: distanceDown * -tanAngle;
-                float targetX = distanceDown * tanAngle;
+            if ("slantHeader".equals(child.getName()) || "slantDiff".equals(child.getName())) {
 
-                // D. Force the box to slide over to the diagonal line!
-                songBox.setX(targetX);
+                // 1. Get exact distance down the screen using tempPos1
+                tempPos1.set(0, child.getHeight());
+                child.localToAscendantCoordinates(SongListPanel.this, tempPos1);
+                float distanceDown = SongListPanel.this.getHeight() - tempPos1.y;
+
+                // 2. Diagonal math
+                float absoluteX = baseLeftX + (distanceDown * tanAngle);
+
+                // Indents & Slide animations
+                if ("slantDiff".equals(child.getName())) absoluteX += 30f;
+                if (child.getUserObject() instanceof Float) {
+                    absoluteX += (Float) child.getUserObject();
+                }
+
+                // 3. Convert Screen X to Local X using tempPos2
+                tempPos2.set(absoluteX, 0);
+                SongListPanel.this.localToStageCoordinates(tempPos2);
+                child.getParent().stageToLocalCoordinates(tempPos2);
+
+                // Lock it in!
+                child.setX(tempPos2.x);
+            }
+
+            // Recursion is perfectly safe with these temp vectors!
+            if (child instanceof com.badlogic.gdx.scenes.scene2d.Group) {
+                applySlant((com.badlogic.gdx.scenes.scene2d.Group) child, tanAngle);
             }
         }
     }
