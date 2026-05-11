@@ -127,34 +127,32 @@ public class SongListPanel extends Table {
             if (data.hasDiffs()) allSongs.add(data);
         }
 
-        refreshSongList(); // Draw the UI based on loaded data
+        refreshSongList(false); // Initial load, no animation needed // Draw the UI based on loaded data
     }
 
     // Completely rebuilds the list, handling Expanded vs Collapsed states
-    private void refreshSongList() {
+    // --- UPDATED: Added boolean animateCascade ---
+    private void refreshSongList(boolean animateCascade) {
         songListTable.clearChildren();
         currentlyExpandedActor = null;
 
-        // 1. Force a hard width so the layout manager CANNOT stretch it
         float fixedWidth = this.getWidth() - 100f;
-        if (fixedWidth <= 0) fixedWidth = 800f; // Safe fallback
+        if (fixedWidth <= 0) fixedWidth = 800f;
 
         for (SongData song : allSongs) {
             Table item;
             if (song == selectedSong) {
-                // Pass the strict width down into the builders
-                item = buildExpandedItem(song, fixedWidth);
+                // Pass the flag down!
+                item = buildExpandedItem(song, fixedWidth, animateCascade);
                 currentlyExpandedActor = item;
             } else {
                 item = buildCollapsedItem(song);
             }
-            // 2. Lock the cell to left alignment and force the width
             songListTable.add(item).width(fixedWidth).left().padBottom(5).row();
         }
 
-        // 3. Prime the Smooth Camera Tracker!
-        if (currentlyExpandedActor != null) {
-            // We pull the headerBox we hid inside the UserObject (see buildExpandedItem)
+        // --- THE FIX: Only lock the camera if we are animating a new song! ---
+        if (currentlyExpandedActor != null && animateCascade) {
             cameraTarget = (Actor) currentlyExpandedActor.getUserObject();
             cameraLerpTime = 0f;
         }
@@ -198,8 +196,9 @@ public class SongListPanel extends Table {
         return item;
     }
 
+    // --- UPDATED: Added boolean animate ---
     // View: When the song IS clicked (Accordion open)
-    private Table buildExpandedItem(SongData song, float fixedWidth) {
+    private Table buildExpandedItem(SongData song, float fixedWidth, boolean animate) {
         Table wrapper = new Table();
 
         Table headerBox = new Table();
@@ -234,10 +233,11 @@ public class SongListPanel extends Table {
         // --- THE FIX: Start the counter at 0! ---
         int cascadeIndex = 0;
 
-        if (song.novLv > 0) wrapper.add(createAnimatedDiffRow(song, "NOV", song.novLv, getColorForLevel(song.novLv), song.novPath, cascadeIndex++, fixedWidth)).left().row();
-        if (song.advLv > 0) wrapper.add(createAnimatedDiffRow(song, "ADV", song.advLv, getColorForLevel(song.advLv), song.advPath, cascadeIndex++, fixedWidth)).left().row();
-        if (song.exhLv > 0) wrapper.add(createAnimatedDiffRow(song, "EXH", song.exhLv, getColorForLevel(song.exhLv), song.exhPath, cascadeIndex++, fixedWidth)).left().row();
-        if (song.mxmLv > 0) wrapper.add(createAnimatedDiffRow(song, "MXM", song.mxmLv, getColorForLevel(song.mxmLv), song.mxmPath, cascadeIndex++, fixedWidth)).left().row();
+        // --- THE FIX: Pass the boolean animate flag to the rows! ---
+        if (song.novLv > 0) wrapper.add(createAnimatedDiffRow(song, "NOV", song.novLv, getColorForLevel(song.novLv), song.novPath, cascadeIndex++, fixedWidth, animate)).left().row();
+        if (song.advLv > 0) wrapper.add(createAnimatedDiffRow(song, "ADV", song.advLv, getColorForLevel(song.advLv), song.advPath, cascadeIndex++, fixedWidth, animate)).left().row();
+        if (song.exhLv > 0) wrapper.add(createAnimatedDiffRow(song, "EXH", song.exhLv, getColorForLevel(song.exhLv), song.exhPath, cascadeIndex++, fixedWidth, animate)).left().row();
+        if (song.mxmLv > 0) wrapper.add(createAnimatedDiffRow(song, "MXM", song.mxmLv, getColorForLevel(song.mxmLv), song.mxmPath, cascadeIndex++, fixedWidth, animate)).left().row();
 
         // Hide the headerBox inside the Wrapper so the Camera can track it!
         wrapper.setUserObject(headerBox);
@@ -245,7 +245,8 @@ public class SongListPanel extends Table {
     }
 
     // --- TRUE CASCADE ANIMATION ---
-    private com.badlogic.gdx.scenes.scene2d.ui.Container<Table> createAnimatedDiffRow(SongData song, String diffName, int level, Color color, String mapPath, int delayIndex, float fixedWidth) {
+    // --- UPDATED: Added boolean animate flag! ---
+    private com.badlogic.gdx.scenes.scene2d.ui.Container<Table> createAnimatedDiffRow(SongData song, String diffName, int level, Color color, String mapPath, int delayIndex, float fixedWidth, boolean animate) {
         Table row = new Table();
         boolean isSelected = selectedDiffName.equals(diffName);
         float alpha = isSelected ? 0.8f : 0.3f;
@@ -265,49 +266,54 @@ public class SongListPanel extends Table {
                     if (mapPath != null) game.setScreen(new PlayScreen(game, mapPath));
                 } else {
                     selectedDiffName = diffName;
-                    updateStatsPanel(song, diffName, level, mapPath);
-                    refreshSongList();
+
+                    // --- THE FIX: Change this to TRUE! ---
+                    // This forces the StatsPanel to cascade the scores every time you click a diff!
+                    updateStatsPanel(song, diffName, level, mapPath, true);
+
+                    // (Keep this false so the pink UI doesn't close and reopen)
+                    refreshSongList(false);
                 }
             }
         });
 
         float exactHeight = 35f;
 
-        // The Invisible Wrapper
         com.badlogic.gdx.scenes.scene2d.ui.Container<Table> clipWrapper = new com.badlogic.gdx.scenes.scene2d.ui.Container<>(row);
         clipWrapper.setName("slantDiff");
         clipWrapper.align(com.badlogic.gdx.utils.Align.top);
 
-        clipWrapper.setUserObject(800f);
         clipWrapper.prefWidth(fixedWidth - 30f);
         clipWrapper.minHeight(0f);
-        clipWrapper.prefHeight(0f);
 
-        clipWrapper.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
-            float time = 0;
-            float delay = delayIndex * 0.1f; // 100ms sequential stagger
-            float duration = 0.45f;
-            @Override
-            public boolean act(float delta) {
-                // --- THE LAG SPIKE FIX ---
-                // Cap the frame time at 30ms. If the game freezes to load audio,
-                // the animation pauses and resumes flawlessly instead of teleporting!
-                float safeDelta = Math.min(delta, 0.03f);
+        // --- THE FIX: Initial State Logic ---
+        if (animate) {
+            clipWrapper.setUserObject(800f);
+            clipWrapper.prefHeight(0f);
 
-                if (delay > 0) { delay -= safeDelta; return false; }
+            clipWrapper.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
+                float time = 0;
+                float delay = delayIndex * 0.1f;
+                float duration = 0.45f;
+                @Override
+                public boolean act(float delta) {
+                    float safeDelta = Math.min(delta, 0.03f);
+                    if (delay > 0) { delay -= safeDelta; return false; }
 
-                time += safeDelta;
-                float progress = com.badlogic.gdx.math.Interpolation.pow3Out.apply(Math.min(time / duration, 1f));
+                    time += safeDelta;
+                    float progress = com.badlogic.gdx.math.Interpolation.pow3Out.apply(Math.min(time / duration, 1f));
 
-                // 1. MAKE ROOM: Smoothly increase container height directly!
-                clipWrapper.prefHeight(exactHeight * progress);
-                clipWrapper.invalidateHierarchy();
-
-                // 2. VISIBLE SLIDE: Move from Right to Left!
-                clipWrapper.setUserObject(800f * (1f - progress));
-                return time >= duration;
-            }
-        });
+                    clipWrapper.prefHeight(exactHeight * progress);
+                    clipWrapper.invalidateHierarchy();
+                    clipWrapper.setUserObject(800f * (1f - progress));
+                    return time >= duration;
+                }
+            });
+        } else {
+            // If we are just switching diffs, render it instantly fully open!
+            clipWrapper.setUserObject(0f);
+            clipWrapper.prefHeight(exactHeight);
+        }
 
         return clipWrapper;
     }
@@ -328,14 +334,13 @@ public class SongListPanel extends Table {
         // --- Pass the offset into the audio player ---
         playAudio(song.audioPath, song.previewOffsetSeconds);
 
-        updateStatsPanel(song, selectedDiffName, defaultLv, defaultPath);
-        refreshSongList();
+        updateStatsPanel(song, selectedDiffName, defaultLv, defaultPath, true);
 
-        // 4. Trigger UI Expansion & Auto-Scroll
-        refreshSongList();
+        // TRUE! User clicked a brand new song, trigger the cascade!
+        refreshSongList(true);
     }
 
-    private void updateStatsPanel(SongData song, String diffName, int level, String mapPath) {
+    private void updateStatsPanel(SongData song, String diffName, int level, String mapPath, boolean animateScores) {
         Array<com.nodevoltex.game.data.SaveData> loadedScores = new Array<>();
 
         if (mapPath != null) {
@@ -361,9 +366,8 @@ public class SongListPanel extends Table {
         int displayHolds = stats[1];
         int totalLaserTicks = stats[2];
 
-        // Pass everything to the left panel
         statsPanel.updateSong(song.title, song.artist, diffName + " " + level, getColorForLevel(level),
-            song.mapper, song.jacketPath, displayNotes, displayHolds, totalLaserTicks, loadedScores);
+            song.mapper, song.jacketPath, displayNotes, displayHolds, totalLaserTicks, loadedScores, animateScores);
     }
 
     private void playAudio(String audioPath, float offsetSeconds) {
@@ -423,7 +427,7 @@ public class SongListPanel extends Table {
         } else if (criteria.equals("mapper")) {
             allSongs.sort((a, b) -> a.mapper.compareToIgnoreCase(b.mapper));
         }
-        refreshSongList();
+        refreshSongList(false); // Sorting, no cascade needed
 
         // Scroll back to the top when a new sort is applied
         Gdx.app.postRunnable(() -> scrollPane.setScrollY(0));
@@ -487,8 +491,9 @@ public class SongListPanel extends Table {
                 else if (expectedDiff.equals("EXH") && song.exhPath != null) { safePath = song.exhPath; matchedLevel = song.exhLv; }
                 else if (expectedDiff.equals("ADV") && song.advPath != null) { safePath = song.advPath; matchedLevel = song.advLv; }
 
-                updateStatsPanel(song, expectedDiff, matchedLevel, safePath);
-                refreshSongList();
+                // TRUE: Coming from another screen, animate the cascade!
+                updateStatsPanel(song, expectedDiff, matchedLevel, safePath, true);
+                refreshSongList(true); // TRUE! Coming from another screen, animate it!
                 return;
             }
         }

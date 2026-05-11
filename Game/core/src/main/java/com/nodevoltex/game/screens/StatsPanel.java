@@ -119,12 +119,12 @@ public class StatsPanel extends Table {
 
         scoreBtn.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
             @Override public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
-                sortScoreAscending = true; refreshLeaderboard();
+                sortScoreAscending = true; refreshLeaderboard(false); // FALSE!
             }
         });
         dateBtn.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
             @Override public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
-                sortScoreAscending = false; refreshLeaderboard();
+                sortScoreAscending = false; refreshLeaderboard(false); // FALSE!
             }
         });
 
@@ -165,13 +165,8 @@ public class StatsPanel extends Table {
                 super.act(delta);
                 float tanAngle = (float) Math.tan(Math.toRadians(3f));
 
-                // 1. Right wall anchor (with 20px padding)
                 float rightWallTopX = StatsPanel.this.getWidth() - 20f;
-
-                // 2. Left wall anchor: 10f original + 40f new screen margin = 50f!
                 float leftWallX = 50f;
-
-                // 3. Length of the FIRST box, subtracted by a little (5 pixels) to be safe
                 float fixedBoxWidth = rightWallTopX - leftWallX - 5f;
 
                 for (com.badlogic.gdx.scenes.scene2d.Actor child : getChildren()) {
@@ -182,25 +177,31 @@ public class StatsPanel extends Table {
                     float distanceDown = StatsPanel.this.getHeight() - pos.y;
 
                     // The diagonal line sloping left (/)
-                    float diagonalLineX = rightWallTopX - (distanceDown * tanAngle);
+                    float targetX = (rightWallTopX - (distanceDown * tanAngle)) - fixedBoxWidth;
+
+                    // --- NEW: Apply the slide-in offset! ---
+                    if (child.getUserObject() instanceof Float) {
+                        // Subtracting pushes it to the LEFT (out of bounds)
+                        targetX -= (Float) child.getUserObject();
+                    }
 
                     // Anchor the RIGHT edge to the diagonal line
-                    child.setX(diagonalLineX - fixedBoxWidth);
+                    child.setX(targetX);
                 }
             }
         };
 
         leaderboardTable.top().right();
 
-        leaderboardTable.add(createScoreRow("stelle123", "09946732", "AAA+", "1,004x", "2026-6-7")).expandX().right().padBottom(5).row();
-        leaderboardTable.add(createScoreRow("Guest", "08500000", "A", "450x", "2026-6-8")).expandX().right().padBottom(5).row();
+        // Optional: Update your dummy data to use the animated row (so it doesn't crash before loading a song)
+        //leaderboardTable.add(createAnimatedScoreRow("stelle123", "09946732", "AAA+", "1,004x", "2026-6-7", 0)).expandX().right().padBottom(5).row();
+        //leaderboardTable.add(createAnimatedScoreRow("Guest", "08500000", "A", "450x", "2026-6-8", 1)).expandX().right().padBottom(5).row();
 
         leaderboardScrollPane = new ScrollPane(leaderboardTable, skin);
         leaderboardScrollPane.setScrollingDisabled(true, false);
         leaderboardScrollPane.setFadeScrollBars(false);
 
         Table scrollContainer = new Table();
-        // NO padLeft here! We want the scrolling area to touch the monitor edge
         scrollContainer.add(leaderboardScrollPane).expand().fill().pad(10);
 
         this.add(scrollContainer).expand().fill().padTop(10);
@@ -244,7 +245,11 @@ public class StatsPanel extends Table {
     }
 
     // --- UPDATED: Directly applies the values to the UI ---
-    public void updateSong(String newTitle, String newArtist, String diffText, Color diffColor, String mapperText, String jacketPath, int noteCount, int holdCount, int totalLaserTicks, com.badlogic.gdx.utils.Array<com.nodevoltex.game.data.SaveData> scores) {
+    // 1. Add 'boolean animateScores' to updateSong
+    public void updateSong(String newTitle, String newArtist, String diffText,
+                           Color diffColor, String mapperText, String jacketPath, int noteCount,
+                           int holdCount, int totalLaserTicks,
+                           com.badlogic.gdx.utils.Array<com.nodevoltex.game.data.SaveData> scores, boolean animateScores) {
         titleLabel.setText(newTitle);
         artistLabel.setText(newArtist);
         mapperLabel.setText("mapped by " + mapperText);
@@ -276,11 +281,14 @@ public class StatsPanel extends Table {
 
         currentScores.clear();
         if (scores != null) currentScores.addAll(scores);
-        refreshLeaderboard();
+
+        // Pass the flag down!
+        refreshLeaderboard(animateScores);
     }
 
     // --- Dedicated drawing method that respects the sort toggle ---
-    private void refreshLeaderboard() {
+    // 2. Add 'boolean animate' to refreshLeaderboard
+    private void refreshLeaderboard(boolean animate) {
         leaderboardTable.clear();
 
         if (currentScores.size == 0) {
@@ -290,21 +298,21 @@ public class StatsPanel extends Table {
             return;
         }
 
-        if (sortScoreAscending) {
-            currentScores.sort((a, b) -> Integer.compare(b.score, a.score));
-        } else {
-            currentScores.sort((a, b) -> Long.compare(b.timestamp, a.timestamp));
-        }
+        if (sortScoreAscending) currentScores.sort((a, b) -> Integer.compare(b.score, a.score));
+        else currentScores.sort((a, b) -> Long.compare(b.timestamp, a.timestamp));
 
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+        int index = 0;
 
         for (com.nodevoltex.game.data.SaveData data : currentScores) {
             String dateStr = sdf.format(new java.util.Date(data.timestamp));
             String scoreStr = String.format("%08d", data.score);
 
-            // --- THE CUTOFF FIX: Changed .fillX() to .right() here too! ---
-            leaderboardTable.add(createScoreRow("Guest", scoreStr, data.grade, "---", dateStr))
+            // 3. Pass the flag to the row builder!
+            leaderboardTable.add(createAnimatedScoreRow("Guest", scoreStr, data.grade, data.maxCombo + "x", dateStr, index, animate))
                 .expandX().right().padBottom(5).row();
+
+            index++;
         }
     }
 
@@ -313,5 +321,71 @@ public class StatsPanel extends Table {
             float newScroll = leaderboardScrollPane.getScrollY() + (amountY * 60f);
             leaderboardScrollPane.setScrollY(newScroll);
         }
+    }
+
+    // --- UPDATED: Accepts boolean flag and uses 2500f offset! ---
+    private Table createAnimatedScoreRow(String name, String score, String grade, String combo, String date, int delayIndex, boolean animate) {
+        Table row = new Table();
+
+        row.background(skin.newDrawable("white", new Color(0.1f, 0.1f, 0.15f, 0.65f)));
+        row.pad(10);
+
+        // 1. Initial State based on the flag
+        if (animate) {
+            row.getColor().a = 0.5f;
+            row.setUserObject(2500f); // 2500px guarantees it is completely off the left monitor edge!
+        } else {
+            row.getColor().a = 1.0f;
+            row.setUserObject(0f); // Static
+        }
+
+        // --- (Your UI building code remains the same) ---
+        Table profileTable = new Table();
+        Image pfp = new Image(skin.newDrawable("white", Color.GRAY));
+        profileTable.add(pfp).width(50).height(50).padRight(10);
+
+        Table nameDateTable = new Table();
+        nameDateTable.add(new Label(name, skin)).align(Align.left).row();
+        nameDateTable.add(new Label(date, skin)).align(Align.left);
+        profileTable.add(nameDateTable);
+
+        row.add(profileTable).align(Align.left).expandX();
+
+        Table comboTable = new Table();
+        comboTable.add(new Label("Max Combo", skin)).row();
+        comboTable.add(new Label(combo, skin));
+        row.add(comboTable).align(Align.center).expandX();
+
+        Table scoreTable = new Table();
+        Label scoreLabel = new Label(score, skin);
+        Label gradeLabel = new Label(grade, skin);
+
+        scoreTable.add(scoreLabel).align(Align.right).row();
+        scoreTable.add(gradeLabel).align(Align.right);
+        row.add(scoreTable).align(Align.right).expandX();
+
+        // 2. Only add the action if we requested an animation!
+        if (animate) {
+            row.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
+                float time = 0;
+                float delay = delayIndex * 0.08f;
+                float duration = 0.4f;
+                @Override
+                public boolean act(float delta) {
+                    float safeDelta = Math.min(delta, 0.03f);
+                    if (delay > 0) { delay -= safeDelta; return false; }
+
+                    time += safeDelta;
+                    float progress = com.badlogic.gdx.math.Interpolation.pow3Out.apply(Math.min(time / duration, 1f));
+
+                    row.getColor().a = 0.5f + (0.5f * progress);
+                    row.setUserObject(2500f * (1f - progress)); // Slide from 2500 down to 0
+
+                    return time >= duration;
+                }
+            });
+        }
+
+        return row;
     }
 }
