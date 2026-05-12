@@ -22,6 +22,7 @@ public class StatsPanel extends Table {
     // --- Jacket Image Variables ---
     private Image jacketImage;
     private com.badlogic.gdx.graphics.Texture jacketTexture;
+    private String currentJacketPath = "";
 
     // --- Object Tracker Labels ---
     private Label noteCountLabel;
@@ -245,44 +246,57 @@ public class StatsPanel extends Table {
     }
 
     // --- UPDATED: Directly applies the values to the UI ---
-    // 1. Add 'boolean animateScores' to updateSong
-    public void updateSong(String newTitle, String newArtist, String diffText,
-                           Color diffColor, String mapperText, String jacketPath, int noteCount,
-                           int holdCount, int totalLaserTicks,
-                           com.badlogic.gdx.utils.Array<com.nodevoltex.game.data.SaveData> scores, boolean animateScores) {
+    // --- 1. INSTANT UI UPDATE (No file reading!) ---
+    // --- UPDATED: 100% Non-Blocking Asynchronous Jacket Loading ---
+    // --- UPDATED: Staggered Jacket Loading ---
+    public void updateSong(String newTitle, String newArtist, String diffText, Color diffColor, String mapperText, String jacketPath, int noteCount, int holdCount, int totalLaserTicks) {
         titleLabel.setText(newTitle);
         artistLabel.setText(newArtist);
         mapperLabel.setText("mapped by " + mapperText);
         diffLabel.setText(diffText);
         diffLabel.setColor(diffColor);
-
-        // --- NEW: Directly set the text! ---
         noteCountLabel.setText("NOTE: " + noteCount);
         holdCountLabel.setText("HOLD: " + holdCount);
         laserCountLabel.setText("LASER: " + totalLaserTicks);
 
-        // --- NEW: Load the Jacket Image ---
-        if (jacketTexture != null) {
-            jacketTexture.dispose();
-            jacketTexture = null;
-        }
+        currentJacketPath = jacketPath != null ? jacketPath : "";
 
         if (jacketPath != null) {
-            com.badlogic.gdx.files.FileHandle file = Gdx.files.internal(jacketPath);
-            if (file.exists()) {
-                jacketTexture = new com.badlogic.gdx.graphics.Texture(file);
-                jacketImage.setDrawable(new com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable(jacketTexture));
-            } else {
-                jacketImage.setDrawable(skin.newDrawable("white", Color.DARK_GRAY));
-            }
+            Thread jacketThread = new Thread(() -> {
+                // 1. STAGGER: Wait for the Audio thread to finish its heavy lifting!
+                try { Thread.sleep(60); } catch (Exception e) {}
+
+                com.badlogic.gdx.files.FileHandle file = Gdx.files.internal(jacketPath);
+                if (file.exists()) {
+                    try {
+                        final com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(file);
+                        Gdx.app.postRunnable(() -> {
+                            if (currentJacketPath.equals(jacketPath)) {
+                                if (jacketTexture != null) jacketTexture.dispose();
+                                jacketTexture = new com.badlogic.gdx.graphics.Texture(pixmap);
+                                jacketImage.setDrawable(new com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable(jacketTexture));
+                            }
+                            pixmap.dispose();
+                        });
+                    } catch (Exception e) {}
+                } else {
+                    Gdx.app.postRunnable(() -> {
+                        if (currentJacketPath.equals(jacketPath)) jacketImage.setDrawable(skin.newDrawable("white", Color.DARK_GRAY));
+                    });
+                }
+            });
+            jacketThread.setPriority(Thread.MIN_PRIORITY);
+            jacketThread.start();
         } else {
             jacketImage.setDrawable(skin.newDrawable("white", Color.DARK_GRAY));
         }
+    }
 
+    // --- 2. ASYNC SCORE INJECTOR ---
+    // Called by the background thread once the JSON finishes parsing
+    public void injectScoresAsync(com.badlogic.gdx.utils.Array<com.nodevoltex.game.data.SaveData> scores, boolean animateScores) {
         currentScores.clear();
         if (scores != null) currentScores.addAll(scores);
-
-        // Pass the flag down!
         refreshLeaderboard(animateScores);
     }
 

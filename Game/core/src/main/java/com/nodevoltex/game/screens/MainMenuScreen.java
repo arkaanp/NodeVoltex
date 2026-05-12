@@ -114,20 +114,22 @@ public class MainMenuScreen implements Screen {
     private void animateOutUpwards() {
         float h = Gdx.graphics.getHeight();
 
-        // --- NEW: Animate BOTH backgrounds moving UP together ---
         bgImage.addAction(Actions.moveBy(0, h, 0.9f, Interpolation.pow4In));
         nextBgImage.addAction(Actions.moveBy(0, h, 0.9f, Interpolation.pow4In));
 
         titleImage.addAction(Actions.moveBy(0, h, 0.7f, Interpolation.pow4In));
         playBtn.addAction(Actions.sequence(Actions.delay(0.1f), Actions.moveBy(0, h, 0.7f, Interpolation.pow4In)));
+
         exitBtn.addAction(Actions.sequence(
             Actions.delay(0.15f),
             Actions.moveBy(0, h, 0.7f, Interpolation.pow4In),
             Actions.delay(0.05f),
-            Actions.run(() -> game.setScreen(new SongSelectScreen(game, music, null)))
+            Actions.run(() -> {
+                // Create a NEW screen every time!
+                game.setScreen(new SongSelectScreen(game, music, null));
+            })
         ));
     }
-
     private void animateInFromTop() {
         float h = Gdx.graphics.getHeight();
 

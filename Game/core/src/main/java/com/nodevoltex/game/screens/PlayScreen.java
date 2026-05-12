@@ -222,7 +222,15 @@ public class PlayScreen implements Screen {
             public void clicked(InputEvent event, float x, float y) {
                 music.stop();
                 //System.out.println("BATON PASS 1 (PlayScreen): Handing off -> " + mapFilePath);
-                game.setScreen(new SongSelectScreen(game, null, mapFilePath));
+                // Instead of: game.setScreen(new SongSelectScreen(game));
+
+                // Do this:
+                if (game.songSelectScreen != null) {
+                    game.setScreen(game.songSelectScreen);
+                } else {
+                    game.songSelectScreen = new SongSelectScreen(game, null, null);
+                    game.setScreen(game.songSelectScreen);
+                }
             }
         });
     }

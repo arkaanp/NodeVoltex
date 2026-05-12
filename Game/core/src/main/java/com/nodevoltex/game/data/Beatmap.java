@@ -17,6 +17,11 @@ public class Beatmap {
         public float audioOffset = 0f;
         public int previewOffset = 0;
         public String jacketFilename = "jak.png";
+
+        // --- NEW: Pre-calculated Stats ---
+        public int noteCount = 0;
+        public int holdCount = 0;
+        public int laserCount = 0;
     }
 
     public static class HitObject {

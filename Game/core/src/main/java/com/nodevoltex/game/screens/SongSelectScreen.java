@@ -211,14 +211,24 @@ public class SongSelectScreen implements Screen {
         ));
     }
 
-    @Override public void render(float delta) {
+    @Override public void resize(int width, int height) { stage.getViewport().update(width, height, true); }
+    @Override
+    public void show() {
+        // MUST be here so the screen regains mouse clicks every time you return to it!
+        Gdx.input.setInputProcessor(stage);
+    }
+
+    @Override
+    public void render(float delta) {
+        // MUST be here to clear the Main Menu from the frame buffer!
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
         stage.act(delta);
         stage.draw();
     }
-    @Override public void resize(int width, int height) { stage.getViewport().update(width, height, true); }
-    @Override public void show() {} @Override public void pause() {} @Override public void resume() {}
+    @Override public void pause() {}
+    @Override public void resume() {}
     @Override public void hide() {}
     @Override public void dispose() {
         stage.dispose();

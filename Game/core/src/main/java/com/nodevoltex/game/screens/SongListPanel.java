@@ -30,6 +30,10 @@ public class SongListPanel extends Table {
     private Actor currentlyExpandedActor = null;
     private Music previewMusic;
 
+    // --- NEW: Prevents spam-clicking during animations ---
+    private boolean isTransitioning = false;
+    private String currentPreviewPath = "";
+
     // --- NEW: Camera Tracking Variables ---
     private Actor cameraTarget = null;
     private float cameraLerpTime = 0f;
@@ -37,6 +41,15 @@ public class SongListPanel extends Table {
     // --- NEW: Zero-Allocation Vectors for 60fps math! ---
     private final com.badlogic.gdx.math.Vector2 tempPos1 = new com.badlogic.gdx.math.Vector2();
     private final com.badlogic.gdx.math.Vector2 tempPos2 = new com.badlogic.gdx.math.Vector2();
+
+    // --- THE LAG FIX: Global Data Cache ---
+    private static Array<SongData> GLOBAL_SONG_CACHE = null;
+
+    // --- THE MEMORY FIX: Remembers your last song! ---
+    private static String GLOBAL_LAST_PLAYED_PATH = null;
+
+    // --- THE TWEAK FIX: Anti-Spam Timer ---
+    private long lastSelectionTime = 0;
 
     // --- Data Container Class ---
     private static class SongData {
@@ -46,7 +59,20 @@ public class SongListPanel extends Table {
         float previewOffsetSeconds = 0f;
         String jacketPath;
 
+        // --- RAM Cache for Instant UI Loading ---
+        int novNotes = 0, novHolds = 0, novLasers = 0;
+        int advNotes = 0, advHolds = 0, advLasers = 0;
+        int exhNotes = 0, exhHolds = 0, exhLasers = 0;
+        int mxmNotes = 0, mxmHolds = 0, mxmLasers = 0;
+
         boolean hasDiffs() { return novLv > 0 || advLv > 0 || exhLv > 0 || mxmLv > 0; }
+    }
+
+    // --- NEW: The JSON structure for our permanent cache files ---
+    public static class MapStatsCache {
+        public int notes = 0;
+        public int holds = 0;
+        public int lasers = 0;
     }
 
     public SongListPanel(NodeVoltex game, Skin skin, StatsPanel statsPanel, com.badlogic.gdx.audio.Music mainMenuMusic) {
@@ -73,61 +99,128 @@ public class SongListPanel extends Table {
         scrollPane.setFadeScrollBars(false);
         scrollPane.setScrollingDisabled(true, false);
 
+        // --- THE FIX: Break the camera lock if the user clicks and drags the list! ---
+        scrollPane.addListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
+            @Override
+            public boolean touchDown(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, int button) {
+                cameraTarget = null;
+                return super.touchDown(event, x, y, pointer, button);
+            }
+        });
+
         this.add(scrollPane).expand().fill().pad(10);
         loadSongsFromDirectory();
     }
 
+    // --- UPDATED: The TRUE 0ms Global Cache ---
     private void loadSongsFromDirectory() {
-        FileHandle songsDir = Gdx.files.internal("assets/songs");
-        if (!songsDir.exists() || !songsDir.isDirectory()) return;
 
-        JsonReader jsonReader = new JsonReader();
+        // 1. Check the GLOBAL cache! If it exists, skip the hard drive completely!
+        // --- THE FIX: If the songs are already loaded in RAM, skip the hard drive completely! ---
+        if (GLOBAL_SONG_CACHE != null && GLOBAL_SONG_CACHE.size > 0) {
+            allSongs.addAll(GLOBAL_SONG_CACHE);
+            refreshSongList(false);
 
-        for (FileHandle folder : songsDir.list()) {
-            if (!folder.isDirectory()) continue;
-
-            SongData data = new SongData();
-            data.title = "Unknown Song";
-            data.artist = "Unknown Artist";
-            data.mapper = "Unknown Mapper"; // Default mapper
-
-            FileHandle[] diffFiles = {
-                folder.child("nov.json"), folder.child("adv.json"),
-                folder.child("exh.json"), folder.child("mxm.json")
-            };
-
-            for (int i = 0; i < diffFiles.length; i++) {
-                if (diffFiles[i].exists()) {
-                    try {
-                        JsonValue root = jsonReader.parse(diffFiles[i]);
-                        JsonValue general = root.get("general");
-
-                        data.title = general.getString("title", data.title);
-                        data.artist = general.getString("artist", data.artist);
-                        data.mapper = general.getString("mapper", data.mapper);
-                        data.audioPath = folder.path() + "/" + general.getString("audioFilename", "audio.ogg");
-                        data.jacketPath = folder.path() + "/" + general.getString("jacketFilename", "jak.png");
-
-                        // --- Grab the offset (default to 0) and convert ms to seconds ---
-                        int offsetMs = general.getInt("previewOffset", 0);
-                        data.previewOffsetSeconds = offsetMs / 1000f;
-
-                        int level = general.getInt("level", 0);
-
-                        if (i == 0) { data.novLv = level; data.novPath = diffFiles[i].path(); }
-                        if (i == 1) { data.advLv = level; data.advPath = diffFiles[i].path(); }
-                        if (i == 2) { data.exhLv = level; data.exhPath = diffFiles[i].path(); }
-                        if (i == 3) { data.mxmLv = level; data.mxmPath = diffFiles[i].path(); }
-                    } catch (Exception e) {
-                        System.out.println("Error parsing: " + diffFiles[i].path());
-                    }
-                }
+            if (selectedSong == null) {
+                // If we are returning from the Main Menu, load the exact song we had open last!
+                if (GLOBAL_LAST_PLAYED_PATH != null) selectSongByPath(GLOBAL_LAST_PLAYED_PATH);
+                else selectRandomSong();
             }
-
-            if (data.hasDiffs()) allSongs.add(data);
+            return;
         }
 
-        refreshSongList(false); // Initial load, no animation needed // Draw the UI based on loaded data
+        // 2. Otherwise, run the heavy folder-scanning task on a background thread
+        new Thread(() -> {
+            com.badlogic.gdx.files.FileHandle songsDir = Gdx.files.internal("assets/songs");
+            if (!songsDir.exists() || !songsDir.isDirectory()) return;
+
+            com.badlogic.gdx.utils.JsonReader jsonReader = new com.badlogic.gdx.utils.JsonReader();
+
+            for (com.badlogic.gdx.files.FileHandle folder : songsDir.list()) {
+                if (!folder.isDirectory()) continue;
+
+                SongData data = new SongData();
+                data.title = "Unknown Song";
+                data.artist = "Unknown Artist";
+                data.mapper = "Unknown Mapper";
+
+                com.badlogic.gdx.files.FileHandle[] diffFiles = {
+                    folder.child("nov.json"), folder.child("adv.json"),
+                    folder.child("exh.json"), folder.child("mxm.json")
+                };
+
+                for (int i = 0; i < diffFiles.length; i++) {
+                    if (diffFiles[i].exists()) {
+                        try {
+                            com.badlogic.gdx.utils.JsonValue root = jsonReader.parse(diffFiles[i]);
+                            com.badlogic.gdx.utils.JsonValue general = root.get("general");
+
+                            data.title = general.getString("title", data.title);
+                            data.artist = general.getString("artist", data.artist);
+                            data.mapper = general.getString("mapper", data.mapper);
+                            data.audioPath = folder.path() + "/" + general.getString("audioFilename", "audio.ogg");
+                            data.jacketPath = folder.path() + "/" + general.getString("jacketFilename", "jak.png");
+
+                            int offsetMs = general.getInt("previewOffset", 0);
+                            data.previewOffsetSeconds = offsetMs / 1000f;
+
+                            int level = general.getInt("level", 0);
+
+                            int notes = general.getInt("noteCount", 0);
+                            int holds = general.getInt("holdCount", 0);
+                            int lasers = general.getInt("laserCount", 0);
+
+                            if (notes == 0 && holds == 0 && lasers == 0) {
+                                String safeCacheName = folder.name() + "_" + diffFiles[i].nameWithoutExtension() + "_stats.json";
+                                com.badlogic.gdx.files.FileHandle cacheFile = Gdx.files.local("cache/stats/" + safeCacheName);
+
+                                if (cacheFile.exists()) {
+                                    try {
+                                        com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
+                                        MapStatsCache cache = json.fromJson(MapStatsCache.class, cacheFile);
+                                        notes = cache.notes; holds = cache.holds; lasers = cache.lasers;
+                                    } catch(Exception e) {}
+                                }
+
+                                if (notes == 0 && holds == 0 && lasers == 0) {
+                                    int[] calculatedStats = calculateMapStatsFromTree(root);
+                                    notes = calculatedStats[0]; holds = calculatedStats[1]; lasers = calculatedStats[2];
+
+                                    try {
+                                        MapStatsCache newCache = new MapStatsCache();
+                                        newCache.notes = notes; newCache.holds = holds; newCache.lasers = lasers;
+                                        com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
+                                        cacheFile.writeString(json.prettyPrint(newCache), false);
+                                    } catch (Exception e) {}
+                                }
+                            }
+
+                            if (i == 0) { data.novLv = level; data.novPath = diffFiles[i].path(); data.novNotes = notes; data.novHolds = holds; data.novLasers = lasers; }
+                            if (i == 1) { data.advLv = level; data.advPath = diffFiles[i].path(); data.advNotes = notes; data.advHolds = holds; data.advLasers = lasers; }
+                            if (i == 2) { data.exhLv = level; data.exhPath = diffFiles[i].path(); data.exhNotes = notes; data.exhHolds = holds; data.exhLasers = lasers; }
+                            if (i == 3) { data.mxmLv = level; data.mxmPath = diffFiles[i].path(); data.mxmNotes = notes; data.mxmHolds = holds; data.mxmLasers = lasers; }
+                        } catch (Exception e) {}
+                    }
+                }
+
+                if (data.hasDiffs()) allSongs.add(data);
+            }
+
+            Gdx.app.postRunnable(() -> {
+                // 3. Save the parsed arrays globally so we never parse again!
+                GLOBAL_SONG_CACHE = new Array<>();
+                GLOBAL_SONG_CACHE.addAll(allSongs);
+
+                if (allSongs.size > 0 && selectedSong == null) {
+                    // Open the last played song on first boot!
+                    if (GLOBAL_LAST_PLAYED_PATH != null) selectSongByPath(GLOBAL_LAST_PLAYED_PATH);
+                    else selectRandomSong();
+                } else {
+                    refreshSongList(false);
+                }
+            });
+
+        }).start();
     }
 
     // Completely rebuilds the list, handling Expanded vs Collapsed states
@@ -154,7 +247,7 @@ public class SongListPanel extends Table {
         // --- THE FIX: Only lock the camera if we are animating a new song! ---
         if (currentlyExpandedActor != null && animateCascade) {
             cameraTarget = (Actor) currentlyExpandedActor.getUserObject();
-            cameraLerpTime = 0f;
+            //cameraLerpTime = 0f;
         }
     }
 
@@ -190,7 +283,8 @@ public class SongListPanel extends Table {
         item.setTouchable(Touchable.enabled);
         item.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
-                handleSongSelection(song);
+                // --- THE FIX: Pass null for default highest difficulty ---
+                handleSongSelection(song, null);
             }
         });
         return item;
@@ -319,89 +413,232 @@ public class SongListPanel extends Table {
     }
 
     // Fired when you click a collapsed song
-    private void handleSongSelection(SongData song) {
+    // --- THE NEW ANIMATION MANAGER ---
+    // --- THE ULTIMATE PARALLEL UI MANAGER ---
+    // --- THE ULTIMATE PARALLEL UI MANAGER ---
+    // --- THE SEQUENTIAL UI MANAGER (Prioritizing Smooth Closing) ---
+    // --- THE ATOMIC BUNDLE MANAGER (Embracing the Freeze) ---
+    // --- THE SEQUENTIAL UI MANAGER (Close -> Load -> Open) ---
+    private void handleSongSelection(SongData song, String forceDiff) {
+        if (isTransitioning || selectedSong == song) return;
+
+        // --- THE TWEAK FIX: Anti-Spam Filter ---
+        // If two commands try to pick a song within 100ms of each other on startup, destroy the second command!
+        if (System.currentTimeMillis() - lastSelectionTime < 100) return;
+        lastSelectionTime = System.currentTimeMillis();
+
+        // 1. Calculate the target difficulty instantly
+        int defaultLv = 0; String defaultPath = null; String targetDiff = "";
+
+        if (forceDiff != null) {
+            targetDiff = forceDiff;
+            if (forceDiff.equals("MXM")) { defaultLv = song.mxmLv; defaultPath = song.mxmPath; }
+            else if (forceDiff.equals("EXH")) { defaultLv = song.exhLv; defaultPath = song.exhPath; }
+            else if (forceDiff.equals("ADV")) { defaultLv = song.advLv; defaultPath = song.advPath; }
+            else if (forceDiff.equals("NOV")) { defaultLv = song.novLv; defaultPath = song.novPath; }
+        } else {
+            if (song.mxmLv > 0) { targetDiff = "MXM"; defaultLv = song.mxmLv; defaultPath = song.mxmPath; }
+            else if (song.exhLv > 0) { targetDiff = "EXH"; defaultLv = song.exhLv; defaultPath = song.exhPath; }
+            else if (song.advLv > 0) { targetDiff = "ADV"; defaultLv = song.advLv; defaultPath = song.advPath; }
+            else if (song.novLv > 0) { targetDiff = "NOV"; defaultLv = song.novLv; defaultPath = song.novPath; }
+        }
+
+        final String finalDiff = targetDiff;
+        final int finalLv = defaultLv;
+        final String finalPath = defaultPath;
+
+        isTransitioning = true; // Lock the UI!
+
+        // 2. Define the Loading & Opening Task
+        Runnable loadAndOpenTask = new Runnable() {
+            @Override
+            public void run() {
+                playAudio(song.audioPath, song.previewOffsetSeconds);
+                updateStatsPanel(song, finalDiff, finalLv, finalPath, true);
+
+                selectedSong = song;
+                selectedDiffName = finalDiff;
+
+                // --- THE MEMORY FIX: Save this song to memory so we don't lose it! ---
+                GLOBAL_LAST_PLAYED_PATH = finalPath != null ? finalPath : song.novPath;
+
+                refreshSongList(true);
+                isTransitioning = false;
+            }
+        };
+
+        // ... (Keep the rest of your closing animation Action code exactly the same below here) ...
+
+        // 3. Play the Reverse Cascade (Closing Animation)
+        if (currentlyExpandedActor != null) {
+
+            com.badlogic.gdx.utils.Array<com.badlogic.gdx.scenes.scene2d.Actor> diffRows = new com.badlogic.gdx.utils.Array<>();
+            for (com.badlogic.gdx.scenes.scene2d.Actor child : ((Table) currentlyExpandedActor).getChildren()) {
+                if ("slantDiff".equals(child.getName())) diffRows.add(child);
+            }
+
+            if (diffRows.size > 0) {
+                float duration = 0.25f;
+                float maxDelay = 0f;
+
+                for (int i = 0; i < diffRows.size; i++) {
+                    com.badlogic.gdx.scenes.scene2d.Actor diffRow = diffRows.get(i);
+                    if (diffRow instanceof com.badlogic.gdx.scenes.scene2d.ui.Container) {
+                        com.badlogic.gdx.scenes.scene2d.ui.Container clipWrapper = (com.badlogic.gdx.scenes.scene2d.ui.Container) diffRow;
+                        float startHeight = clipWrapper.getPrefHeight();
+
+                        final float rowDelay = (diffRows.size - 1 - i) * 0.05f;
+                        maxDelay = Math.max(maxDelay, rowDelay);
+
+                        clipWrapper.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
+                            float time = 0;
+                            float currentDelay = rowDelay;
+                            @Override
+                            public boolean act(float delta) {
+                                // --- THE FIX: Capped Safe Delta ---
+                                // This completely prevents the "moves altogether" bug!
+                                float safeDelta = Math.min(delta, 0.03f);
+
+                                if (currentDelay > 0) { currentDelay -= safeDelta; return false; }
+
+                                time += safeDelta;
+                                float progress = com.badlogic.gdx.math.Interpolation.pow3In.apply(Math.min(time / duration, 1f));
+
+                                clipWrapper.prefHeight(startHeight * (1f - progress));
+                                clipWrapper.invalidateHierarchy();
+                                clipWrapper.setUserObject(800f * progress);
+
+                                return time >= duration;
+                            }
+                        });
+                    }
+                }
+
+                float totalWaitTime = maxDelay + duration;
+
+                // 4. WAIT FOR THE CLOSING ANIMATION TO PERFECTLY FINISH, THEN LOAD!
+                this.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
+                    com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(totalWaitTime),
+                    com.badlogic.gdx.scenes.scene2d.actions.Actions.run(loadAndOpenTask)
+                ));
+            } else {
+                loadAndOpenTask.run(); // Failsafe
+            }
+        } else {
+            loadAndOpenTask.run(); // First boot
+        }
+    }
+
+    // --- THE DATA SWAPPER ---
+    private void finalizeSongSelection(SongData song, String forceDiff) {
         selectedSong = song;
 
-        // 1. Default to the highest difficulty
         int defaultLv = 0;
         String defaultPath = null;
 
-        if (song.mxmLv > 0) { selectedDiffName = "MXM"; defaultLv = song.mxmLv; defaultPath = song.mxmPath; }
-        else if (song.exhLv > 0) { selectedDiffName = "EXH"; defaultLv = song.exhLv; defaultPath = song.exhPath; }
-        else if (song.advLv > 0) { selectedDiffName = "ADV"; defaultLv = song.advLv; defaultPath = song.advPath; }
-        else if (song.novLv > 0) { selectedDiffName = "NOV"; defaultLv = song.novLv; defaultPath = song.novPath; }
-
-        // --- Pass the offset into the audio player ---
-        playAudio(song.audioPath, song.previewOffsetSeconds);
-
-        updateStatsPanel(song, selectedDiffName, defaultLv, defaultPath, true);
-
-        // TRUE! User clicked a brand new song, trigger the cascade!
-        refreshSongList(true);
-    }
-
-    private void updateStatsPanel(SongData song, String diffName, int level, String mapPath, boolean animateScores) {
-        Array<com.nodevoltex.game.data.SaveData> loadedScores = new Array<>();
-
-        if (mapPath != null) {
-            String safeFileName = mapPath.replace("/", "_").replace("\\", "_") + "_save.json";
-            FileHandle saveFile = Gdx.files.local("assets/scores/" + safeFileName);
-
-            if (saveFile.exists()) {
-                try {
-                    com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
-                    com.nodevoltex.game.data.ScoreHistory history = json.fromJson(com.nodevoltex.game.data.ScoreHistory.class, saveFile);
-                    if (history != null && history.plays != null) {
-                        loadedScores.addAll(history.plays);
-                    }
-                } catch (Exception e) {
-                    System.out.println("Could not parse score history.");
-                }
-            }
+        // Use forced difficulty if provided, otherwise default to highest
+        if (forceDiff != null) {
+            selectedDiffName = forceDiff;
+            if (forceDiff.equals("MXM")) { defaultLv = song.mxmLv; defaultPath = song.mxmPath; }
+            else if (forceDiff.equals("EXH")) { defaultLv = song.exhLv; defaultPath = song.exhPath; }
+            else if (forceDiff.equals("ADV")) { defaultLv = song.advLv; defaultPath = song.advPath; }
+            else if (forceDiff.equals("NOV")) { defaultLv = song.novLv; defaultPath = song.novPath; }
+        } else {
+            if (song.mxmLv > 0) { selectedDiffName = "MXM"; defaultLv = song.mxmLv; defaultPath = song.mxmPath; }
+            else if (song.exhLv > 0) { selectedDiffName = "EXH"; defaultLv = song.exhLv; defaultPath = song.exhPath; }
+            else if (song.advLv > 0) { selectedDiffName = "ADV"; defaultLv = song.advLv; defaultPath = song.advPath; }
+            else if (song.novLv > 0) { selectedDiffName = "NOV"; defaultLv = song.novLv; defaultPath = song.novPath; }
         }
 
-        // --- Grab the exact counts ---
-        int[] stats = calculateMapStats(mapPath);
-        int displayNotes = stats[0];
-        int displayHolds = stats[1];
-        int totalLaserTicks = stats[2];
+        playAudio(song.audioPath, song.previewOffsetSeconds);
+        updateStatsPanel(song, selectedDiffName, defaultLv, defaultPath, true);
+        refreshSongList(true); // Triggers the OPEN cascade for the new song
+
+        isTransitioning = false; // Unlock the UI!
+    }
+
+    // --- 100% Instant, No I/O Lag ---
+    // --- 100% Non-Blocking Async Stats Panel! ---
+    // --- UPDATED: Staggered JSON Parsing ---
+    private void updateStatsPanel(SongData song, String diffName, int level, String mapPath, boolean animateScores) {
+
+        int displayNotes = 0, displayHolds = 0, totalLaserTicks = 0;
+        if (diffName.equals("NOV")) { displayNotes = song.novNotes; displayHolds = song.novHolds; totalLaserTicks = song.novLasers; }
+        else if (diffName.equals("ADV")) { displayNotes = song.advNotes; displayHolds = song.advHolds; totalLaserTicks = song.advLasers; }
+        else if (diffName.equals("EXH")) { displayNotes = song.exhNotes; displayHolds = song.exhHolds; totalLaserTicks = song.exhLasers; }
+        else if (diffName.equals("MXM")) { displayNotes = song.mxmNotes; displayHolds = song.mxmHolds; totalLaserTicks = song.mxmLasers; }
 
         statsPanel.updateSong(song.title, song.artist, diffName + " " + level, getColorForLevel(level),
-            song.mapper, song.jacketPath, displayNotes, displayHolds, totalLaserTicks, loadedScores, animateScores);
+            song.mapper, song.jacketPath, displayNotes, displayHolds, totalLaserTicks);
+
+        if (mapPath != null) {
+            Thread jsonThread = new Thread(() -> {
+                // 1. STAGGER: Execute last so the CPU is completely free!
+                try { Thread.sleep(90); } catch (Exception e) {}
+
+                com.badlogic.gdx.utils.Array<com.nodevoltex.game.data.SaveData> loadedScores = new com.badlogic.gdx.utils.Array<>();
+                String safeFileName = mapPath.replace("/", "_").replace("\\", "_") + "_save.json";
+                com.badlogic.gdx.files.FileHandle saveFile = Gdx.files.local("assets/scores/" + safeFileName);
+
+                if (saveFile.exists()) {
+                    try {
+                        com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
+                        com.nodevoltex.game.data.ScoreHistory history = json.fromJson(com.nodevoltex.game.data.ScoreHistory.class, saveFile);
+                        if (history != null && history.plays != null) loadedScores.addAll(history.plays);
+                    } catch (Exception e) {}
+                }
+
+                Gdx.app.postRunnable(() -> {
+                    if (selectedSong == song && selectedDiffName.equals(diffName)) {
+                        statsPanel.injectScoresAsync(loadedScores, animateScores);
+                    }
+                });
+            });
+            jsonThread.setPriority(Thread.MIN_PRIORITY);
+            jsonThread.start();
+        } else {
+            statsPanel.injectScoresAsync(null, animateScores);
+        }
     }
 
+    // --- UPDATED: Background Threading for Seamless Audio Transitions! ---
+    // --- UPDATED: Safe, Parallel Audio Loading ---
+    // --- UPDATED: Yielding Audio Thread ---
     private void playAudio(String audioPath, float offsetSeconds) {
-        if (mainMenuMusic != null) {
-            mainMenuMusic.stop();
-            mainMenuMusic.dispose();
-            mainMenuMusic = null;
-        }
+        if (audioPath == null) return;
+        currentPreviewPath = audioPath;
 
-        if (previewMusic != null) {
-            previewMusic.stop();
-            previewMusic.dispose();
-            previewMusic = null;
-        }
+        Thread audioThread = new Thread(() -> {
+            // 1. YIELD TO UI: Let the closing animation visually start!
+            try { Thread.sleep(30); } catch (Exception e) {}
 
-        try {
-            if (audioPath != null) {
-                com.badlogic.gdx.files.FileHandle file = Gdx.files.internal(audioPath);
-                if (file.exists()) {
-                    previewMusic = Gdx.audio.newMusic(file);
-                    previewMusic.setLooping(true);
-                    previewMusic.setVolume(0.3f);
+            com.badlogic.gdx.files.FileHandle file = Gdx.files.internal(audioPath);
+            if (!file.exists()) return;
 
-                    previewMusic.play();
+            try {
+                final com.badlogic.gdx.audio.Music newMusic = Gdx.audio.newMusic(file);
 
-                    // --- NEW: Jump to the drop immediately after starting! ---
-                    if (offsetSeconds > 0) {
-                        previewMusic.setPosition(offsetSeconds);
+                Gdx.app.postRunnable(() -> {
+                    if (currentPreviewPath.equals(audioPath)) {
+                        if (mainMenuMusic != null) { mainMenuMusic.stop(); mainMenuMusic.dispose(); mainMenuMusic = null; }
+                        if (previewMusic != null) { previewMusic.stop(); previewMusic.dispose(); }
+
+                        previewMusic = newMusic;
+                        previewMusic.setLooping(true);
+                        previewMusic.setVolume(0.3f);
+                        previewMusic.play();
+
+                        if (offsetSeconds > 0) previewMusic.setPosition(offsetSeconds);
+                    } else {
+                        newMusic.dispose();
                     }
-                }
-            }
-        } catch (Exception e) {
-            System.out.println("Failed to play audio: " + audioPath);
-        }
+                });
+            } catch (Exception e) {}
+        });
+
+        // 2. PRIORITY DROP: Tell the OS the Main Render Thread is more important!
+        audioThread.setPriority(Thread.MIN_PRIORITY);
+        audioThread.start();
     }
 
     public void stopAudio() {
@@ -445,7 +682,7 @@ public class SongListPanel extends Table {
             int randomIndex = com.badlogic.gdx.math.MathUtils.random(allSongs.size - 1);
 
             // Trigger the exact same logic as if the user clicked it!
-            handleSongSelection(allSongs.get(randomIndex));
+            handleSongSelection(allSongs.get(randomIndex), null);
         }
     }
 
@@ -479,21 +716,8 @@ public class SongListPanel extends Table {
                 (!exh.isEmpty() && exh.contains("/" + targetFolder + "/")) ||
                 (!mxm.isEmpty() && mxm.contains("/" + targetFolder + "/"))) {
 
-                // We found the song!
-                handleSongSelection(song); // Expand the UI box
-                selectedDiffName = expectedDiff; // Force the UI to highlight the correct difficulty
-
-                // 4. Safely pull the correct level and path for the StatsPanel update
-                String safePath = song.novPath;
-                int matchedLevel = song.novLv;
-
-                if (expectedDiff.equals("MXM") && song.mxmPath != null) { safePath = song.mxmPath; matchedLevel = song.mxmLv; }
-                else if (expectedDiff.equals("EXH") && song.exhPath != null) { safePath = song.exhPath; matchedLevel = song.exhLv; }
-                else if (expectedDiff.equals("ADV") && song.advPath != null) { safePath = song.advPath; matchedLevel = song.advLv; }
-
-                // TRUE: Coming from another screen, animate the cascade!
-                updateStatsPanel(song, expectedDiff, matchedLevel, safePath, true);
-                refreshSongList(true); // TRUE! Coming from another screen, animate it!
+                // --- THE FIX: Let the centralized manager handle EVERYTHING automatically! ---
+                handleSongSelection(song, expectedDiff);
                 return;
             }
         }
@@ -506,15 +730,11 @@ public class SongListPanel extends Table {
     public void act(float delta) {
         super.act(delta);
 
-        // === SMOOTH CAMERA TRACKER ===
-        if (cameraTarget != null && cameraLerpTime < 1.0f) {
+        // === THE FIX: Auto-Unlocking Camera ===
+        if (cameraTarget != null) {
             float safeDelta = Math.min(delta, 0.03f);
-            cameraLerpTime += safeDelta / 0.6f;
-            float progress = com.badlogic.gdx.math.Interpolation.pow3Out.apply(Math.min(cameraLerpTime, 1f));
 
             songListTable.validate();
-
-            // USE PRE-ALLOCATED VECTOR
             tempPos1.set(0, cameraTarget.getHeight() / 2f);
             cameraTarget.localToAscendantCoordinates(songListTable, tempPos1);
 
@@ -522,10 +742,20 @@ public class SongListPanel extends Table {
             float targetScroll = distanceToTop - (scrollPane.getHeight() / 2f);
 
             float currentScroll = scrollPane.getScrollY();
-            scrollPane.setScrollY(currentScroll + (targetScroll - currentScroll) * progress);
+            float distance = targetScroll - currentScroll;
+
+            // 1. If we are within 2 pixels, snap into place and KILL the camera lock!
+            if (Math.abs(distance) < 2f) {
+                scrollPane.setScrollY(targetScroll);
+                cameraTarget = null;
+            } else {
+                // 2. Otherwise, continue smoothing gliding
+                float newScroll = currentScroll + (distance * (safeDelta * 12f));
+                scrollPane.setScrollY(newScroll);
+            }
         }
 
-        // --- THE SCROLL FIX: Continuously update the slant every frame! ---
+        // --- Continuous Slant Engine ---
         float tanAngle = (float) Math.tan(Math.toRadians(5f));
         if (songListTable != null) {
             applySlant(songListTable, tanAngle);
@@ -573,7 +803,9 @@ public class SongListPanel extends Table {
     // --- Manual Scroll Driver ---
     public void scroll(float amountY) {
         if (scrollPane != null) {
-            // 75f is slightly faster for the song list since it's much longer
+            // --- THE FIX: Break the camera lock instantly if the user uses the mouse wheel! ---
+            cameraTarget = null;
+
             float newScroll = scrollPane.getScrollY() + (amountY * 75f);
             scrollPane.setScrollY(newScroll);
         }
@@ -594,50 +826,43 @@ public class SongListPanel extends Table {
     }
 
     // --- Calculate map stats instantly on selection ---
-    private int[] calculateMapStats(String mapPath) {
+    // --- Calculates stats directly from RAM, no hard drive reading ---
+    private int[] calculateMapStatsFromTree(JsonValue root) {
         int tapCount = 0;
         int holdCount = 0;
         int totalLaserTicks = 0;
 
-        if (mapPath != null) {
-            try {
-                com.badlogic.gdx.files.FileHandle file = Gdx.files.internal(mapPath);
-                if (file.exists()) {
-                    com.badlogic.gdx.utils.JsonValue root = new com.badlogic.gdx.utils.JsonReader().parse(file);
+        try {
+            JsonValue hitObjects = root.get("hitObjects");
+            if (hitObjects != null) {
+                for (JsonValue ho : hitObjects) {
+                    String type = ho.getString("type", "TAP");
+                    if (type.equals("TAP")) tapCount++;
+                    else if (type.equals("HOLD")) holdCount++;
+                }
+            }
 
-                    // 1. Count Taps & Holds
-                    com.badlogic.gdx.utils.JsonValue hitObjects = root.get("hitObjects");
-                    if (hitObjects != null) {
-                        for (com.badlogic.gdx.utils.JsonValue ho : hitObjects) {
-                            String type = ho.getString("type", "TAP"); // Default to TAP
-                            if (type.equals("TAP")) tapCount++;
-                            else if (type.equals("HOLD")) holdCount++;
-                        }
-                    }
-
-                    // 2. Count Lasers (Currently counts Nodes as a baseline)
-                    com.badlogic.gdx.utils.JsonValue lasers = root.get("lasers");
-                    if (lasers != null) {
-                        com.badlogic.gdx.utils.JsonValue left = lasers.get("left");
-                        if (left != null) {
-                            for (com.badlogic.gdx.utils.JsonValue seq : left) {
-                                com.badlogic.gdx.utils.JsonValue nodes = seq.get("nodes");
-                                if (nodes != null) totalLaserTicks += nodes.size;
-                            }
-                        }
-                        com.badlogic.gdx.utils.JsonValue right = lasers.get("right");
-                        if (right != null) {
-                            for (com.badlogic.gdx.utils.JsonValue seq : right) {
-                                com.badlogic.gdx.utils.JsonValue nodes = seq.get("nodes");
-                                if (nodes != null) totalLaserTicks += nodes.size;
-                            }
-                        }
+            JsonValue lasers = root.get("lasers");
+            if (lasers != null) {
+                JsonValue left = lasers.get("left");
+                if (left != null) {
+                    for (JsonValue seq : left) {
+                        JsonValue nodes = seq.get("nodes");
+                        if (nodes != null) totalLaserTicks += nodes.size;
                     }
                 }
-            } catch (Exception e) {
-                System.out.println("Failed to calculate map stats: " + e.getMessage());
+                JsonValue right = lasers.get("right");
+                if (right != null) {
+                    for (JsonValue seq : right) {
+                        JsonValue nodes = seq.get("nodes");
+                        if (nodes != null) totalLaserTicks += nodes.size;
+                    }
+                }
             }
+        } catch (Exception e) {
+            System.out.println("Failed to calculate map stats from tree.");
         }
+
         return new int[]{tapCount, holdCount, totalLaserTicks};
     }
 }

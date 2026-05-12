@@ -10,6 +10,7 @@ import com.nodevoltex.game.screens.MainMenuScreen;
 public class NodeVoltex extends Game {
     public SpriteBatch batch;
     public ShapeRenderer shapeRenderer;
+    public com.badlogic.gdx.Screen songSelectScreen;
 
     // --- OUR NEW GLOBAL UI SKIN ---
     public static com.badlogic.gdx.scenes.scene2d.ui.Skin skin;
