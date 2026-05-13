@@ -244,10 +244,12 @@ public class SongListPanel extends Table {
             songListTable.add(item).width(fixedWidth).left().padBottom(5).row();
         }
 
-        // --- THE FIX: Only lock the camera if we are animating a new song! ---
+        // --- THE CRASH FIX: Kill the tracking on dead actors! ---
         if (currentlyExpandedActor != null && animateCascade) {
             cameraTarget = (Actor) currentlyExpandedActor.getUserObject();
-            //cameraLerpTime = 0f;
+        } else {
+            // If we are just switching difficulties or returning to menu, clear the target!
+            cameraTarget = null;
         }
     }
 
