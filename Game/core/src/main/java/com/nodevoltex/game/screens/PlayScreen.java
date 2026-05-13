@@ -27,6 +27,7 @@ import com.nodevoltex.game.entities.Note;
 import com.nodevoltex.game.managers.InputController;
 import com.nodevoltex.game.managers.LaserManager;
 import com.nodevoltex.game.managers.ScoreManager;
+import com.nodevoltex.game.managers.SettingsManager;
 import com.nodevoltex.game.patterns.GameArchitecture;
 import com.badlogic.gdx.audio.Music;
 import com.nodevoltex.game.patterns.StrictJudgment;
@@ -43,7 +44,8 @@ public class PlayScreen implements Screen {
     // Time & Math Variables
     private float currentAudioTimeMs = -2000f;
     private boolean hasAudioStarted = false;
-    private final float BASE_SCROLL_SPEED = 1.2f;
+    // --- THE FIX: Load Speed dynamically! ---
+    private final float BASE_SCROLL_SPEED = SettingsManager.getScrollSpeed();
     private float hiSpeedMult = 1.0f;
 
     // Playfield Dimensions
@@ -113,7 +115,7 @@ public class PlayScreen implements Screen {
         try {
             if (audioFile.exists()) {
                 music = Gdx.audio.newMusic(audioFile);
-                music.setVolume(0.3f);
+                music.setVolume(SettingsManager.getMasterVolume() * SettingsManager.getMusicVolume());
             } else {
                 System.out.println("WARNING: Audio file not found at " + audioFile.path());
             }
@@ -153,8 +155,24 @@ public class PlayScreen implements Screen {
         scoreManager.setMaxPossibleScore(totalNotes, totalReleases, totalLaserTicks);
 
         activeNotes = new Array<>();
-        leftCursor = new LaserCursor(true, Input.Keys.NUM_2, Input.Keys.NUM_3);
-        rightCursor = new LaserCursor(false, Input.Keys.NUM_9, Input.Keys.NUM_0);
+        // --- THE FIX: Dynamically load Laser keys! ---
+        // --- THE FIX: Alternate Lasers Enabled! ---
+        leftCursor = new LaserCursor(true,
+            com.nodevoltex.game.managers.SettingsManager.getKey("LL", true),
+            com.nodevoltex.game.managers.SettingsManager.getKey("LR", true),
+            com.nodevoltex.game.managers.SettingsManager.getKey("LL", false),
+            com.nodevoltex.game.managers.SettingsManager.getKey("LR", false)
+        );
+
+        rightCursor = new LaserCursor(false,
+            com.nodevoltex.game.managers.SettingsManager.getKey("RL", true),
+            com.nodevoltex.game.managers.SettingsManager.getKey("RR", true),
+            com.nodevoltex.game.managers.SettingsManager.getKey("RL", false),
+            com.nodevoltex.game.managers.SettingsManager.getKey("RR", false)
+        );
+
+        // Note: If you want alternate laser keys, you'll need to update your LaserCursor.java
+        // constructor to accept 4 keys instead of 2!
 
 
         // --- THE REPLAY LOADER ---
@@ -253,9 +271,10 @@ public class PlayScreen implements Screen {
                 // 2. The audio offset strictly controls when the music starts playing.
                 // If offset is 500, the gameplay ignores it, but the music waits until 500ms to play.
                 // If offset is -500, the music plays early while the visual timer is at -500ms.
-                if (currentAudioTimeMs >= beatmap.general.audioOffset) {
+                // Inside render() -> if (!hasAudioStarted)
+                if (currentAudioTimeMs >= beatmap.general.audioOffset + SettingsManager.getGlobalOffset()) {
                     music.play();
-                    music.setVolume(0.3f);
+                    music.setVolume(SettingsManager.getMasterVolume() * SettingsManager.getMusicVolume());
                     hasAudioStarted = true;
                 }
             } else {
@@ -285,7 +304,8 @@ public class PlayScreen implements Screen {
                 }
                 // 3. Once playing, anchor the visual timeline to the music hardware so they never drift.
                 // We add the offset back here so the visual timer stays accurately synced to the audio.
-                currentAudioTimeMs = (music.getPosition() * 1000f) + beatmap.general.audioOffset;
+                // Inside render() -> else (anchoring timeline)
+                currentAudioTimeMs = (music.getPosition() * 1000f) + beatmap.general.audioOffset + SettingsManager.getGlobalOffset();
             }
 
             // --- LOGIC UPDATES ---
@@ -494,7 +514,7 @@ public class PlayScreen implements Screen {
         // Only resume music if it was actually playing before
         if (hasAudioStarted) {
             music.play();
-            music.setVolume(0.3f);
+            music.setVolume(SettingsManager.getMasterVolume() * SettingsManager.getMusicVolume());
         }
         // Take control away from UI so they can't accidentally click buttons while playing
         Gdx.input.setInputProcessor(null);

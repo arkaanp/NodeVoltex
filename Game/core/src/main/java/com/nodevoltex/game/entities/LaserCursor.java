@@ -26,13 +26,19 @@ public class LaserCursor {
     public float missedTimer = 0f;
     public boolean hasComboBroken = false;
 
-    private final int keyLeft;
-    private final int keyRight;
+    // --- CHANGED: Added Alternate Key Variables ---
+    private final int keyLeftPri;
+    private final int keyRightPri;
+    private final int keyLeftAlt;
+    private final int keyRightAlt;
 
-    public LaserCursor(boolean isLeftLaser, int keyLeft, int keyRight) {
+    // --- CHANGED: Constructor now accepts 5 arguments to fix the error ---
+    public LaserCursor(boolean isLeftLaser, int keyLeftPri, int keyRightPri, int keyLeftAlt, int keyRightAlt) {
         this.isLeftLaser = isLeftLaser;
-        this.keyLeft = keyLeft;
-        this.keyRight = keyRight;
+        this.keyLeftPri = keyLeftPri;
+        this.keyRightPri = keyRightPri;
+        this.keyLeftAlt = keyLeftAlt;
+        this.keyRightAlt = keyRightAlt;
         this.currentState = new FreeState();
     }
 
@@ -40,7 +46,6 @@ public class LaserCursor {
         this.currentState = state;
     }
 
-    // --- NEW: Hooked into the Replay Engine ---
     public void pollInputs(float expectedDirection, InputController inputController, float timeMs) {
         boolean currentLeft;
         boolean currentRight;
@@ -54,8 +59,9 @@ public class LaserCursor {
             currentRight = inputController.virtualKeyboard.getOrDefault(labelR, false);
         } else {
             // NORMAL: Read Physical Keys
-            currentLeft = Gdx.input.isKeyPressed(keyLeft);
-            currentRight = Gdx.input.isKeyPressed(keyRight);
+            // --- CHANGED: Now checks if EITHER the Primary or Alternate key is pressed ---
+            currentLeft = Gdx.input.isKeyPressed(keyLeftPri) || Gdx.input.isKeyPressed(keyLeftAlt);
+            currentRight = Gdx.input.isKeyPressed(keyRightPri) || Gdx.input.isKeyPressed(keyRightAlt);
         }
 
         // RECORDING: Save state changes

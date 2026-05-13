@@ -71,7 +71,7 @@ public class MainMenuScreen implements Screen {
         try {
             if (audioFile.exists()) {
                 music = Gdx.audio.newMusic(audioFile);
-                music.setVolume(0.2f);
+                music.setVolume(com.nodevoltex.game.managers.SettingsManager.getMasterVolume() * com.nodevoltex.game.managers.SettingsManager.getMusicVolume());
                 music.setLooping(true);
                 music.play();
             }

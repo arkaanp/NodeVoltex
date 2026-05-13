@@ -173,7 +173,9 @@ public class LaserManager {
 
                                 if (correctFlick && slamSound != null) {
                                     if (shouldPlayHitsound(sequence, slamNodeIndex)) {
-                                        slamSound.play(0.35f);
+                                        // --- THE FIX: Apply Master & Effect Volume to the slam! ---
+                                        float vol = SettingsManager.getMasterVolume() * SettingsManager.getEffectVolume();
+                                        slamSound.play(vol);
                                     }
                                 }
                             }

@@ -67,13 +67,24 @@ public class InputController {
         // 1. Advance the Ghost Keyboard
         updatePlayback(currentAudioTimeMs);
 
-        // 2. Poll Physical OR Virtual Keys
-        boolean currentBT1 = isReplayPlayback ? virtualKeyboard.getOrDefault("BT1", false) : (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.Y));
-        boolean currentBT2 = isReplayPlayback ? virtualKeyboard.getOrDefault("BT2", false) : (Gdx.input.isKeyPressed(Input.Keys.E) || Gdx.input.isKeyPressed(Input.Keys.U));
-        boolean currentBT3 = isReplayPlayback ? virtualKeyboard.getOrDefault("BT3", false) : (Gdx.input.isKeyPressed(Input.Keys.R) || Gdx.input.isKeyPressed(Input.Keys.I));
-        boolean currentBT4 = isReplayPlayback ? virtualKeyboard.getOrDefault("BT4", false) : (Gdx.input.isKeyPressed(Input.Keys.T) || Gdx.input.isKeyPressed(Input.Keys.O));
-        boolean currentFXL = isReplayPlayback ? virtualKeyboard.getOrDefault("FXL", false) : (Gdx.input.isKeyPressed(Input.Keys.X) || Gdx.input.isKeyPressed(Input.Keys.N));
-        boolean currentFXR = isReplayPlayback ? virtualKeyboard.getOrDefault("FXR", false) : (Gdx.input.isKeyPressed(Input.Keys.M) || Gdx.input.isKeyPressed(Input.Keys.C));
+        // 2. Poll Physical OR Virtual Keys using the SettingsManager!
+        boolean currentBT1 = isReplayPlayback ? virtualKeyboard.getOrDefault("BT1", false) :
+            (Gdx.input.isKeyPressed(SettingsManager.getKey("BT1", true)) || Gdx.input.isKeyPressed(SettingsManager.getKey("BT1", false)));
+
+        boolean currentBT2 = isReplayPlayback ? virtualKeyboard.getOrDefault("BT2", false) :
+            (Gdx.input.isKeyPressed(SettingsManager.getKey("BT2", true)) || Gdx.input.isKeyPressed(SettingsManager.getKey("BT2", false)));
+
+        boolean currentBT3 = isReplayPlayback ? virtualKeyboard.getOrDefault("BT3", false) :
+            (Gdx.input.isKeyPressed(SettingsManager.getKey("BT3", true)) || Gdx.input.isKeyPressed(SettingsManager.getKey("BT3", false)));
+
+        boolean currentBT4 = isReplayPlayback ? virtualKeyboard.getOrDefault("BT4", false) :
+            (Gdx.input.isKeyPressed(SettingsManager.getKey("BT4", true)) || Gdx.input.isKeyPressed(SettingsManager.getKey("BT4", false)));
+
+        boolean currentFXL = isReplayPlayback ? virtualKeyboard.getOrDefault("FXL", false) :
+            (Gdx.input.isKeyPressed(SettingsManager.getKey("FXL", true)) || Gdx.input.isKeyPressed(SettingsManager.getKey("FXL", false)));
+
+        boolean currentFXR = isReplayPlayback ? virtualKeyboard.getOrDefault("FXR", false) :
+            (Gdx.input.isKeyPressed(SettingsManager.getKey("FXR", true)) || Gdx.input.isKeyPressed(SettingsManager.getKey("FXR", false)));
 
         laneJustPressed[1] = currentBT1 && !laneIsPressed[1];
         laneJustPressed[2] = currentBT2 && !laneIsPressed[2];

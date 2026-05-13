@@ -627,7 +627,7 @@ public class SongListPanel extends Table {
 
                         previewMusic = newMusic;
                         previewMusic.setLooping(true);
-                        previewMusic.setVolume(0.3f);
+                        previewMusic.setVolume(com.nodevoltex.game.managers.SettingsManager.getMasterVolume() * com.nodevoltex.game.managers.SettingsManager.getMusicVolume());
                         previewMusic.play();
 
                         if (offsetSeconds > 0) previewMusic.setPosition(offsetSeconds);
