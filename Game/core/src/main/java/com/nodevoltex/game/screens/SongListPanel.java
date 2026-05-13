@@ -221,6 +221,10 @@ public class SongListPanel extends Table {
             songListTable.add(item).width(fixedWidth).left().padBottom(5).row();
         }
 
+        // Force a layout pass so newly created rows have valid heights before
+        // slant positioning runs. This prevents teleport/flicker when animating.
+        songListTable.validate();
+
         if (currentlyExpandedActor != null && animateCascade) {
             cameraTarget = (Actor) currentlyExpandedActor.getUserObject();
         } else {
@@ -345,6 +349,7 @@ public class SongListPanel extends Table {
         if (animate) {
             clipWrapper.setUserObject(800f);
             clipWrapper.prefHeight(0f);
+            clipWrapper.setHeight(0f);
 
             clipWrapper.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
                 float time = 0;
@@ -358,7 +363,9 @@ public class SongListPanel extends Table {
                     time += safeDelta;
                     float progress = com.badlogic.gdx.math.Interpolation.pow3Out.apply(Math.min(time / duration, 1f));
 
-                    clipWrapper.prefHeight(exactHeight * progress);
+                    float newH = exactHeight * progress;
+                    clipWrapper.prefHeight(newH);
+                    clipWrapper.setHeight(newH);
                     clipWrapper.invalidateHierarchy();
                     clipWrapper.setUserObject(800f * (1f - progress));
                     return time >= duration;
@@ -367,6 +374,7 @@ public class SongListPanel extends Table {
         } else {
             clipWrapper.setUserObject(0f);
             clipWrapper.prefHeight(exactHeight);
+            clipWrapper.setHeight(exactHeight);
         }
 
         return clipWrapper;
@@ -428,7 +436,7 @@ public class SongListPanel extends Table {
                     com.badlogic.gdx.scenes.scene2d.Actor diffRow = diffRows.get(i);
                     if (diffRow instanceof com.badlogic.gdx.scenes.scene2d.ui.Container) {
                         com.badlogic.gdx.scenes.scene2d.ui.Container clipWrapper = (com.badlogic.gdx.scenes.scene2d.ui.Container) diffRow;
-                        float startHeight = clipWrapper.getPrefHeight();
+                        float startHeight = clipWrapper.getHeight();
 
                         final float rowDelay = (diffRows.size - 1 - i) * 0.05f;
                         maxDelay = Math.max(maxDelay, rowDelay);
@@ -445,7 +453,9 @@ public class SongListPanel extends Table {
                                 time += safeDelta;
                                 float progress = com.badlogic.gdx.math.Interpolation.pow3In.apply(Math.min(time / duration, 1f));
 
-                                clipWrapper.prefHeight(startHeight * (1f - progress));
+                                float newH = startHeight * (1f - progress);
+                                clipWrapper.prefHeight(newH);
+                                clipWrapper.setHeight(newH);
                                 clipWrapper.invalidateHierarchy();
                                 clipWrapper.setUserObject(800f * progress);
 

@@ -12,6 +12,8 @@ import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -65,13 +67,14 @@ public class ScoreScreen implements Screen {
         stage.addActor(bgImage);
 
         // --- EXTRACT DATA ---
-        int finalScore, totalSCrit, totalCrit, totalNear, totalMid, totalFar, totalMiss, totalEarly, totalLate, maxCombo;
+        int finalScore, totalSCrit, totalCrit, totalNear, totalMid, totalFar, totalMiss, totalLaserTicks, totalLaserMisses, totalEarly, totalLate, maxCombo;
         String grade;
 
         if (fromHistory && historyData != null) {
             finalScore = historyData.score; grade = historyData.grade; maxCombo = historyData.maxCombo;
             totalSCrit = historyData.sCriticals; totalCrit = historyData.criticals; totalNear = historyData.nears;
             totalMid = historyData.mids; totalFar = historyData.fars; totalMiss = historyData.misses;
+            totalLaserTicks = historyData.laserTicks; totalLaserMisses = historyData.laserMisses;
             totalEarly = historyData.early; totalLate = historyData.late;
         } else {
             finalScore = scoreManager.getFinalScore(); grade = scoreManager.getGrade(); maxCombo = scoreManager.maxCombo;
@@ -81,6 +84,8 @@ public class ScoreScreen implements Screen {
             totalMid = scoreManager.noteStats.mids + scoreManager.releaseStats.mids;
             totalFar = scoreManager.noteStats.fars + scoreManager.releaseStats.fars;
             totalMiss = scoreManager.noteStats.misses + scoreManager.releaseStats.misses;
+            totalLaserTicks = scoreManager.laserTicks;
+            totalLaserMisses = scoreManager.laserMisses;
             totalEarly = scoreManager.noteStats.early + scoreManager.releaseStats.early;
             totalLate = scoreManager.noteStats.late + scoreManager.releaseStats.late;
 
@@ -88,24 +93,24 @@ public class ScoreScreen implements Screen {
         }
 
         // Resolution Independent Math
-        float w = stage.getWidth();
-        float h = stage.getHeight();
         float tan3 = (float)Math.tan(Math.toRadians(3));
 
-        // Base width of the slanted section: 35% of the screen.
-        float topWidth = w * 0.38f;
+        // Keep a responsive ratio for the slanted section
+        float topRatio = 0.38f;
 
         rootGroup = new Group();
-        rootGroup.setSize(w, h);
 
-        // 1. The Slanted Background
-        ParallelogramActor slantBg = new ParallelogramActor(topWidth, tan3);
-        slantBg.setSize(w, h);
+        // 1. The Slanted Background (computes top width dynamically)
+        ParallelogramActor slantBg = new ParallelogramActor(topRatio, tan3);
+        slantBg.setSize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
         rootGroup.addActor(slantBg);
+
+        // precompute a topWidth value for layout math based on the ratio
+        float topWidth = stage.getViewport().getWorldWidth() * topRatio;
 
         // 2. The Master UI Layout
         Table fullScreenUI = new Table();
-        fullScreenUI.setSize(w, h);
+        fullScreenUI.setFillParent(true);
         fullScreenUI.pad(40); // 40px global margin
 
         Table topRow = new Table();
@@ -191,6 +196,8 @@ public class ScoreScreen implements Screen {
         currentLeftShift = addSlantedStat(statsTable, "Mid", totalMid, Color.LIGHT_GRAY, statsRowWidth, currentLeftShift, 30f, tan3);
         currentLeftShift = addSlantedStat(statsTable, "Far", totalFar, Color.LIGHT_GRAY, statsRowWidth, currentLeftShift, 30f, tan3);
         currentLeftShift = addSlantedStat(statsTable, "Miss", totalMiss, Color.LIGHT_GRAY, statsRowWidth, currentLeftShift, 45f, tan3);
+        currentLeftShift = addSlantedStat(statsTable, "Laser Tick", totalLaserTicks, Color.valueOf("#FFD700"), statsRowWidth, currentLeftShift, 30f, tan3);
+        currentLeftShift = addSlantedStat(statsTable, "Laser Miss", totalLaserMisses, Color.valueOf("#FF6347"), statsRowWidth, currentLeftShift, 45f, tan3);
         currentLeftShift = addSlantedStat(statsTable, "Early", totalEarly, Color.valueOf("#80DFFF"), statsRowWidth, currentLeftShift, 30f, tan3);
         currentLeftShift = addSlantedStat(statsTable, "Late", totalLate, Color.valueOf("#FF80BF"), statsRowWidth, currentLeftShift, 45f, tan3);
         addSlantedStat(statsTable, "Max Combo", maxCombo, Color.LIGHT_GRAY, statsRowWidth, currentLeftShift, 30f, tan3);
@@ -206,10 +213,26 @@ public class ScoreScreen implements Screen {
         Label userLbl = new Label("GUEST", skin); userLbl.setColor(Color.BLACK);
         rightCol.add(userLbl).center().padTop(5);
 
-        // Inject Columns
+        // Inject Columns into a topRow which will be placed inside a scrollable content area
         topRow.add(leftCol).expand().fill().left();
         topRow.add(rightCol).expand().top().right();
-        fullScreenUI.add(topRow).expand().fill().row();
+
+        Table contentTable = new Table();
+        contentTable.add(topRow).expand().fill().row();
+
+        final ScrollPane contentScroll = new ScrollPane(contentTable, skin);
+        contentScroll.setFlickScroll(false);
+        contentScroll.setFadeScrollBars(false);
+        contentScroll.setScrollbarsOnTop(true);
+        contentScroll.setScrollingDisabled(false, false);
+
+        // Make mouse wheel work without first clicking: set stage scroll focus when pointer is over the pane
+        contentScroll.addListener(new InputListener() {
+            @Override public boolean mouseMoved(InputEvent event, float x, float y) { stage.setScrollFocus(contentScroll); return false; }
+            @Override public void exit(InputEvent event, float x, float y, int pointer, Actor toActor) { stage.setScrollFocus(null); }
+        });
+
+        fullScreenUI.add(contentScroll).expand().fill().row();
 
         // ==========================================
         // BOTTOM SECTION (Exit, Retry, Replay)
@@ -275,6 +298,17 @@ public class ScoreScreen implements Screen {
         ));
     }
 
+    @Override public void resize(int width, int height) {
+        stage.getViewport().update(width, height, true);
+        // Keep root size and parallelogram in sync so slant and layout remain responsive
+        rootGroup.setSize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
+        for (Actor a : rootGroup.getChildren()) {
+            if (a instanceof ParallelogramActor) {
+                a.setSize(stage.getViewport().getWorldWidth(), stage.getViewport().getWorldHeight());
+            }
+        }
+    }
+
     // THE FIX: Adds padLeft dynamically to push the row rightwards, tracing the `\` slant!
     private float addSlantedStat(Table table, String label, int value, Color labelColor, float rowWidth, float currentShift, float deltaY, float tan3) {
         Table row = new Table();
@@ -314,11 +348,11 @@ public class ScoreScreen implements Screen {
     }
 
     private class ParallelogramActor extends Actor {
-        private final float topW;
+        private final float topRatio;
         private final float tan3;
 
-        public ParallelogramActor(float topW, float tan3) {
-            this.topW = topW;
+        public ParallelogramActor(float topRatio, float tan3) {
+            this.topRatio = topRatio;
             this.tan3 = tan3;
         }
 
@@ -334,6 +368,8 @@ public class ScoreScreen implements Screen {
 
             float h = getHeight();
             float slantWidth = h * tan3;
+            float stageW = (getStage() != null) ? getStage().getViewport().getWorldWidth() : getWidth();
+            float topW = stageW * topRatio;
             float bottomW = topW + slantWidth;
 
             float x = getX();
@@ -349,7 +385,6 @@ public class ScoreScreen implements Screen {
     }
 
     @Override public void render(float delta) { Gdx.gl.glClearColor(0.05f, 0.05f, 0.1f, 1); Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT); stage.act(delta); stage.draw(); }
-    @Override public void resize(int width, int height) { stage.getViewport().update(width, height, true); }
     @Override public void show() {} @Override public void pause() {} @Override public void resume() {} @Override public void hide() {}
     @Override public void dispose() { stage.dispose(); shapeRenderer.dispose(); if (bgTexture != null) bgTexture.dispose(); if (jacketTexture != null) jacketTexture.dispose(); }
 }

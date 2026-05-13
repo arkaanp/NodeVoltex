@@ -178,31 +178,65 @@ public class StatsPanel extends Table {
         titleLabel.setText(newTitle); artistLabel.setText(newArtist); mapperLabel.setText("mapped by " + mapperText);
         diffLabel.setText(diffText); diffLabel.setColor(diffColor);
         noteCountLabel.setText("NOTE: " + noteCount); holdCountLabel.setText("HOLD: " + holdCount); laserCountLabel.setText("LASER: " + totalLaserTicks);
-
+        String oldJacket = currentJacketPath;
         currentJacketPath = jacketPath != null ? jacketPath : "";
-        if (jacketPath != null) {
+
+        // If the jacket path didn't change, don't reload — avoids flicker.
+        if (jacketPath == null || jacketPath.isEmpty()) {
+            jacketImage.setDrawable(skin.newDrawable("white", Color.DARK_GRAY));
+        } else if (jacketPath.equals(oldJacket) && jacketTexture != null) {
+            // already loaded, nothing to do
+        } else {
+            // show placeholder immediately to avoid a flash of a full-size box
+            jacketImage.setDrawable(skin.newDrawable("white", Color.DARK_GRAY));
+
             Thread jacketThread = new Thread(() -> {
                 try { Thread.sleep(60); } catch (Exception e) {}
                 com.badlogic.gdx.files.FileHandle file = Gdx.files.internal(jacketPath);
                 if (file.exists()) {
                     try {
-                        final com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(file);
+                        final com.badlogic.gdx.graphics.Pixmap src = new com.badlogic.gdx.graphics.Pixmap(file);
+                        // target UI size (match jacketImage actor size)
+                        final int targetMax = 180;
+                        int srcW = src.getWidth();
+                        int srcH = src.getHeight();
+                        int dstW = srcW;
+                        int dstH = srcH;
+                        if (srcW > targetMax || srcH > targetMax) {
+                            float ratio = (float) srcW / (float) srcH;
+                            if (srcW >= srcH) { dstW = targetMax; dstH = Math.max(1, Math.round(targetMax / ratio)); }
+                            else { dstH = targetMax; dstW = Math.max(1, Math.round(targetMax * ratio)); }
+                        }
+
+                        final com.badlogic.gdx.graphics.Pixmap scaled = new com.badlogic.gdx.graphics.Pixmap(dstW, dstH, src.getFormat());
+                        scaled.setBlending(com.badlogic.gdx.graphics.Pixmap.Blending.None);
+                        scaled.drawPixmap(src, 0, 0, srcW, srcH, 0, 0, dstW, dstH);
+                        src.dispose();
+
                         Gdx.app.postRunnable(() -> {
                             if (currentJacketPath.equals(jacketPath)) {
-                                if (jacketTexture != null) jacketTexture.dispose();
-                                jacketTexture = new com.badlogic.gdx.graphics.Texture(pixmap);
-                                jacketImage.setDrawable(new com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable(jacketTexture));
+                                try {
+                                    if (jacketTexture != null) jacketTexture.dispose();
+                                    jacketTexture = new com.badlogic.gdx.graphics.Texture(scaled);
+                                    jacketImage.setDrawable(new com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable(jacketTexture));
+                                } catch (Exception e) {
+                                    jacketImage.setDrawable(skin.newDrawable("white", Color.DARK_GRAY));
+                                } finally {
+                                    scaled.dispose();
+                                }
+                            } else {
+                                scaled.dispose();
                             }
-                            pixmap.dispose();
                         });
-                    } catch (Exception e) {}
+                    } catch (Exception e) {
+                        Gdx.app.postRunnable(() -> { if (currentJacketPath.equals(jacketPath)) jacketImage.setDrawable(skin.newDrawable("white", Color.DARK_GRAY)); });
+                    }
                 } else {
                     Gdx.app.postRunnable(() -> { if (currentJacketPath.equals(jacketPath)) jacketImage.setDrawable(skin.newDrawable("white", Color.DARK_GRAY)); });
                 }
             });
-            jacketThread.setPriority(Thread.MIN_PRIORITY); jacketThread.start();
-        } else {
-            jacketImage.setDrawable(skin.newDrawable("white", Color.DARK_GRAY));
+            jacketThread.setPriority(Thread.MIN_PRIORITY);
+            jacketThread.start();
         }
     }
 
@@ -227,12 +261,16 @@ public class StatsPanel extends Table {
         // --- THE FIX: Added Hours and Minutes to the date format! ---
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm");
         int index = 0;
+        // Compute base delay so the full cascade duration is capped and scales with number of scores
+        float totalCascadeCap = 0.6f; // seconds
+        float baseDelay = totalCascadeCap / Math.max(1, currentScores.size);
+        baseDelay = Math.max(0.02f, Math.min(0.08f, baseDelay));
+
         for (com.nodevoltex.game.data.SaveData data : currentScores) {
             String dateStr = sdf.format(new java.util.Date(data.timestamp));
             String scoreStr = String.format("%08d", data.score);
-
-            // THE FIX: Passed the raw 'data' object into the row builder so we can pass it to ScoreScreen later!
-            leaderboardTable.add(createAnimatedScoreRow(data, "Guest", scoreStr, data.grade, data.maxCombo + "x", dateStr, index, animate))
+            // Pass baseDelay so per-row delays scale with number of scores
+            leaderboardTable.add(createAnimatedScoreRow(data, "Guest", scoreStr, data.grade, data.maxCombo + "x", dateStr, index, animate, baseDelay))
                 .expandX().right().padBottom(5).row();
             index++;
         }
@@ -246,7 +284,7 @@ public class StatsPanel extends Table {
     }
 
     // --- THE FIX: Highly Interactive Rows connected to SongSelectScreen ---
-    private Table createAnimatedScoreRow(final com.nodevoltex.game.data.SaveData data, String name, String score, String grade, String combo, String date, int delayIndex, boolean animate) {
+    private Table createAnimatedScoreRow(final com.nodevoltex.game.data.SaveData data, String name, String score, String grade, String combo, String date, int delayIndex, boolean animate, float baseDelay) {
         final Table row = new Table();
 
         final com.badlogic.gdx.scenes.scene2d.utils.Drawable normalBg = skin.newDrawable("white", new Color(0.1f, 0.1f, 0.15f, 0.65f));
@@ -284,8 +322,8 @@ public class StatsPanel extends Table {
 
             row.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
                 float time = 0;
-                float delay = delayIndex * 0.08f;
-                float duration = 0.4f;
+                float delay = delayIndex * baseDelay;
+                float duration = Math.max(0.12f, 0.4f * (1f - Math.min(0.8f, (currentScores.size / 30f))));
                 @Override
                 public boolean act(float delta) {
                     float safeDelta = Math.min(delta, 0.03f);
