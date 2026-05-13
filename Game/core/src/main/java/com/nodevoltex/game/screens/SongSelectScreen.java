@@ -39,6 +39,11 @@ public class SongSelectScreen implements Screen {
 
     // --- THE FIX: Added slideInFromRight flag! ---
     public SongSelectScreen(NodeVoltex game, com.badlogic.gdx.audio.Music mainMenuMusic, String preselectedMapPath, boolean slideInFromRight) {
+        this(game, mainMenuMusic, preselectedMapPath, slideInFromRight, null);
+    }
+
+    // --- NEW: Constructor that accepts difficulty to restore after ScoreScreen ---
+    public SongSelectScreen(NodeVoltex game, com.badlogic.gdx.audio.Music mainMenuMusic, String preselectedMapPath, boolean slideInFromRight, String preselectedDifficulty) {
         this.game = game;
         this.stage = new Stage(new ScreenViewport());
         this.skin = NodeVoltex.skin;
@@ -54,6 +59,11 @@ public class SongSelectScreen implements Screen {
         prevBgImage.setFillParent(true);
         prevBgImage.setY(Gdx.graphics.getHeight());
         stage.addActor(prevBgImage);
+
+        // --- FIX: Set difficulty BEFORE creating SongListPanel! ---
+        if (preselectedDifficulty != null && !preselectedDifficulty.isEmpty()) {
+            SongListPanel.setLastPlayedDifficulty(preselectedDifficulty);
+        }
 
         leftPanel = new StatsPanel(NodeVoltex.skin);
         // Link the panel so it can trigger our transitions!

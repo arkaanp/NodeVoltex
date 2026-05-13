@@ -41,6 +41,7 @@ public class SongListPanel extends Table {
 
     private static Array<SongData> GLOBAL_SONG_CACHE = null;
     private static String GLOBAL_LAST_PLAYED_PATH = null;
+    private static String GLOBAL_LAST_PLAYED_DIFFICULTY = null;
     private long lastSelectionTime = 0;
 
     private static class SongData {
@@ -614,6 +615,16 @@ public class SongListPanel extends Table {
         }
     }
 
+    // --- NEW: Static setter for preserving difficulty selection ---
+    public static void setLastPlayedDifficulty(String difficulty) {
+        GLOBAL_LAST_PLAYED_DIFFICULTY = difficulty;
+    }
+
+    // --- NEW: Static getter for retrieving last difficulty ---
+    public static String getLastPlayedDifficulty() {
+        return GLOBAL_LAST_PLAYED_DIFFICULTY;
+    }
+
     public void selectSongByPath(String targetPath) {
         if (targetPath == null || targetPath.trim().isEmpty()) {
             selectRandomSong();
@@ -625,6 +636,12 @@ public class SongListPanel extends Table {
         if (target.endsWith("mxm.json") || target.contains("/mxm.json")) expectedDiff = "MXM";
         else if (target.endsWith("exh.json") || target.contains("/exh.json")) expectedDiff = "EXH";
         else if (target.endsWith("adv.json") || target.contains("/adv.json")) expectedDiff = "ADV";
+
+        // --- NEW: Try to restore the last played difficulty if available ---
+        if (GLOBAL_LAST_PLAYED_DIFFICULTY != null && !GLOBAL_LAST_PLAYED_DIFFICULTY.isEmpty()) {
+            expectedDiff = GLOBAL_LAST_PLAYED_DIFFICULTY;
+            GLOBAL_LAST_PLAYED_DIFFICULTY = null; // Clear it after using
+        }
 
         String[] targetParts = target.split("/");
         String targetFolder = targetParts.length >= 2 ? targetParts[targetParts.length - 2] : target;

@@ -42,9 +42,11 @@ public class ScoreScreen implements Screen {
     private Image bgImage;
     private Texture jacketTexture;
 
-    // --- THE MASTER CONTAINER ---
-    // Holds EVERYTHING, allowing the entire screen to slide Left <-> Right as one unit
     private Group rootGroup;
+
+    // --- NEW: Store difficulty and map path for exit transition ---
+    private String currentDifficulty;
+    private String currentMapPath;
 
     public ScoreScreen(NodeVoltex game, Beatmap.General metadata, ScoreManager scoreManager, SaveData historyData, String difficultyName, String mapFilePath, boolean fromHistory) {
         this.game = game;
@@ -52,6 +54,10 @@ public class ScoreScreen implements Screen {
         this.skin = NodeVoltex.skin;
         this.shapeRenderer = new ShapeRenderer();
         Gdx.input.setInputProcessor(stage);
+
+        // --- NEW: Store difficulty and map path for exit transition ---
+        this.currentDifficulty = difficultyName;
+        this.currentMapPath = mapFilePath;
 
         bgTexture = new Texture(Gdx.files.internal("assets/Back.png"));
         bgImage = new Image(bgTexture);
@@ -85,11 +91,10 @@ public class ScoreScreen implements Screen {
         float w = stage.getWidth();
         float h = stage.getHeight();
         float tan3 = (float)Math.tan(Math.toRadians(3));
-        float topWidth = w * 0.40f;
 
-        // ==========================================
-        // BUILD THE UNIFIED MASTER GROUP
-        // ==========================================
+        // Base width of the slanted section: 35% of the screen.
+        float topWidth = w * 0.38f;
+
         rootGroup = new Group();
         rootGroup.setSize(w, h);
 
@@ -101,11 +106,8 @@ public class ScoreScreen implements Screen {
         // 2. The Master UI Layout
         Table fullScreenUI = new Table();
         fullScreenUI.setSize(w, h);
-        fullScreenUI.pad(40); // Global screen padding
+        fullScreenUI.pad(40); // 40px global margin
 
-        // ==========================================
-        // TOP SECTION (Song, Score, Stats, Profile)
-        // ==========================================
         Table topRow = new Table();
 
         // --- LEFT COLUMN ---
@@ -148,8 +150,13 @@ public class ScoreScreen implements Screen {
         diffLabel.setColor(Color.CYAN);
         metaBox.add(diffLabel).align(Align.left).row();
 
-        // THE FIX: Explicitly smaller width for the song box!
-        leftCol.add(metaBox).width(w * 0.30f).left().padBottom(20).row();
+        // THE FIX: Perfect Symmetry!
+        // 40px left screen pad + Box Width + 40px right gap = Exact position of the slant line
+        float metaBoxDistFromTop = 40f;
+        float slantXAtMeta = topWidth + (metaBoxDistFromTop * tan3);
+        float metaBoxWidth = slantXAtMeta - 80f;
+
+        leftCol.add(metaBox).width(metaBoxWidth).left().padBottom(20).row();
 
         // B. The Big Score & Integrated Grade
         String scoreString = String.format("%08d", finalScore);
@@ -166,16 +173,18 @@ public class ScoreScreen implements Screen {
 
         scoreTable.add(bigScore).align(Align.bottom);
         scoreTable.add(smallScore).align(Align.bottom).padBottom(5).padRight(30);
-        // THE FIX: Placed natively beside the score!
         scoreTable.add(gradeLabel).align(Align.bottom).padBottom(5);
 
         leftCol.add(scoreTable).align(Align.left).padLeft(15).padBottom(20).row();
 
         // C. The Slanting Stats Engine
         Table statsTable = new Table();
-        float currentLeftShift = 0f; // Pushes rightwards as it goes down
+        float currentLeftShift = 0f; // Pushes both text and numbers rightwards
 
-        float statsRowWidth = w * 0.25f; // Clean, flexible width for the stat rows
+        // THE FIX: Calculate exact row width to reach the parallelogram!
+        // 40 (global pad) + 15 (statsTable pad) + 25 (safe gap from line) = 80f deduction.
+        float statsRowWidth = topWidth - 80f;
+
         currentLeftShift = addSlantedStat(statsTable, "S-Critical", totalSCrit, Color.LIGHT_GRAY, statsRowWidth, currentLeftShift, 30f, tan3);
         currentLeftShift = addSlantedStat(statsTable, "Critical", totalCrit, Color.LIGHT_GRAY, statsRowWidth, currentLeftShift, 30f, tan3);
         currentLeftShift = addSlantedStat(statsTable, "Near", totalNear, Color.LIGHT_GRAY, statsRowWidth, currentLeftShift, 30f, tan3);
@@ -197,10 +206,9 @@ public class ScoreScreen implements Screen {
         Label userLbl = new Label("GUEST", skin); userLbl.setColor(Color.BLACK);
         rightCol.add(userLbl).center().padTop(5);
 
-        // Inject Left & Right columns into Top Row
+        // Inject Columns
         topRow.add(leftCol).expand().fill().left();
         topRow.add(rightCol).expand().top().right();
-
         fullScreenUI.add(topRow).expand().fill().row();
 
         // ==========================================
@@ -236,13 +244,11 @@ public class ScoreScreen implements Screen {
         TextButton replayBtn = new TextButton("Replay Score", skin);
         rightBtns.add(replayBtn).width(160).height(40).bottom().right();
 
-        // THE FIX: Perfect unified baseline!
         bottomRow.add(leftBtns).expandX().fillX().bottom().left();
         bottomRow.add(rightBtns).expandX().fillX().bottom().right();
 
         fullScreenUI.add(bottomRow).expandX().fillX().bottom();
 
-        // Add Master UI Table to the Group
         rootGroup.addActor(fullScreenUI);
         stage.addActor(rootGroup);
 
@@ -265,7 +271,7 @@ public class ScoreScreen implements Screen {
         // Entire screen slides out to the left (-w)
         rootGroup.addAction(Actions.sequence(
             Actions.moveTo(-w, 0, 0.5f, Interpolation.pow3In),
-            Actions.run(() -> game.setScreen(new SongSelectScreen(game, null, mapFilePath, true)))
+            Actions.run(() -> game.setScreen(new SongSelectScreen(game, null, mapFilePath, true, currentDifficulty)))
         ));
     }
 
@@ -280,6 +286,7 @@ public class ScoreScreen implements Screen {
         row.add(lbl).expandX().left();
         row.add(val).width(60).align(Align.right);
 
+        // padLeft pushes the entire row rightwards, creating the visual slant!
         table.add(row).width(rowWidth).left().padLeft(currentShift).padBottom(deltaY - 28f).row();
 
         return currentShift + (deltaY * tan3);
@@ -306,7 +313,6 @@ public class ScoreScreen implements Screen {
         saveFile.writeString(json.prettyPrint(history), false);
     }
 
-    // THE FIX: Set local TransformMatrix so ShapeRenderer moves with the rootGroup's animation!
     private class ParallelogramActor extends Actor {
         private final float topW;
         private final float tan3;
@@ -321,18 +327,20 @@ public class ScoreScreen implements Screen {
             batch.end();
             Gdx.gl.glEnable(GL20.GL_BLEND);
             Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
             shapeRenderer.setProjectionMatrix(batch.getProjectionMatrix());
-            shapeRenderer.setTransformMatrix(batch.getTransformMatrix()); // CRITICAL for sliding animation
-
+            shapeRenderer.setTransformMatrix(batch.getTransformMatrix());
             shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
             shapeRenderer.setColor(Color.valueOf("#1800ad80"));
 
             float h = getHeight();
             float slantWidth = h * tan3;
+            float bottomW = topW + slantWidth;
 
-            shapeRenderer.rect(0, 0, topW, h);
-            shapeRenderer.triangle(topW, h, topW, 0, topW + slantWidth, 0);
+            float x = getX();
+            float y = getY();
+
+            shapeRenderer.rect(x, y, topW, h);
+            shapeRenderer.triangle(x + topW, y + h, x + topW, y, x + bottomW, y);
 
             shapeRenderer.end();
             Gdx.gl.glDisable(GL20.GL_BLEND);
