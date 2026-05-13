@@ -21,37 +21,28 @@ public class SongListPanel extends Table {
     private final StatsPanel statsPanel;
     private final Table songListTable;
     private final ScrollPane scrollPane;
-    private com.badlogic.gdx.audio.Music mainMenuMusic;
 
-    // --- State Variables ---
     private Array<SongData> allSongs = new Array<>();
     private SongData selectedSong = null;
     private String selectedDiffName = "";
     private Actor currentlyExpandedActor = null;
-    private Music previewMusic;
 
-    // --- NEW: Prevents spam-clicking during animations ---
     private boolean isTransitioning = false;
-    private String currentPreviewPath = "";
-
-    // --- NEW: Camera Tracking Variables ---
     private Actor cameraTarget = null;
     private float cameraLerpTime = 0f;
 
-    // --- NEW: Zero-Allocation Vectors for 60fps math! ---
     private final com.badlogic.gdx.math.Vector2 tempPos1 = new com.badlogic.gdx.math.Vector2();
     private final com.badlogic.gdx.math.Vector2 tempPos2 = new com.badlogic.gdx.math.Vector2();
 
-    // --- THE LAG FIX: Global Data Cache ---
+    // --- THE FIX: True Global Audio State ---
+    private static com.badlogic.gdx.audio.Music mainMenuMusic;
+    private static Music previewMusic;
+    private static String currentPreviewPath = "";
+
     private static Array<SongData> GLOBAL_SONG_CACHE = null;
-
-    // --- THE MEMORY FIX: Remembers your last song! ---
     private static String GLOBAL_LAST_PLAYED_PATH = null;
-
-    // --- THE TWEAK FIX: Anti-Spam Timer ---
     private long lastSelectionTime = 0;
 
-    // --- Data Container Class ---
     private static class SongData {
         String title, artist, mapper, audioPath;
         int novLv = 0, advLv = 0, exhLv = 0, mxmLv = 0;
@@ -59,7 +50,6 @@ public class SongListPanel extends Table {
         float previewOffsetSeconds = 0f;
         String jacketPath;
 
-        // --- RAM Cache for Instant UI Loading ---
         int novNotes = 0, novHolds = 0, novLasers = 0;
         int advNotes = 0, advHolds = 0, advLasers = 0;
         int exhNotes = 0, exhHolds = 0, exhLasers = 0;
@@ -68,27 +58,25 @@ public class SongListPanel extends Table {
         boolean hasDiffs() { return novLv > 0 || advLv > 0 || exhLv > 0 || mxmLv > 0; }
     }
 
-    // --- NEW: The JSON structure for our permanent cache files ---
     public static class MapStatsCache {
         public int notes = 0;
         public int holds = 0;
         public int lasers = 0;
     }
 
-    public SongListPanel(NodeVoltex game, Skin skin, StatsPanel statsPanel, com.badlogic.gdx.audio.Music mainMenuMusic) {
+    public SongListPanel(NodeVoltex game, Skin skin, StatsPanel statsPanel, com.badlogic.gdx.audio.Music mainMenuMusicIn) {
         this.game = game;
         this.skin = skin;
         this.statsPanel = statsPanel;
-        this.mainMenuMusic = mainMenuMusic;
 
-        // --- THE HOLY GRAIL FIX: Override the Table's core layout engine! ---
+        if (mainMenuMusicIn != null) {
+            mainMenuMusic = mainMenuMusicIn;
+        }
+
         songListTable = new Table() {
             @Override
             public void layout() {
-                // 1. Let LibGDX calculate all the heights and vertical Y coordinates normally
                 super.layout();
-
-                // 2. Immediately inject our 5-degree slant before it draws to the screen!
                 float tanAngle = (float) Math.tan(Math.toRadians(5f));
                 applySlant(this, tanAngle);
             }
@@ -99,7 +87,6 @@ public class SongListPanel extends Table {
         scrollPane.setFadeScrollBars(false);
         scrollPane.setScrollingDisabled(true, false);
 
-        // --- THE FIX: Break the camera lock if the user clicks and drags the list! ---
         scrollPane.addListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
             @Override
             public boolean touchDown(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, int button) {
@@ -112,24 +99,18 @@ public class SongListPanel extends Table {
         loadSongsFromDirectory();
     }
 
-    // --- UPDATED: The TRUE 0ms Global Cache ---
     private void loadSongsFromDirectory() {
-
-        // 1. Check the GLOBAL cache! If it exists, skip the hard drive completely!
-        // --- THE FIX: If the songs are already loaded in RAM, skip the hard drive completely! ---
         if (GLOBAL_SONG_CACHE != null && GLOBAL_SONG_CACHE.size > 0) {
             allSongs.addAll(GLOBAL_SONG_CACHE);
             refreshSongList(false);
 
             if (selectedSong == null) {
-                // If we are returning from the Main Menu, load the exact song we had open last!
                 if (GLOBAL_LAST_PLAYED_PATH != null) selectSongByPath(GLOBAL_LAST_PLAYED_PATH);
                 else selectRandomSong();
             }
             return;
         }
 
-        // 2. Otherwise, run the heavy folder-scanning task on a background thread
         new Thread(() -> {
             com.badlogic.gdx.files.FileHandle songsDir = Gdx.files.internal("assets/songs");
             if (!songsDir.exists() || !songsDir.isDirectory()) return;
@@ -207,12 +188,10 @@ public class SongListPanel extends Table {
             }
 
             Gdx.app.postRunnable(() -> {
-                // 3. Save the parsed arrays globally so we never parse again!
                 GLOBAL_SONG_CACHE = new Array<>();
                 GLOBAL_SONG_CACHE.addAll(allSongs);
 
                 if (allSongs.size > 0 && selectedSong == null) {
-                    // Open the last played song on first boot!
                     if (GLOBAL_LAST_PLAYED_PATH != null) selectSongByPath(GLOBAL_LAST_PLAYED_PATH);
                     else selectRandomSong();
                 } else {
@@ -223,8 +202,6 @@ public class SongListPanel extends Table {
         }).start();
     }
 
-    // Completely rebuilds the list, handling Expanded vs Collapsed states
-    // --- UPDATED: Added boolean animateCascade ---
     private void refreshSongList(boolean animateCascade) {
         songListTable.clearChildren();
         currentlyExpandedActor = null;
@@ -235,7 +212,6 @@ public class SongListPanel extends Table {
         for (SongData song : allSongs) {
             Table item;
             if (song == selectedSong) {
-                // Pass the flag down!
                 item = buildExpandedItem(song, fixedWidth, animateCascade);
                 currentlyExpandedActor = item;
             } else {
@@ -244,16 +220,13 @@ public class SongListPanel extends Table {
             songListTable.add(item).width(fixedWidth).left().padBottom(5).row();
         }
 
-        // --- THE CRASH FIX: Kill the tracking on dead actors! ---
         if (currentlyExpandedActor != null && animateCascade) {
             cameraTarget = (Actor) currentlyExpandedActor.getUserObject();
         } else {
-            // If we are just switching difficulties or returning to menu, clear the target!
             cameraTarget = null;
         }
     }
 
-    // View: When the song is NOT clicked
     private Table buildCollapsedItem(SongData song) {
         Table item = new Table();
         item.setName("slantHeader");
@@ -285,15 +258,12 @@ public class SongListPanel extends Table {
         item.setTouchable(Touchable.enabled);
         item.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
-                // --- THE FIX: Pass null for default highest difficulty ---
                 handleSongSelection(song, null);
             }
         });
         return item;
     }
 
-    // --- UPDATED: Added boolean animate ---
-    // View: When the song IS clicked (Accordion open)
     private Table buildExpandedItem(SongData song, float fixedWidth, boolean animate) {
         Table wrapper = new Table();
 
@@ -323,25 +293,19 @@ public class SongListPanel extends Table {
         thinBars.add(new Image(skin.newDrawable("white", mxmCol))).height(6).expandX().fillX();
         headerBox.add(thinBars).expandX().fillX().padLeft(20).padRight(20).padBottom(5);
 
-        // LOCK WIDTH
         wrapper.add(headerBox).width(fixedWidth).left().row();
 
-        // --- THE FIX: Start the counter at 0! ---
         int cascadeIndex = 0;
 
-        // --- THE FIX: Pass the boolean animate flag to the rows! ---
         if (song.novLv > 0) wrapper.add(createAnimatedDiffRow(song, "NOV", song.novLv, getColorForLevel(song.novLv), song.novPath, cascadeIndex++, fixedWidth, animate)).left().row();
         if (song.advLv > 0) wrapper.add(createAnimatedDiffRow(song, "ADV", song.advLv, getColorForLevel(song.advLv), song.advPath, cascadeIndex++, fixedWidth, animate)).left().row();
         if (song.exhLv > 0) wrapper.add(createAnimatedDiffRow(song, "EXH", song.exhLv, getColorForLevel(song.exhLv), song.exhPath, cascadeIndex++, fixedWidth, animate)).left().row();
         if (song.mxmLv > 0) wrapper.add(createAnimatedDiffRow(song, "MXM", song.mxmLv, getColorForLevel(song.mxmLv), song.mxmPath, cascadeIndex++, fixedWidth, animate)).left().row();
 
-        // Hide the headerBox inside the Wrapper so the Camera can track it!
         wrapper.setUserObject(headerBox);
         return wrapper;
     }
 
-    // --- TRUE CASCADE ANIMATION ---
-    // --- UPDATED: Added boolean animate flag! ---
     private com.badlogic.gdx.scenes.scene2d.ui.Container<Table> createAnimatedDiffRow(SongData song, String diffName, int level, Color color, String mapPath, int delayIndex, float fixedWidth, boolean animate) {
         Table row = new Table();
         boolean isSelected = selectedDiffName.equals(diffName);
@@ -358,16 +322,11 @@ public class SongListPanel extends Table {
         row.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
             @Override public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                 if (selectedDiffName.equals(diffName)) {
-                    stopAudio();
+                    stopAudio(); // ONLY stop audio if actually entering PlayScreen!
                     if (mapPath != null) game.setScreen(new PlayScreen(game, mapPath));
                 } else {
                     selectedDiffName = diffName;
-
-                    // --- THE FIX: Change this to TRUE! ---
-                    // This forces the StatsPanel to cascade the scores every time you click a diff!
                     updateStatsPanel(song, diffName, level, mapPath, true);
-
-                    // (Keep this false so the pink UI doesn't close and reopen)
                     refreshSongList(false);
                 }
             }
@@ -382,7 +341,6 @@ public class SongListPanel extends Table {
         clipWrapper.prefWidth(fixedWidth - 30f);
         clipWrapper.minHeight(0f);
 
-        // --- THE FIX: Initial State Logic ---
         if (animate) {
             clipWrapper.setUserObject(800f);
             clipWrapper.prefHeight(0f);
@@ -406,7 +364,6 @@ public class SongListPanel extends Table {
                 }
             });
         } else {
-            // If we are just switching diffs, render it instantly fully open!
             clipWrapper.setUserObject(0f);
             clipWrapper.prefHeight(exactHeight);
         }
@@ -414,22 +371,12 @@ public class SongListPanel extends Table {
         return clipWrapper;
     }
 
-    // Fired when you click a collapsed song
-    // --- THE NEW ANIMATION MANAGER ---
-    // --- THE ULTIMATE PARALLEL UI MANAGER ---
-    // --- THE ULTIMATE PARALLEL UI MANAGER ---
-    // --- THE SEQUENTIAL UI MANAGER (Prioritizing Smooth Closing) ---
-    // --- THE ATOMIC BUNDLE MANAGER (Embracing the Freeze) ---
-    // --- THE SEQUENTIAL UI MANAGER (Close -> Load -> Open) ---
     private void handleSongSelection(SongData song, String forceDiff) {
         if (isTransitioning || selectedSong == song) return;
 
-        // --- THE TWEAK FIX: Anti-Spam Filter ---
-        // If two commands try to pick a song within 100ms of each other on startup, destroy the second command!
         if (System.currentTimeMillis() - lastSelectionTime < 100) return;
         lastSelectionTime = System.currentTimeMillis();
 
-        // 1. Calculate the target difficulty instantly
         int defaultLv = 0; String defaultPath = null; String targetDiff = "";
 
         if (forceDiff != null) {
@@ -449,9 +396,8 @@ public class SongListPanel extends Table {
         final int finalLv = defaultLv;
         final String finalPath = defaultPath;
 
-        isTransitioning = true; // Lock the UI!
+        isTransitioning = true;
 
-        // 2. Define the Loading & Opening Task
         Runnable loadAndOpenTask = new Runnable() {
             @Override
             public void run() {
@@ -460,8 +406,6 @@ public class SongListPanel extends Table {
 
                 selectedSong = song;
                 selectedDiffName = finalDiff;
-
-                // --- THE MEMORY FIX: Save this song to memory so we don't lose it! ---
                 GLOBAL_LAST_PLAYED_PATH = finalPath != null ? finalPath : song.novPath;
 
                 refreshSongList(true);
@@ -469,11 +413,7 @@ public class SongListPanel extends Table {
             }
         };
 
-        // ... (Keep the rest of your closing animation Action code exactly the same below here) ...
-
-        // 3. Play the Reverse Cascade (Closing Animation)
         if (currentlyExpandedActor != null) {
-
             com.badlogic.gdx.utils.Array<com.badlogic.gdx.scenes.scene2d.Actor> diffRows = new com.badlogic.gdx.utils.Array<>();
             for (com.badlogic.gdx.scenes.scene2d.Actor child : ((Table) currentlyExpandedActor).getChildren()) {
                 if ("slantDiff".equals(child.getName())) diffRows.add(child);
@@ -497,8 +437,6 @@ public class SongListPanel extends Table {
                             float currentDelay = rowDelay;
                             @Override
                             public boolean act(float delta) {
-                                // --- THE FIX: Capped Safe Delta ---
-                                // This completely prevents the "moves altogether" bug!
                                 float safeDelta = Math.min(delta, 0.03f);
 
                                 if (currentDelay > 0) { currentDelay -= safeDelta; return false; }
@@ -517,28 +455,24 @@ public class SongListPanel extends Table {
                 }
 
                 float totalWaitTime = maxDelay + duration;
-
-                // 4. WAIT FOR THE CLOSING ANIMATION TO PERFECTLY FINISH, THEN LOAD!
                 this.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
                     com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(totalWaitTime),
                     com.badlogic.gdx.scenes.scene2d.actions.Actions.run(loadAndOpenTask)
                 ));
             } else {
-                loadAndOpenTask.run(); // Failsafe
+                loadAndOpenTask.run();
             }
         } else {
-            loadAndOpenTask.run(); // First boot
+            loadAndOpenTask.run();
         }
     }
 
-    // --- THE DATA SWAPPER ---
     private void finalizeSongSelection(SongData song, String forceDiff) {
         selectedSong = song;
 
         int defaultLv = 0;
         String defaultPath = null;
 
-        // Use forced difficulty if provided, otherwise default to highest
         if (forceDiff != null) {
             selectedDiffName = forceDiff;
             if (forceDiff.equals("MXM")) { defaultLv = song.mxmLv; defaultPath = song.mxmPath; }
@@ -554,16 +488,12 @@ public class SongListPanel extends Table {
 
         playAudio(song.audioPath, song.previewOffsetSeconds);
         updateStatsPanel(song, selectedDiffName, defaultLv, defaultPath, true);
-        refreshSongList(true); // Triggers the OPEN cascade for the new song
+        refreshSongList(true);
 
-        isTransitioning = false; // Unlock the UI!
+        isTransitioning = false;
     }
 
-    // --- 100% Instant, No I/O Lag ---
-    // --- 100% Non-Blocking Async Stats Panel! ---
-    // --- UPDATED: Staggered JSON Parsing ---
     private void updateStatsPanel(SongData song, String diffName, int level, String mapPath, boolean animateScores) {
-
         int displayNotes = 0, displayHolds = 0, totalLaserTicks = 0;
         if (diffName.equals("NOV")) { displayNotes = song.novNotes; displayHolds = song.novHolds; totalLaserTicks = song.novLasers; }
         else if (diffName.equals("ADV")) { displayNotes = song.advNotes; displayHolds = song.advHolds; totalLaserTicks = song.advLasers; }
@@ -573,9 +503,10 @@ public class SongListPanel extends Table {
         statsPanel.updateSong(song.title, song.artist, diffName + " " + level, getColorForLevel(level),
             song.mapper, song.jacketPath, displayNotes, displayHolds, totalLaserTicks);
 
+        statsPanel.currentMapPath = mapPath;
+
         if (mapPath != null) {
             Thread jsonThread = new Thread(() -> {
-                // 1. STAGGER: Execute last so the CPU is completely free!
                 try { Thread.sleep(90); } catch (Exception e) {}
 
                 com.badlogic.gdx.utils.Array<com.nodevoltex.game.data.SaveData> loadedScores = new com.badlogic.gdx.utils.Array<>();
@@ -603,15 +534,17 @@ public class SongListPanel extends Table {
         }
     }
 
-    // --- UPDATED: Background Threading for Seamless Audio Transitions! ---
-    // --- UPDATED: Safe, Parallel Audio Loading ---
-    // --- UPDATED: Yielding Audio Thread ---
     private void playAudio(String audioPath, float offsetSeconds) {
         if (audioPath == null) return;
+
+        // --- THE FIX: Let the audio keep playing smoothly! ---
+        if (audioPath.equals(currentPreviewPath) && previewMusic != null && previewMusic.isPlaying()) {
+            return;
+        }
+
         currentPreviewPath = audioPath;
 
         Thread audioThread = new Thread(() -> {
-            // 1. YIELD TO UI: Let the closing animation visually start!
             try { Thread.sleep(30); } catch (Exception e) {}
 
             com.badlogic.gdx.files.FileHandle file = Gdx.files.internal(audioPath);
@@ -638,13 +571,11 @@ public class SongListPanel extends Table {
             } catch (Exception e) {}
         });
 
-        // 2. PRIORITY DROP: Tell the OS the Main Render Thread is more important!
         audioThread.setPriority(Thread.MIN_PRIORITY);
         audioThread.start();
     }
 
     public void stopAudio() {
-        // Catch-all to make sure everything shuts up if you hit the Back button
         if (mainMenuMusic != null) {
             mainMenuMusic.stop();
             mainMenuMusic.dispose();
@@ -655,9 +586,10 @@ public class SongListPanel extends Table {
             previewMusic.dispose();
             previewMusic = null;
         }
+        // ONLY clear the path if we are hard stopping (e.g. starting a play).
+        currentPreviewPath = "";
     }
 
-    // --- NEW: Sorts the maps and redraws the list ---
     public void sortSongs(String criteria) {
         if (criteria.equals("title")) {
             allSongs.sort((a, b) -> a.title.compareToIgnoreCase(b.title));
@@ -666,24 +598,18 @@ public class SongListPanel extends Table {
         } else if (criteria.equals("mapper")) {
             allSongs.sort((a, b) -> a.mapper.compareToIgnoreCase(b.mapper));
         }
-        refreshSongList(false); // Sorting, no cascade needed
+        refreshSongList(false);
 
-        // Scroll back to the top when a new sort is applied
         Gdx.app.postRunnable(() -> scrollPane.setScrollY(0));
     }
 
-    // --- NEW: Method to capture mouse wheel focus ---
     public void requestScrollFocus(com.badlogic.gdx.scenes.scene2d.Stage stage) {
         stage.setScrollFocus(this.scrollPane);
     }
 
-    // --- NEW: Method to pick a random song ---
     public void selectRandomSong() {
         if (allSongs.size > 0) {
-            // Pick a random number between 0 and the last index of the array
             int randomIndex = com.badlogic.gdx.math.MathUtils.random(allSongs.size - 1);
-
-            // Trigger the exact same logic as if the user clicked it!
             handleSongSelection(allSongs.get(randomIndex), null);
         }
     }
@@ -695,14 +621,11 @@ public class SongListPanel extends Table {
         }
 
         String target = targetPath.replace("\\", "/").toLowerCase();
-
-        // 1. FIGURE OUT THE EXACT DIFFICULTY FIRST based on the file extension
-        String expectedDiff = "NOV"; // Default fallback
+        String expectedDiff = "NOV";
         if (target.endsWith("mxm.json") || target.contains("/mxm.json")) expectedDiff = "MXM";
         else if (target.endsWith("exh.json") || target.contains("/exh.json")) expectedDiff = "EXH";
         else if (target.endsWith("adv.json") || target.contains("/adv.json")) expectedDiff = "ADV";
 
-        // 2. Extract the folder name
         String[] targetParts = target.split("/");
         String targetFolder = targetParts.length >= 2 ? targetParts[targetParts.length - 2] : target;
 
@@ -712,13 +635,11 @@ public class SongListPanel extends Table {
             String exh = song.exhPath != null ? song.exhPath.replace("\\", "/").toLowerCase() : "";
             String mxm = song.mxmPath != null ? song.mxmPath.replace("\\", "/").toLowerCase() : "";
 
-            // 3. Check if ANY of the paths match our target folder
             if ((!nov.isEmpty() && nov.contains("/" + targetFolder + "/")) ||
                 (!adv.isEmpty() && adv.contains("/" + targetFolder + "/")) ||
                 (!exh.isEmpty() && exh.contains("/" + targetFolder + "/")) ||
                 (!mxm.isEmpty() && mxm.contains("/" + targetFolder + "/"))) {
 
-                // --- THE FIX: Let the centralized manager handle EVERYTHING automatically! ---
                 handleSongSelection(song, expectedDiff);
                 return;
             }
@@ -732,7 +653,6 @@ public class SongListPanel extends Table {
     public void act(float delta) {
         super.act(delta);
 
-        // === THE FIX: Auto-Unlocking Camera ===
         if (cameraTarget != null) {
             float safeDelta = Math.min(delta, 0.03f);
 
@@ -746,25 +666,21 @@ public class SongListPanel extends Table {
             float currentScroll = scrollPane.getScrollY();
             float distance = targetScroll - currentScroll;
 
-            // 1. If we are within 2 pixels, snap into place and KILL the camera lock!
             if (Math.abs(distance) < 2f) {
                 scrollPane.setScrollY(targetScroll);
                 cameraTarget = null;
             } else {
-                // 2. Otherwise, continue smoothing gliding
                 float newScroll = currentScroll + (distance * (safeDelta * 12f));
                 scrollPane.setScrollY(newScroll);
             }
         }
 
-        // --- Continuous Slant Engine ---
         float tanAngle = (float) Math.tan(Math.toRadians(5f));
         if (songListTable != null) {
             applySlant(songListTable, tanAngle);
         }
     }
 
-    // --- FIXED: Zero-Allocation Absolute Slant Engine ---
     private void applySlant(com.badlogic.gdx.scenes.scene2d.Group group, float tanAngle) {
         float baseLeftX = 40f;
 
@@ -772,48 +688,38 @@ public class SongListPanel extends Table {
 
             if ("slantHeader".equals(child.getName()) || "slantDiff".equals(child.getName())) {
 
-                // 1. Get exact distance down the screen using tempPos1
                 tempPos1.set(0, child.getHeight());
                 child.localToAscendantCoordinates(SongListPanel.this, tempPos1);
                 float distanceDown = SongListPanel.this.getHeight() - tempPos1.y;
 
-                // 2. Diagonal math
                 float absoluteX = baseLeftX + (distanceDown * tanAngle);
 
-                // Indents & Slide animations
                 if ("slantDiff".equals(child.getName())) absoluteX += 30f;
                 if (child.getUserObject() instanceof Float) {
                     absoluteX += (Float) child.getUserObject();
                 }
 
-                // 3. Convert Screen X to Local X using tempPos2
                 tempPos2.set(absoluteX, 0);
                 SongListPanel.this.localToStageCoordinates(tempPos2);
                 child.getParent().stageToLocalCoordinates(tempPos2);
 
-                // Lock it in!
                 child.setX(tempPos2.x);
             }
 
-            // Recursion is perfectly safe with these temp vectors!
             if (child instanceof com.badlogic.gdx.scenes.scene2d.Group) {
                 applySlant((com.badlogic.gdx.scenes.scene2d.Group) child, tanAngle);
             }
         }
     }
 
-    // --- Manual Scroll Driver ---
     public void scroll(float amountY) {
         if (scrollPane != null) {
-            // --- THE FIX: Break the camera lock instantly if the user uses the mouse wheel! ---
             cameraTarget = null;
-
             float newScroll = scrollPane.getScrollY() + (amountY * 75f);
             scrollPane.setScrollY(newScroll);
         }
     }
 
-    // --- Centralized Level Color Logic ---
     private Color getColorForLevel(int level) {
         if (level >= 1 && level <= 6) return Color.valueOf("#c1ff72");
         if (level >= 7 && level <= 12) return Color.valueOf("#599f00");
@@ -824,11 +730,9 @@ public class SongListPanel extends Table {
         if (level == 19) return Color.valueOf("#2c0640");
         if (level >= 20) return Color.valueOf("#000000");
 
-        return Color.DARK_GRAY; // Fallback for 0 or missing levels
+        return Color.DARK_GRAY;
     }
 
-    // --- Calculate map stats instantly on selection ---
-    // --- Calculates stats directly from RAM, no hard drive reading ---
     private int[] calculateMapStatsFromTree(JsonValue root) {
         int tapCount = 0;
         int holdCount = 0;

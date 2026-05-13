@@ -15,6 +15,9 @@ import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.math.Interpolation;
 
+// --- IMPORTS FOR GHOST SCORE ---
+import com.nodevoltex.game.data.Beatmap;
+
 public class SongSelectScreen implements Screen {
     private final NodeVoltex game;
     private final Stage stage;
@@ -32,10 +35,10 @@ public class SongSelectScreen implements Screen {
     private Table leftLayer;
     private Table rightLayer;
 
-    // --- NEW: The Clean Settings Overlay Manager ---
     private SettingsOverlay settingsOverlay;
 
-    public SongSelectScreen(NodeVoltex game, com.badlogic.gdx.audio.Music mainMenuMusic, String preselectedMapPath) {
+    // --- THE FIX: Added slideInFromRight flag! ---
+    public SongSelectScreen(NodeVoltex game, com.badlogic.gdx.audio.Music mainMenuMusic, String preselectedMapPath, boolean slideInFromRight) {
         this.game = game;
         this.stage = new Stage(new ScreenViewport());
         this.skin = NodeVoltex.skin;
@@ -53,6 +56,8 @@ public class SongSelectScreen implements Screen {
         stage.addActor(prevBgImage);
 
         leftPanel = new StatsPanel(NodeVoltex.skin);
+        // Link the panel so it can trigger our transitions!
+        leftPanel.setParentScreen(this);
 
         SongListPanel rightPanel = new SongListPanel(game, NodeVoltex.skin, leftPanel, mainMenuMusic);
         TopSearchBar searchBar = new TopSearchBar(NodeVoltex.skin, rightPanel);
@@ -96,19 +101,12 @@ public class SongSelectScreen implements Screen {
 
         TextButton modsBtn = new TextButton("Mods", NodeVoltex.skin);
         modsBtn.setColor(Color.valueOf("#7a9e35"));
-        modsBtn.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                System.out.println("Mods button clicked");
-            }
-        });
 
         TextButton optionsBtn = new TextButton("Options", NodeVoltex.skin);
         optionsBtn.setColor(Color.valueOf("#4b1d82"));
         optionsBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                // Delegate to our new class
                 settingsOverlay.open();
             }
         });
@@ -119,37 +117,79 @@ public class SongSelectScreen implements Screen {
 
         stage.addActor(backTable);
 
-        // Instantiating the overlay AFTER other UI ensures it draws on top
         settingsOverlay = new SettingsOverlay(stage, skin);
 
-        animateInFromBottom();
+        // --- THE FIX: Dynamic Entry Vector ---
+        if (slideInFromRight) {
+            animateInFromRight();
+        } else {
+            animateInFromBottom();
+        }
 
         stage.addCaptureListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
             @Override
             public boolean scrolled(InputEvent event, float x, float y, float amountX, float amountY) {
-                // Check state through the manager
-                if (settingsOverlay.isOpen()) {
-                    return false;
-                }
+                if (settingsOverlay.isOpen()) return false;
 
                 float screenWidth = stage.getWidth();
-                if (x < screenWidth / 2f) {
-                    leftPanel.scroll(amountY);
-                } else {
-                    rightPanel.scroll(amountY);
-                }
+                if (x < screenWidth / 2f) leftPanel.scroll(amountY);
+                else rightPanel.scroll(amountY);
                 event.cancel();
                 return true;
             }
         });
 
         Gdx.app.postRunnable(() -> {
-            if (preselectedMapPath != null) {
-                rightPanel.selectSongByPath(preselectedMapPath);
-            } else {
-                rightPanel.selectRandomSong();
-            }
+            if (preselectedMapPath != null) rightPanel.selectSongByPath(preselectedMapPath);
+            else rightPanel.selectRandomSong();
         });
+    }
+
+    // --- NEW: Exits Song Select to the right, boots Score Screen ---
+    public void transitionToScoreScreenFromHistory(com.nodevoltex.game.data.SaveData data, String title, String artist, String mapperText, String diffText, String mapPath) {
+        stage.getRoot().setTouchable(Touchable.disabled);
+        float w = stage.getWidth();
+
+        // Slide everything OUT to the right smoothly
+        leftLayer.addAction(Actions.moveBy(w, 0, 0.6f, Interpolation.pow3In));
+        rightLayer.addAction(Actions.sequence(Actions.delay(0.05f), Actions.moveBy(w, 0, 0.6f, Interpolation.pow3In)));
+        backTable.addAction(Actions.sequence(Actions.delay(0.1f), Actions.moveBy(w, 0, 0.6f, Interpolation.pow3In)));
+
+        // Package up the basic string data into a mock Metadata object for the ScoreScreen to read
+        Beatmap.General mockMeta = new Beatmap.General();
+        mockMeta.title = title;
+        mockMeta.artist = artist;
+        mockMeta.mapper = mapperText.replace("mapped by ", "");
+
+        // --- THE FIX: Safely parse the number out of the String! ---
+        try {
+            mockMeta.level = diffText.contains(" ") ? Integer.parseInt(diffText.split(" ")[1]) : 0;
+        } catch (NumberFormatException e) {
+            mockMeta.level = 0;
+        }
+
+        String diffNameOnly = diffText.contains(" ") ? diffText.split(" ")[0] : diffText;
+
+        // Wait 0.8s for the animation to finish, then hand off to ScoreScreen
+        stage.addAction(Actions.sequence(
+            Actions.delay(0.8f),
+            Actions.run(() -> game.setScreen(new ScoreScreen(game, mockMeta, null, data, diffNameOnly, mapPath, true)))
+        ));
+    }
+
+    // --- NEW: Returning from Score Screen ---
+    private void animateInFromRight() {
+        float w = stage.getWidth();
+
+        // Start everything off-screen to the right
+        leftLayer.setX(w);
+        rightLayer.setX(w);
+        backTable.setX(w);
+
+        // Slide everything in smoothly to 0 (moving left)
+        leftLayer.addAction(Actions.moveBy(-w, 0, 0.6f, Interpolation.pow3Out));
+        rightLayer.addAction(Actions.sequence(Actions.delay(0.05f), Actions.moveBy(-w, 0, 0.6f, Interpolation.pow3Out)));
+        backTable.addAction(Actions.sequence(Actions.delay(0.1f), Actions.moveBy(-w, 0, 0.6f, Interpolation.pow3Out)));
     }
 
     private void animateInFromBottom() {
@@ -165,26 +205,17 @@ public class SongSelectScreen implements Screen {
 
         leftLayer.addAction(Actions.sequence(
             Actions.delay(0.05f),
-            Actions.parallel(
-                Actions.moveBy(0, h, 0.9f, Interpolation.pow3Out),
-                Actions.fadeIn(0.7f, Interpolation.pow2Out)
-            )
+            Actions.parallel(Actions.moveBy(0, h, 0.9f, Interpolation.pow3Out), Actions.fadeIn(0.7f, Interpolation.pow2Out))
         ));
 
         rightLayer.addAction(Actions.sequence(
             Actions.delay(0.20f),
-            Actions.parallel(
-                Actions.moveBy(0, h, 0.9f, Interpolation.pow3Out),
-                Actions.fadeIn(0.8f, Interpolation.pow2Out)
-            )
+            Actions.parallel(Actions.moveBy(0, h, 0.9f, Interpolation.pow3Out), Actions.fadeIn(0.8f, Interpolation.pow2Out))
         ));
 
         backTable.addAction(Actions.sequence(
             Actions.delay(0.25f),
-            Actions.parallel(
-                Actions.moveBy(0, h, 0.8f, Interpolation.pow3Out),
-                Actions.fadeIn(0.5f, Interpolation.pow2Out)
-            )
+            Actions.parallel(Actions.moveBy(0, h, 0.8f, Interpolation.pow3Out), Actions.fadeIn(0.5f, Interpolation.pow2Out))
         ));
     }
 
@@ -196,61 +227,29 @@ public class SongSelectScreen implements Screen {
 
         leftLayer.addAction(Actions.parallel(
             Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In),
-            Actions.sequence(
-                Actions.delay(0.5f),
-                Actions.alpha(1.0f, 0.5f, Interpolation.linear)
-            )
+            Actions.sequence(Actions.delay(0.5f), Actions.alpha(1.0f, 0.5f, Interpolation.linear))
         ));
 
         rightLayer.addAction(Actions.parallel(
             Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In),
-            Actions.sequence(
-                Actions.delay(0.5f),
-                Actions.alpha(1.0f, 0.5f, Interpolation.linear)
-            )
+            Actions.sequence(Actions.delay(0.5f), Actions.alpha(1.0f, 0.5f, Interpolation.linear))
         ));
 
         backTable.addAction(Actions.sequence(
             Actions.parallel(
                 Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In),
-                Actions.sequence(
-                    Actions.delay(0.5f),
-                    Actions.alpha(1.0f, 0.5f, Interpolation.linear)
-                )
+                Actions.sequence(Actions.delay(0.5f), Actions.alpha(1.0f, 0.5f, Interpolation.linear))
             ),
             Actions.run(() -> game.setScreen(new MainMenuScreen(game)))
         ));
     }
 
-    @Override
-    public void resize(int width, int height) {
+    @Override public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
-
-        // Let the overlay handle its own dynamic resizing logic
-        if (settingsOverlay != null) {
-            settingsOverlay.resize(width, height);
-        }
+        if (settingsOverlay != null) settingsOverlay.resize(width, height);
     }
-
-    @Override
-    public void show() {
-        Gdx.input.setInputProcessor(stage);
-    }
-
-    @Override
-    public void render(float delta) {
-        Gdx.gl.glClearColor(0, 0, 0, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        stage.act(delta);
-        stage.draw();
-    }
-    @Override public void pause() {}
-    @Override public void resume() {}
-    @Override public void hide() {}
-    @Override public void dispose() {
-        stage.dispose();
-        if (bgTexture != null) bgTexture.dispose();
-        prevBgTexture.dispose();
-    }
+    @Override public void show() { Gdx.input.setInputProcessor(stage); }
+    @Override public void render(float delta) { Gdx.gl.glClearColor(0, 0, 0, 1); Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT); stage.act(delta); stage.draw(); }
+    @Override public void pause() {} @Override public void resume() {} @Override public void hide() {}
+    @Override public void dispose() { stage.dispose(); if (bgTexture != null) bgTexture.dispose(); prevBgTexture.dispose(); }
 }

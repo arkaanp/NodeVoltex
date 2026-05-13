@@ -35,70 +35,72 @@ public class NodeVoltex extends Game {
         pixmap.fill();
         skin.add("white", new com.badlogic.gdx.graphics.Texture(pixmap));
 
-        // --- NEW: FREETYPE FONT GENERATION ---
-        // 1. Load the raw .ttf file
+        // --- 1. PREPARE THE FONT GENERATOR ---
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("Montserrat-Light.ttf"));
         FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
-
-        // 2. Customize the font parameters
-        parameter.size = 16; // Set your desired font size here
         parameter.color = com.badlogic.gdx.graphics.Color.WHITE;
 
-        // Optional: You can add borders, shadows, or filters right here!
-        // parameter.borderWidth = 1f;
-        // parameter.borderColor = com.badlogic.gdx.graphics.Color.BLACK;
-        // parameter.minFilter = com.badlogic.gdx.graphics.Texture.TextureFilter.Linear;
-        // parameter.magFilter = com.badlogic.gdx.graphics.Texture.TextureFilter.Linear;
+        // This ensures the edges of the font blend smoothly
+        parameter.minFilter = com.badlogic.gdx.graphics.Texture.TextureFilter.Linear;
+        parameter.magFilter = com.badlogic.gdx.graphics.Texture.TextureFilter.Linear;
 
-        // 3. Generate the BitmapFont and immediately dispose of the generator
-        com.badlogic.gdx.graphics.g2d.BitmapFont customFont = generator.generateFont(parameter);
-        generator.dispose(); // CRITICAL: Always dispose to prevent memory leaks
+        // --- 2. GENERATE SIZES ---
+        // Default (Size 16)
+        parameter.size = 16;
+        com.badlogic.gdx.graphics.g2d.BitmapFont fontDefault = generator.generateFont(parameter);
+        skin.add("default", fontDefault);
 
-        // 4. Inject it into your skin as the default font!
-        skin.add("default", customFont);
+        // Medium (Size 32 - for standard titles)
+        parameter.size = 32;
+        com.badlogic.gdx.graphics.g2d.BitmapFont fontMedium = generator.generateFont(parameter);
+        skin.add("medium", fontMedium);
 
+        // Large (Size 64 - for big score numbers)
+        parameter.size = 64;
+        com.badlogic.gdx.graphics.g2d.BitmapFont fontLarge = generator.generateFont(parameter);
+        skin.add("large", fontLarge);
 
+        // Huge (Size 150 - for the massive Grade letter)
+        parameter.size = 150;
+        com.badlogic.gdx.graphics.g2d.BitmapFont fontHuge = generator.generateFont(parameter);
+        fontHuge.setUseIntegerPositions(false); // Keeps the massive letter perfectly smooth
+        skin.add("huge", fontHuge);
+
+        generator.dispose(); // CRITICAL: Only dispose AFTER generating all 4 sizes!
+
+        // --- 3. CREATE LABEL STYLES ---
+        com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle defaultStyle = new com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle();
+        defaultStyle.font = fontDefault;
+        skin.add("default", defaultStyle);
+
+        com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle mediumStyle = new com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle();
+        mediumStyle.font = fontMedium;
+        skin.add("medium", mediumStyle);
+
+        com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle largeStyle = new com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle();
+        largeStyle.font = fontLarge;
+        skin.add("large", largeStyle);
+
+        com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle hugeStyle = new com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle();
+        hugeStyle.font = fontHuge;
+        skin.add("huge", hugeStyle);
+
+        // --- THE REST OF YOUR SKIN LOGIC ---
         com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle textButtonStyle = new com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle();
-
-        // --- NEW: Semi-Transparent Button Colors (R, G, B, Alpha) ---
-        // 0.6f means 60% opacity. Tweak this last number to make it more or less see-through!
-
-        // Normal state: Dark grey, 50% opacity
         textButtonStyle.up = skin.newDrawable("white", new com.badlogic.gdx.graphics.Color(0.1f, 0.1f, 0.1f, 0.5f));
-
-        // Pressed state: Slightly lighter grey, 70% opacity so it "pops" when clicked
         textButtonStyle.down = skin.newDrawable("white", new com.badlogic.gdx.graphics.Color(0.3f, 0.3f, 0.3f, 0.7f));
-
-        // Hover state (Mouse over): Medium grey, 60% opacity
         textButtonStyle.over = skin.newDrawable("white", new com.badlogic.gdx.graphics.Color(0.2f, 0.2f, 0.2f, 0.6f));
-
-        textButtonStyle.font = skin.getFont("default");
+        textButtonStyle.font = fontDefault;
         skin.add("default", textButtonStyle);
-
-        com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle labelStyle = new com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle();
-        labelStyle.font = skin.getFont("default");
-        labelStyle.fontColor = com.badlogic.gdx.graphics.Color.WHITE;
-        skin.add("default", labelStyle);
 
         skin.add("default", new com.badlogic.gdx.scenes.scene2d.ui.ScrollPane.ScrollPaneStyle());
 
-        // --- NEW: Add TextField Style ---
         com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle textFieldStyle = new com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle();
-
-        // 1. Set the font and text color
-        textFieldStyle.font = skin.getFont("default");
+        textFieldStyle.font = fontDefault;
         textFieldStyle.fontColor = com.badlogic.gdx.graphics.Color.WHITE;
-
-        // 2. CRITICAL: A TextField must have a cursor, or it will crash when you click it!
-        // We can just use a thin slice of your "white" texture colored white.
         textFieldStyle.cursor = skin.newDrawable("white", com.badlogic.gdx.graphics.Color.WHITE);
-        // Make the cursor actually look like a cursor (1 pixel wide)
         textFieldStyle.cursor.setMinWidth(1f);
-
-        // 3. Selection background (what it looks like when you highlight text to copy/paste)
-        textFieldStyle.selection = skin.newDrawable("white", com.badlogic.gdx.graphics.Color.valueOf("#FF339980")); // Semi-transparent pink
-
-        // 4. Inject it into the skin
+        textFieldStyle.selection = skin.newDrawable("white", com.badlogic.gdx.graphics.Color.valueOf("#FF339980"));
         skin.add("default", textFieldStyle);
     }
 

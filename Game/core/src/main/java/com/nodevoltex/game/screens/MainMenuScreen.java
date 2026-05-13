@@ -126,7 +126,7 @@ public class MainMenuScreen implements Screen {
             Actions.delay(0.05f),
             Actions.run(() -> {
                 // Create a NEW screen every time!
-                game.setScreen(new SongSelectScreen(game, music, null));
+                game.setScreen(new SongSelectScreen(game, music, null, false));
             })
         ));
     }

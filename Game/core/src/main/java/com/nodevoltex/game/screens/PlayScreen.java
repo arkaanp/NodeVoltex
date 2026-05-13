@@ -246,7 +246,7 @@ public class PlayScreen implements Screen {
                 if (game.songSelectScreen != null) {
                     game.setScreen(game.songSelectScreen);
                 } else {
-                    game.songSelectScreen = new SongSelectScreen(game, null, null);
+                    game.songSelectScreen = new SongSelectScreen(game, null, null, false);
                     game.setScreen(game.songSelectScreen);
                 }
             }
@@ -299,7 +299,7 @@ public class PlayScreen implements Screen {
                         replayFile.writeString(json.prettyPrint(inputController.currentReplay), false);
                     }
 
-                    game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, diffName, mapFilePath));
+                    game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, null, diffName, mapFilePath, false));
                     return;
                 }
                 // 3. Once playing, anchor the visual timeline to the music hardware so they never drift.
