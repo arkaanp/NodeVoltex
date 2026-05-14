@@ -68,6 +68,9 @@ public class SettingsOverlay {
         settingsScrollPane.setFadeScrollBars(false);
         settingsScrollPane.setScrollingDisabled(true, false);
 
+        // --- THE FIX: Stop the ScrollPane from stealing your slider drags! ---
+        settingsScrollPane.setCancelTouchFocus(false);
+
         settingsScrollPane.addListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
             @Override
             public void enter(InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor fromActor) {

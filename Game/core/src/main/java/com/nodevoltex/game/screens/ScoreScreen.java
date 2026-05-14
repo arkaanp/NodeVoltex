@@ -177,7 +177,8 @@ public class ScoreScreen implements Screen {
         else gradeLabel.setColor(Color.valueOf("#FF1744"));
 
         scoreTable.add(bigScore).align(Align.bottom);
-        scoreTable.add(smallScore).align(Align.bottom).padBottom(5).padRight(30);
+        // Added padLeft(12) so the gap perfectly matches the PlayScreen
+        scoreTable.add(smallScore).align(Align.bottom).padBottom(5).padLeft(12).padRight(30);
         scoreTable.add(gradeLabel).align(Align.bottom).padBottom(5);
 
         leftCol.add(scoreTable).align(Align.left).padLeft(15).padBottom(20).row();

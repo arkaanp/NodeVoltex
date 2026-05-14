@@ -254,11 +254,23 @@ public class LaserManager {
                 float yA = (nodeA.offset - currentTime) * speed * mult + hitY;
                 float yB = (nodeB.offset - currentTime) * speed * mult + hitY;
 
-                // Culls the laser only if it is safely above the dynamic screen height
-                if ((yA > Gdx.graphics.getHeight() + 200f && yB > Gdx.graphics.getHeight() + 200f) || (yA < -200 && yB < -200)) continue;
+                // Cull if entirely off-screen OR entirely below the hit line
+                if ((yA > Gdx.graphics.getHeight() + 200f && yB > Gdx.graphics.getHeight() + 200f) || (yA < hitY && yB < hitY)) continue;
 
                 float xA = trackX + (nodeA.x * trackW);
                 float xB = trackX + (nodeB.x * trackW);
+
+                // --- THE FIX: Mathematically clip the laser perfectly at the hit line ---
+                if (yA < hitY) {
+                    float t = (hitY - yA) / (yB - yA);
+                    xA = xA + (t * (xB - xA)); // Calculate exact X intersection
+                    yA = hitY;                 // Snap Y to hit line
+                }
+                if (yB < hitY) {
+                    float t = (hitY - yB) / (yA - yB);
+                    xB = xB + (t * (xA - xB)); // Calculate exact X intersection
+                    yB = hitY;                 // Snap Y to hit line
+                }
 
                 renderer.rectLine(xA, yA, xB, yB, 15f);
             }

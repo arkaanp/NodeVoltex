@@ -93,6 +93,7 @@ public class PlayScreen implements Screen {
     // Pause Menu Variables
     private boolean isPaused = false;
     private Stage pauseStage;
+    private float pauseDimAlpha = 0f;
 
     // Object Pool for Notes
     private Array<Note> activeNotes = new Array<>();
@@ -247,7 +248,14 @@ public class PlayScreen implements Screen {
 
         // 2. The Intro Card (Smaller, Cleaner)
         Table introCard = new Table();
-        introCard.setBackground(skin.newDrawable("white", new Color(0.1f, 0.1f, 0.15f, 0.9f)));
+
+        // --- THE FIX: Generate a guaranteed solid background texture so the box never goes invisible! ---
+        com.badlogic.gdx.graphics.Pixmap bgPix = new com.badlogic.gdx.graphics.Pixmap(1, 1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+        bgPix.setColor(new Color(0.1f, 0.1f, 0.15f, 0.9f));
+        bgPix.fill();
+        introCard.setBackground(new com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable(new com.badlogic.gdx.graphics.Texture(bgPix)));
+        bgPix.dispose();
+
         introCard.pad(15);
 
         Image albumArt = new Image(skin.newDrawable("white", Color.DARK_GRAY));
@@ -259,11 +267,25 @@ public class PlayScreen implements Screen {
         Label artistLbl = new Label(beatmap.general.artist, skin); artistLbl.setFontScale(1.0f);
         Label mapperLbl = new Label("mapped by " + beatmap.general.mapper, skin); mapperLbl.setFontScale(1.0f);
 
-        metaText.add(titleLbl).left().row();
+        // Dynamically get difficulty from the file path
+        String diffName = "UNKNOWN";
+        if (mapFilePath.contains("nov.json")) diffName = "NOV";
+        else if (mapFilePath.contains("adv.json")) diffName = "ADV";
+        else if (mapFilePath.contains("exh.json")) diffName = "EXH";
+        else if (mapFilePath.contains("mxm.json")) diffName = "MXM";
+
+        Label diffLbl = new Label(diffName + " " + beatmap.general.level, skin);
+        diffLbl.setFontScale(1.0f);
+        diffLbl.setColor(Color.CYAN);
+
+        metaText.add(titleLbl).left().minWidth(250f).row();
         metaText.add(artistLbl).left().padTop(5).row();
         metaText.add(mapperLbl).left().padTop(5).row();
+        metaText.add(diffLbl).left().padTop(5).row();
+
         introCard.add(metaText).left();
 
+        // Pack calculates the exact width/height of the generated box
         introCard.pack();
 
         // Start completely off-screen to the RIGHT
@@ -274,7 +296,8 @@ public class PlayScreen implements Screen {
             com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(WORLD_WIDTH / 2f - introCard.getWidth() / 2f, introCard.getY(), 0.7f, Interpolation.pow3Out), // Slide to center
             com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(1.5f), // Hold in center
             com.badlogic.gdx.scenes.scene2d.actions.Actions.parallel(
-                com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(40f, WORLD_HEIGHT - introCard.getHeight() - 40f, 0.6f, Interpolation.pow3), // Slide to top left
+                // --- THE FIX: Added a 25px margin to X and Y so it breathes nicely off the edges ---
+                com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(25f, WORLD_HEIGHT - introCard.getHeight() - 25f, 0.6f, Interpolation.pow3),
                 com.badlogic.gdx.scenes.scene2d.actions.Actions.run(() -> {
                     // Dim the background to the exact setting
                     float targetDim = 1.0f - SettingsManager.getBackgroundBrightness();
@@ -290,15 +313,18 @@ public class PlayScreen implements Screen {
         scoreHud.padTop(20).padRight(30);
 
         Table scoreTable = new Table();
-        bigScoreLabel = new Label("0000", skin); bigScoreLabel.setFontScale(1.6f);
-        smallScoreLabel = new Label("0000", skin); smallScoreLabel.setFontScale(1.1f);
+        // THE FIX: Use "large" and "medium" skins from ScoreScreen to fix font scale
+        bigScoreLabel = new Label("0000", skin, "large");
+        smallScoreLabel = new Label("0000", skin, "medium");
+
         scoreTable.add(bigScoreLabel).align(Align.bottom);
-        scoreTable.add(smallScoreLabel).align(Align.bottom).padBottom(3).padLeft(2);
+        // THE FIX: Added padLeft(12) to widen the gap between the numbers by ~1%
+        scoreTable.add(smallScoreLabel).align(Align.bottom).padBottom(5).padLeft(12);
         scoreHud.add(scoreTable).right().row();
 
         scoreHud.getColor().a = 0f;
         scoreHud.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
-            com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(2.8f), // Wait until playfield slides up
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(2.8f),
             com.badlogic.gdx.scenes.scene2d.actions.Actions.fadeIn(0.5f)
         ));
 
@@ -418,11 +444,19 @@ public class PlayScreen implements Screen {
             }
         }
 
-        // --- RENDER PLAYFIELD (With dynamic slide-up offset!) ---
+        // --- RENDER PLAYFIELD ---
         float drawHitY = HIT_LINE_Y + playfieldAnchor.getY();
 
+        // Calculate fade-in alpha (0f when off-screen, 1f when fully up)
+        float trackAlpha = Math.max(0f, 1f - (Math.abs(playfieldAnchor.getY()) / WORLD_HEIGHT));
+
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
         game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
-        drawTrack(drawHitY);
+
+        // Pass trackAlpha into the draw method
+        drawTrack(drawHitY, trackAlpha);
 
         // --- KEY PRESS INDICATORS ---
         Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -459,13 +493,19 @@ public class PlayScreen implements Screen {
         // Fade out warnings if the playfield is still hidden to prevent ugly clipping
         float visibilityRatio = 1f - (Math.abs(playfieldAnchor.getY()) / WORLD_HEIGHT);
 
+        // --- THE FIX: Increased the distance from the playfield so it doesn't overlap lasers ---
+        float warningWidth = 5f;
+        float warningMargin = 25f; // <--- THE FIX: Pushes the warning 25px away from the track
+
         if (leftWarningAlpha > 0f) {
-            game.shapeRenderer.setColor(0f, 1f, 1f, leftWarningAlpha * 0.2f * visibilityRatio);
-            game.shapeRenderer.rect(50, WORLD_HEIGHT / 2f - 100, 150, 200);
+            game.shapeRenderer.setColor(0f, 1f, 1f, leftWarningAlpha * 0.5f * visibilityRatio);
+            // Draws safely to the left
+            game.shapeRenderer.rect(TRACK_START_X - warningWidth - warningMargin, drawHitY, warningWidth, WORLD_HEIGHT);
         }
         if (rightWarningAlpha > 0f) {
-            game.shapeRenderer.setColor(1f, 0f, 1f, rightWarningAlpha * 0.2f * visibilityRatio);
-            game.shapeRenderer.rect(WORLD_WIDTH - 200, WORLD_HEIGHT / 2f - 100, 150, 200);
+            game.shapeRenderer.setColor(1f, 0f, 1f, rightWarningAlpha * 0.5f * visibilityRatio);
+            // Draws safely to the right
+            game.shapeRenderer.rect(TRACK_START_X + TRACK_WIDTH + warningMargin, drawHitY, warningWidth, WORLD_HEIGHT);
         }
 
         Gdx.gl.glDisable(GL20.GL_BLEND);
@@ -548,22 +588,29 @@ public class PlayScreen implements Screen {
 
         // --- PAUSE MENU ---
         if (isPaused) {
+            // --- THE FIX: Gradually fade to 0.8f instead of instantly snapping ---
+            pauseDimAlpha = Math.min(0.8f, pauseDimAlpha + (delta * 5f));
+
             Gdx.gl.glEnable(GL20.GL_BLEND);
             Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
             game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
-            game.shapeRenderer.setColor(0f, 0f, 0f, 0.8f);
+
+            game.shapeRenderer.setColor(0f, 0f, 0f, pauseDimAlpha);
             game.shapeRenderer.rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
             game.shapeRenderer.end();
             Gdx.gl.glDisable(GL20.GL_BLEND);
+
             pauseStage.act(delta);
             pauseStage.draw();
         }
     }
 
-    private void drawTrack(float drawHitY) {
-        game.shapeRenderer.setColor(Color.RED);
+    private void drawTrack(float drawHitY, float alpha) {
+        game.shapeRenderer.setColor(1f, 0f, 0f, alpha); // Red hit line fades in
         game.shapeRenderer.rect(TRACK_START_X - 20, drawHitY, TRACK_WIDTH + 40, 5);
-        game.shapeRenderer.setColor(Color.DARK_GRAY);
+
+        game.shapeRenderer.setColor(0.3f, 0.3f, 0.3f, alpha); // Dark gray lanes fade in
         for(int i = 0; i <= 4; i++) {
             game.shapeRenderer.rect(TRACK_START_X + (i * LANE_WIDTH), 0, 2, WORLD_HEIGHT);
         }
@@ -583,6 +630,7 @@ public class PlayScreen implements Screen {
     @Override public void dispose() { font.dispose(); pauseStage.dispose(); uiStage.dispose(); if (slamSound != null) slamSound.dispose(); if (bgTexture != null) bgTexture.dispose(); if (jacketTexture != null) jacketTexture.dispose(); }
 
     private void pauseGame() {
+        pauseDimAlpha = 0f;
         isPaused = true;
         if (hasAudioStarted && music != null && music.isPlaying()) music.pause();
         Gdx.input.setInputProcessor(pauseStage);
