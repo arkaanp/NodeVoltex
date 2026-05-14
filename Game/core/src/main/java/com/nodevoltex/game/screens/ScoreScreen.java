@@ -247,10 +247,19 @@ public class ScoreScreen implements Screen {
         TextButton retryBtn = new TextButton("Retry", skin);
 
         exitBtn.addListener(new ClickListener() {
-            @Override public void clicked(InputEvent event, float x, float y) { animateOut(mapFilePath); }
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                // Pass the SongSelectScreen switch into the animation
+                animateOut(() -> game.setScreen(new SongSelectScreen(game, null, mapFilePath, true, currentDifficulty)));
+            }
         });
+
         retryBtn.addListener(new ClickListener() {
-            @Override public void clicked(InputEvent event, float x, float y) { game.setScreen(new PlayScreen(game, mapFilePath)); }
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                // Pass the PlayScreen switch into the animation
+                animateOut(() -> game.setScreen(new PlayScreen(game, mapFilePath)));
+            }
         });
 
         Table exitCol = new Table();
@@ -288,14 +297,15 @@ public class ScoreScreen implements Screen {
         rootGroup.addAction(Actions.moveTo(0, 0, 0.6f, Interpolation.pow3Out));
     }
 
-    private void animateOut(final String mapFilePath) {
+    // Accept a Runnable so we can dynamically choose where to go AFTER the animation
+    private void animateOut(final Runnable onFinish) {
         stage.getRoot().setTouchable(Touchable.disabled);
         float w = stage.getWidth();
 
         // Entire screen slides out to the left (-w)
-        rootGroup.addAction(Actions.sequence(
-            Actions.moveTo(-w, 0, 0.5f, Interpolation.pow3In),
-            Actions.run(() -> game.setScreen(new SongSelectScreen(game, null, mapFilePath, true, currentDifficulty)))
+        rootGroup.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(-w, 0, 0.5f, Interpolation.pow3In),
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.run(onFinish) // <--- Runs the screen change here!
         ));
     }
 

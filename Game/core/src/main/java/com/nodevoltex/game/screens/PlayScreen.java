@@ -56,10 +56,12 @@ public class PlayScreen implements Screen {
     // --- INTRO & UI ANIMATION VARIABLES ---
     private Stage uiStage;
     private Actor playfieldAnchor;
+    private Table introCard; // <--- ADD THIS
     private Label bigScoreLabel;
     private Label smallScoreLabel;
     private Table scoreHud;
     private boolean isIntroDone = false;
+    private boolean isTransitioningToScore = false;
     private float introTimer = 0f;
 
     // Time & Math Variables
@@ -246,8 +248,8 @@ public class PlayScreen implements Screen {
         dimOverlay.setVisible(false); // <--- THE FIX: Hides it from drawing over the UI
         uiStage.addActor(dimOverlay);
 
-        // 2. The Intro Card (Smaller, Cleaner)
-        Table introCard = new Table();
+        // 2. The Intro Card (Matches ScoreScreen styling perfectly)
+        introCard = new Table();
 
         // --- THE FIX: Generate a guaranteed solid background texture so the box never goes invisible! ---
         com.badlogic.gdx.graphics.Pixmap bgPix = new com.badlogic.gdx.graphics.Pixmap(1, 1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
@@ -341,6 +343,45 @@ public class PlayScreen implements Screen {
         uiStage.addActor(playfieldAnchor);
     }
 
+    // --- THE OUTRO TRANSITION ENGINE ---
+    private void animateOutToScoreScreen() {
+        isTransitioningToScore = true;
+
+        // 1. Fade out the background dim darkness
+        dimOverlay.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha(0f, 0.8f, Interpolation.pow3In));
+
+        // 2. Move Song Box UP and off-screen
+        introCard.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.moveBy(0f, 250f, 0.8f, Interpolation.pow3In));
+
+        // 3. Move Score HUD UP and off-screen
+        scoreHud.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.moveBy(0f, 250f, 0.8f, Interpolation.pow3In));
+
+        // 4. Move Playfield DOWN (This natively fades the 4 track lines & combo text to 0 opacity!)
+        playfieldAnchor.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(0f, -WORLD_HEIGHT, 0.8f, Interpolation.pow3In),
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.run(() -> {
+                // When the animation finishes 0.8s later, compile the replay and switch screens!
+                String diffName = "UNKNOWN";
+                if (mapFilePath.contains("nov.json")) diffName = "NOV";
+                else if (mapFilePath.contains("adv.json")) diffName = "ADV";
+                else if (mapFilePath.contains("exh.json")) diffName = "EXH";
+                else if (mapFilePath.contains("mxm.json")) diffName = "MXM";
+
+                if (inputController.isRecording) {
+                    inputController.currentReplay.songTitle = beatmap.general.title;
+                    inputController.currentReplay.difficulty = diffName;
+                    inputController.currentReplay.finalScore = scoreManager.getFinalScore();
+                    inputController.currentReplay.timestamp = System.currentTimeMillis();
+
+                    com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("assets/replays/replay_" + inputController.currentReplay.timestamp + ".json");
+                    com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
+                    replayFile.writeString(json.prettyPrint(inputController.currentReplay), false);
+                }
+                game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, null, diffName, mapFilePath, false));
+            })
+        ));
+    }
+
     @Override
     public void render(float delta) {
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
@@ -374,25 +415,11 @@ public class PlayScreen implements Screen {
                     hasAudioStarted = true;
                 }
             } else {
+                // Trigger animation when the song naturally finishes playing
                 if (music != null && !music.isPlaying() && !isPaused) {
-                    String diffName = "UNKNOWN";
-                    if (mapFilePath.contains("nov.json")) diffName = "NOV";
-                    else if (mapFilePath.contains("adv.json")) diffName = "ADV";
-                    else if (mapFilePath.contains("exh.json")) diffName = "EXH";
-                    else if (mapFilePath.contains("mxm.json")) diffName = "MXM";
-
-                    if (inputController.isRecording) {
-                        inputController.currentReplay.songTitle = beatmap.general.title;
-                        inputController.currentReplay.difficulty = diffName;
-                        inputController.currentReplay.finalScore = scoreManager.getFinalScore();
-                        inputController.currentReplay.timestamp = System.currentTimeMillis();
-
-                        com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("assets/replays/replay_" + inputController.currentReplay.timestamp + ".json");
-                        com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
-                        replayFile.writeString(json.prettyPrint(inputController.currentReplay), false);
+                    if (!isTransitioningToScore) {
+                        animateOutToScoreScreen();
                     }
-                    game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, null, diffName, mapFilePath, false));
-                    return;
                 }
 
                 if (music != null) currentAudioTimeMs = (music.getPosition() * 1000f) + beatmap.general.audioOffset + SettingsManager.getGlobalOffset();
@@ -548,7 +575,8 @@ public class PlayScreen implements Screen {
         game.batch.begin();
         //float visibilityRatio = 1f - (Math.abs(playfieldAnchor.getY()) / WORLD_HEIGHT);
 
-        if (visibilityRatio > 0.5f) {
+        // --- THE FIX: Fades the text fully to 0 instead of snapping at 0.5 ---
+        if (visibilityRatio > 0f) {
             float centerX = TRACK_START_X + (TRACK_WIDTH / 2f);
             float comboY = WORLD_HEIGHT - SettingsManager.getJudgmentComboTopOffset();
             float judY = comboY - 40f;
@@ -556,9 +584,12 @@ public class PlayScreen implements Screen {
 
             com.badlogic.gdx.graphics.g2d.GlyphLayout layout = new com.badlogic.gdx.graphics.g2d.GlyphLayout();
 
+            // Mathematically binds the text opacity to the sliding playfield!
+            float textAlpha = scoreHud.getColor().a * visibilityRatio;
+
             // Draw Combo
             font.getData().setScale(1.0f);
-            font.setColor(1f, 1f, 1f, scoreHud.getColor().a);
+            font.setColor(1f, 1f, 1f, textAlpha);
             layout.setText(font, "Combo " + scoreManager.combo);
             font.draw(game.batch, layout, centerX - layout.width/2f, comboY);
 
@@ -569,16 +600,16 @@ public class PlayScreen implements Screen {
             else if (jud.endsWith(" LATE")) { timing = "LATE"; jud = jud.replace(" LATE", ""); }
 
             // Draw Judgment
-            if (jud.contains("CRITICAL")) font.setColor(Color.GOLD.r, Color.GOLD.g, Color.GOLD.b, scoreHud.getColor().a);
-            else if (jud.equals("NEAR")) font.setColor(Color.GREEN.r, Color.GREEN.g, Color.GREEN.b, scoreHud.getColor().a);
-            else font.setColor(Color.RED.r, Color.RED.g, Color.RED.b, scoreHud.getColor().a);
+            if (jud.contains("CRITICAL")) font.setColor(Color.GOLD.r, Color.GOLD.g, Color.GOLD.b, textAlpha);
+            else if (jud.equals("NEAR")) font.setColor(Color.GREEN.r, Color.GREEN.g, Color.GREEN.b, textAlpha);
+            else font.setColor(Color.RED.r, Color.RED.g, Color.RED.b, textAlpha);
             layout.setText(font, jud);
             font.draw(game.batch, layout, centerX - layout.width/2f, judY);
 
             // Draw Early/Late
             if (!timing.isEmpty()) {
-                if (timing.equals("EARLY")) font.setColor(Color.SKY.r, Color.SKY.g, Color.SKY.b, scoreHud.getColor().a);
-                else font.setColor(Color.PINK.r, Color.PINK.g, Color.PINK.b, scoreHud.getColor().a);
+                if (timing.equals("EARLY")) font.setColor(Color.SKY.r, Color.SKY.g, Color.SKY.b, textAlpha);
+                else font.setColor(Color.PINK.r, Color.PINK.g, Color.PINK.b, textAlpha);
                 font.getData().setScale(0.85f);
                 layout.setText(font, timing);
                 font.draw(game.batch, layout, centerX - layout.width/2f, timingY);
