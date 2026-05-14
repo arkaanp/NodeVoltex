@@ -107,4 +107,18 @@ public class SettingsManager {
         getPrefs().putFloat("judgOffset", offset);
         getPrefs().flush();
     }
+
+    // --- NEW: Retry Settings ---
+    public static float getRetryHoldTime() { return getPrefs().getFloat("retryHoldTime", 1.0f); } // Default 1 second
+    public static void setRetryHoldTime(float val) { getPrefs().putFloat("retryHoldTime", val); getPrefs().flush(); }
+
+    public static String getRetryKeyString() { return getPrefs().getString("retryKey", "`"); }
+    public static void setRetryKeyString(String keyName) { getPrefs().putString("retryKey", keyName); getPrefs().flush(); }
+
+    public static int getRetryKey() {
+        String keyName = getRetryKeyString();
+        if (keyName.isEmpty() || keyName.equals("_")) return Input.Keys.UNKNOWN;
+        if (keyName.equals("`")) return Input.Keys.GRAVE;
+        return Input.Keys.valueOf(keyName);
+    }
 }

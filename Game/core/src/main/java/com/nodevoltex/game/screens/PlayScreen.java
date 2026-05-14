@@ -69,6 +69,15 @@ public class PlayScreen implements Screen {
     private boolean hasAudioStarted = false;
     private final float BASE_SCROLL_SPEED = SettingsManager.getScrollSpeed();
     private float hiSpeedMult = 1.0f;
+    private boolean isRetry = false;
+    private float introCenterWaitTime = 1.0f; // Default shortened from 1.5s
+    private float prerollMs = -2000f;
+    private float introTotalDuration = 3.6f;
+
+    // --- NEW: True Map End & Retry Variables ---
+    private float finalObjectTimeMs = 0f;
+    private float retryHoldTimer = 0f;
+    private boolean isRetryingViaHold = false;
 
     // Playfield Dimensions (Dynamic for ScreenViewport)
     private float WORLD_WIDTH;
@@ -109,15 +118,31 @@ public class PlayScreen implements Screen {
         return note;
     }
 
-    // --- THE FIX: Overloaded constructor for normal gameplay ---
+    // Wrapper for normal gameplay
     public PlayScreen(NodeVoltex game, String mapFilePath) {
-        this(game, mapFilePath, 0L); // 0 means don't load a replay
+        this(game, mapFilePath, 0L, false);
     }
 
-    // --- THE FIX: Master constructor that accepts a Replay Timestamp ---
+    // Wrapper for Replay viewing
     public PlayScreen(NodeVoltex game, String mapFilePath, long replayTimestampToLoad) {
+        this(game, mapFilePath, replayTimestampToLoad, false);
+    }
+
+    // THE FIX: Master Constructor that applies the Fast Retry math
+    public PlayScreen(NodeVoltex game, String mapFilePath, long replayTimestampToLoad, boolean isRetry) {
         this.game = game;
         this.mapFilePath = mapFilePath;
+        this.isRetry = isRetry;
+
+        // --- FAST RETRY MATH ---
+        this.introCenterWaitTime = isRetry ? 0.15f : 1.0f;
+        this.prerollMs = isRetry ? -1000f : -2000f;
+        this.currentAudioTimeMs = this.prerollMs;
+
+        // 0.7s slide in + wait time + 0.6s slide out + 0.8s playfield slide up
+        this.introTotalDuration = 0.7f + introCenterWaitTime + 0.6f + 0.8f;
+
+        // ... (Keep the rest of your normal graphics setup code below this!)
 
         // --- 1. SETUP GRAPHICS & CAMERA ---
         camera = new OrthographicCamera();
@@ -138,10 +163,19 @@ public class PlayScreen implements Screen {
         BeatmapParser parser = new BeatmapParser();
         this.beatmap = parser.parse(mapFilePath);
 
-        if (this.beatmap == null) {
-            System.out.println("WARNING: JSON failed to parse! Creating blank map.");
-            this.beatmap = new Beatmap();
-            this.beatmap.general = new Beatmap.General();
+        // --- THE FIX: Scan for the absolute final object in the map ---
+        if (this.beatmap != null) {
+            if (this.beatmap.hitObjects != null && this.beatmap.hitObjects.size > 0) {
+                finalObjectTimeMs = Math.max(finalObjectTimeMs, this.beatmap.hitObjects.get(this.beatmap.hitObjects.size - 1).endTime);
+            }
+            if (this.beatmap.lasers != null) {
+                if (this.beatmap.lasers.left != null && this.beatmap.lasers.left.size > 0) {
+                    finalObjectTimeMs = Math.max(finalObjectTimeMs, this.beatmap.lasers.left.get(this.beatmap.lasers.left.size - 1).nodes.peek().offset);
+                }
+                if (this.beatmap.lasers.right != null && this.beatmap.lasers.right.size > 0) {
+                    finalObjectTimeMs = Math.max(finalObjectTimeMs, this.beatmap.lasers.right.get(this.beatmap.lasers.right.size - 1).nodes.peek().offset);
+                }
+            }
         }
 
         // --- 3. LOAD THE DYNAMIC AUDIO & JACKET ---
@@ -240,7 +274,12 @@ public class PlayScreen implements Screen {
         pauseTable.add(exitBtn).fillX().pad(10).height(60).row();
 
         continueBtn.addListener(new ClickListener() { @Override public void clicked(InputEvent event, float x, float y) { resumeGame(); } });
-        retryBtn.addListener(new ClickListener() { @Override public void clicked(InputEvent event, float x, float y) { if (music != null) music.stop(); game.setScreen(new PlayScreen(game, mapFilePath)); } });
+        retryBtn.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent event, float x, float y) {
+                if (music != null) music.stop();
+                game.setScreen(new PlayScreen(game, mapFilePath, 0L, true)); // Pass TRUE!
+            }
+        });
         exitBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -318,18 +357,20 @@ public class PlayScreen implements Screen {
 
         // Transition Sequence
         introCard.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
-            com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(WORLD_WIDTH / 2f - introCard.getWidth() / 2f, introCard.getY(), 0.7f, Interpolation.pow3Out), // Slide to center
-            com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(1.5f), // Hold in center
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(WORLD_WIDTH / 2f - introCard.getWidth() / 2f, introCard.getY(), 0.7f, Interpolation.pow3Out),
+            // THE FIX: Use the dynamic wait time
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(introCenterWaitTime),
             com.badlogic.gdx.scenes.scene2d.actions.Actions.parallel(
-                // --- THE FIX: Added a 25px margin to X and Y so it breathes nicely off the edges ---
                 com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(25f, WORLD_HEIGHT - introCard.getHeight() - 25f, 0.6f, Interpolation.pow3),
                 com.badlogic.gdx.scenes.scene2d.actions.Actions.run(() -> {
-                    // Dim the background to the exact setting
                     float targetDim = 1.0f - SettingsManager.getBackgroundBrightness();
                     dimOverlay.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha(targetDim, 0.6f, Interpolation.pow3));
                 })
             )
         ));
+
+        // THE FIX: Calculate exactly when the playfield should slide up based on the wait time
+        float playfieldDelay = 0.7f + introCenterWaitTime;
 
         // 3. The Score HUD (Top Right)
         scoreHud = new Table();
@@ -349,15 +390,15 @@ public class PlayScreen implements Screen {
 
         scoreHud.getColor().a = 0f;
         scoreHud.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
-            com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(2.8f),
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(playfieldDelay),
             com.badlogic.gdx.scenes.scene2d.actions.Actions.fadeIn(0.5f)
         ));
 
         // 4. Playfield Anchor
         playfieldAnchor = new Actor();
-        playfieldAnchor.setY(-WORLD_HEIGHT); // Start bottom
+        playfieldAnchor.setY(-WORLD_HEIGHT);
         playfieldAnchor.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
-            com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(2.8f), // Start sliding when jacket hits corner
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(playfieldDelay),
             com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(0, 0, 0.8f, Interpolation.pow3Out)
         ));
 
@@ -407,6 +448,11 @@ public class PlayScreen implements Screen {
                     replayFile.writeString(json.prettyPrint(inputController.currentReplay), false);
                 }
 
+                // --- THE FIX: Stop the music exactly as the new screen loads! ---
+                if (music != null) {
+                    music.stop();
+                }
+
                 // --- Pass the exact runTimestamp to the ScoreScreen ---
                 game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, null, diffName, mapFilePath, false, runTimestamp));
             })
@@ -415,25 +461,38 @@ public class PlayScreen implements Screen {
 
     @Override
     public void render(float delta) {
+        // --- THE FIX: Immediate Abort to prevent the 800p/Resize glitch! ---
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            if (isPaused) resumeGame();
-            else pauseGame();
+            if (!isIntroDone) {
+                if (music != null) music.stop();
+
+                if (game.songSelectScreen != null) {
+                    game.songSelectScreen.dispose();
+                }
+
+                game.songSelectScreen = new SongSelectScreen(game, null, mapFilePath, true);
+                game.setScreen(game.songSelectScreen);
+
+                // THE FIX: Manually force the viewport to capture the true screen size!
+                game.songSelectScreen.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+                return;
+            } else {
+                if (isPaused) resumeGame();
+                else pauseGame();
+            }
         }
 
         // --- MATH & LOGIC UPDATES ---
         if (!isPaused) {
             uiStage.act(delta);
 
-            // --- INTRO & AUDIO SYNC ENGINE ---
             // --- TIMELINE & AUDIO SYNC ENGINE ---
             if (!isIntroDone) {
                 introTimer += delta;
-                // Intro animations (Card + Playfield) finish completely at 3.6s.
-                if (introTimer >= 3.6f) {
+                // THE FIX: Use the calculated duration and dynamic preroll values!
+                if (introTimer >= introTotalDuration) {
                     isIntroDone = true;
-                    // Start the visual timeline 2 seconds BEFORE the song's zero point.
-                    // This creates the 2-second visual delay, letting notes fall before audio plays.
-                    currentAudioTimeMs = -2000f;
+                    currentAudioTimeMs = prerollMs;
                 }
             } else if (!hasAudioStarted) {
                 currentAudioTimeMs += delta * 1000f;
@@ -446,9 +505,22 @@ public class PlayScreen implements Screen {
                     hasAudioStarted = true;
                 }
             } else {
-                // Trigger animation when the song naturally finishes playing
-                if (music != null && !music.isPlaying() && !isPaused) {
-                    if (!isTransitioningToScore) {
+                // --- THE FIX: Hold to Retry Logic ---
+                if (Gdx.input.isKeyPressed(SettingsManager.getRetryKey())) {
+                    retryHoldTimer += delta;
+                    if (retryHoldTimer >= SettingsManager.getRetryHoldTime() && !isRetryingViaHold) {
+                        isRetryingViaHold = true;
+                        if (music != null) music.stop();
+                        game.setScreen(new PlayScreen(game, mapFilePath, 0L, true)); // Trigger Fast Retry
+                        return;
+                    }
+                } else {
+                    retryHoldTimer = 0f; // Reset if they let go early
+                }
+
+                // --- THE FIX: End the map 2 seconds after the final note, ignoring music length! ---
+                if (currentAudioTimeMs >= finalObjectTimeMs + 2000f) {
+                    if (!isTransitioningToScore && !isPaused) {
                         animateOutToScoreScreen();
                     }
                 }
@@ -520,11 +592,31 @@ public class PlayScreen implements Screen {
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
+        // --- THE FIX: Bulletproof Autoplay scanner ---
+        boolean[] autoLanePressed = new boolean[7];
+        if (inputController.isAutoPlay && beatmap != null && beatmap.hitObjects != null) {
+            // Simply check all notes that have spawned so far! (Extremely fast in Java)
+            for (int i = 0; i < nextNoteIndex; i++) {
+                Beatmap.HitObject obj = beatmap.hitObjects.get(i);
+
+                if ("HOLD".equals(obj.type)) {
+                    if (currentAudioTimeMs >= obj.startTime && currentAudioTimeMs <= obj.endTime) {
+                        autoLanePressed[obj.lane] = true;
+                    }
+                } else { // It's a TAP note
+                    // Flashes exactly 80ms for a visual tap
+                    if (currentAudioTimeMs >= obj.startTime && currentAudioTimeMs <= obj.startTime + 40f) {
+                        autoLanePressed[obj.lane] = true;
+                    }
+                }
+            }
+        }
+
         float btY = drawHitY - 12f;
         float fxY = drawHitY - 24f;
 
         for(int lane = 1; lane <= 6; lane++) {
-            if(inputController.isLanePressed(lane)) {
+            if(inputController.isLanePressed(lane) || autoLanePressed[lane]) {
                 if(lane <= 4) { // BT Keys (White)
                     game.shapeRenderer.setColor(1f, 1f, 1f, 0.4f);
                     game.shapeRenderer.rect(TRACK_START_X + (lane-1)*LANE_WIDTH + 5f, btY, LANE_WIDTH - 10f, 10f);
@@ -536,6 +628,39 @@ public class PlayScreen implements Screen {
             }
         }
         Gdx.gl.glDisable(GL20.GL_BLEND);
+
+        // --- THE FIX: 4 Distinct Laser Input Indicators ---
+        // (Make sure there is NO game.shapeRenderer.begin() here!)
+
+        float indicatorY = drawHitY - 5f;
+        float radius = 8f; // Slightly larger so the halves are visible
+        float leftLaserX = TRACK_START_X - 45f;
+        float rightLaserX = TRACK_START_X + TRACK_WIDTH + 45f;
+
+        // Left Laser (Cyan)
+        if (leftCursor.isMovingLeft) {
+            game.shapeRenderer.setColor(0f, 1f, 1f, 1f);
+            // Start at 90 (top), sweep 180 degrees (left half)
+            game.shapeRenderer.arc(leftLaserX, indicatorY, radius, 90f, 180f, 20);
+        }
+        if (leftCursor.isMovingRight) {
+            game.shapeRenderer.setColor(0f, 1f, 1f, 1f);
+            // Start at 270 (bottom), sweep 180 degrees (right half)
+            game.shapeRenderer.arc(leftLaserX, indicatorY, radius, 270f, 180f, 20);
+        }
+
+        // Right Laser (Magenta)
+        if (rightCursor.isMovingLeft) {
+            game.shapeRenderer.setColor(1f, 0f, 1f, 1f);
+            game.shapeRenderer.arc(rightLaserX, indicatorY, radius, 90f, 180f, 20);
+        }
+        if (rightCursor.isMovingRight) {
+            game.shapeRenderer.setColor(1f, 0f, 1f, 1f);
+            game.shapeRenderer.arc(rightLaserX, indicatorY, radius, 270f, 180f, 20);
+        }
+
+        // (Make sure there is NO game.shapeRenderer.end() here!)
+        // ----------------------------------------------------------
 
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
@@ -602,6 +727,23 @@ public class PlayScreen implements Screen {
         smallScoreLabel.setText(liveScore.substring(4, 8));
 
         uiStage.draw(); // Draws dim overlay, intro card, and score hud
+
+        // --- THE FIX: Hold to Retry Progress Visual ---
+        if (retryHoldTimer > 0f) {
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+            float progress = retryHoldTimer / SettingsManager.getRetryHoldTime();
+            float arcDegrees = progress * 360f;
+
+            game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
+            game.shapeRenderer.setColor(1f, 1f, 1f, 0.6f);
+            // Draw a pie chart in the top left corner!
+            game.shapeRenderer.arc(40f, WORLD_HEIGHT - 40f, 20f, 90f, -arcDegrees, 30);
+            game.shapeRenderer.end();
+
+            Gdx.gl.glDisable(GL20.GL_BLEND);
+        }
 
         game.batch.begin();
         //float visibilityRatio = 1f - (Math.abs(playfieldAnchor.getY()) / WORLD_HEIGHT);

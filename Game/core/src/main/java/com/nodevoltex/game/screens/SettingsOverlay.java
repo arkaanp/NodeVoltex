@@ -152,6 +152,83 @@ public class SettingsOverlay {
         KeyConfigPanel keyPanel = new KeyConfigPanel(skin);
         container.add(keyPanel).expandX().fillX().padBottom(30).row();
 
+        // --- THE FIX: Interactive Retry Key Mapper ---
+        Table retryKeyTable = new Table();
+        retryKeyTable.left();
+
+        Label retryLbl = new Label("Quick Retry Key", skin);
+        retryLbl.setFontScale(0.85f);
+
+        TextButton.TextButtonStyle flatStyle = new TextButton.TextButtonStyle(skin.get(TextButton.TextButtonStyle.class));
+        flatStyle.up = skin.newDrawable("white", new Color(0.18f, 0.18f, 0.22f, 1f));
+        flatStyle.fontColor = Color.CYAN;
+
+        final TextButton retryBtn = new TextButton(com.nodevoltex.game.managers.SettingsManager.getRetryKeyString(), flatStyle);
+
+        retryBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                retryBtn.setText("_");
+                retryBtn.setColor(Color.WHITE);
+                stage.setKeyboardFocus(retryBtn); // Steal keyboard focus!
+            }
+        });
+
+        // Listen for the physical keypress
+        retryBtn.addListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
+            @Override
+            public boolean keyDown(InputEvent event, int keycode) {
+                if (retryBtn.getText().toString().equals("_")) {
+                    String keyName = com.badlogic.gdx.Input.Keys.toString(keycode).toUpperCase();
+                    if (keyName.equals("SPACE")) keyName = "SPC";
+
+                    if (keyName.equals("ESCAPE")) { // Abort mapping
+                        retryBtn.setText(com.nodevoltex.game.managers.SettingsManager.getRetryKeyString());
+                    } else { // Save new key
+                        com.nodevoltex.game.managers.SettingsManager.setRetryKeyString(keyName);
+                        retryBtn.setText(keyName);
+                    }
+
+                    retryBtn.setColor(Color.CYAN);
+                    stage.setKeyboardFocus(null);
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        // Cancel if they click somewhere else while mapping
+        retryBtn.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
+            private boolean listenerAdded = false;
+            private com.badlogic.gdx.scenes.scene2d.InputListener cancelListener = new com.badlogic.gdx.scenes.scene2d.InputListener() {
+                @Override
+                public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                    if (retryBtn.getText().toString().equals("_") && event.getTarget() != retryBtn) {
+                        retryBtn.setText(com.nodevoltex.game.managers.SettingsManager.getRetryKeyString());
+                        retryBtn.setColor(Color.CYAN);
+                        if (stage != null) stage.setKeyboardFocus(null);
+                    }
+                    return false;
+                }
+            };
+            @Override
+            public boolean act(float delta) {
+                if (!listenerAdded && stage != null) {
+                    stage.addCaptureListener(cancelListener);
+                    listenerAdded = true;
+                }
+                return false;
+            }
+        });
+
+        retryKeyTable.add(retryLbl).padRight(15);
+        retryKeyTable.add(retryBtn).width(60).height(35);
+
+        container.add(retryKeyTable).left().padBottom(15).row();
+
+        // --- Retry Hold Time Slider ---
+        container.add(createSliderRow("Hold to Retry Time", 0.5f, 3.0f, 0.1f, com.nodevoltex.game.managers.SettingsManager.getRetryHoldTime(), "s", "retryhold")).expandX().fillX().padBottom(30).row();
+
         Label audioHeader = new Label("Audio", skin);
         audioHeader.setFontScale(1f);
         audioHeader.setColor(Color.WHITE);
@@ -174,11 +251,12 @@ public class SettingsOverlay {
         else if (type.equals("master")) com.nodevoltex.game.managers.SettingsManager.saveVolumes(val / 100f, com.nodevoltex.game.managers.SettingsManager.getMusicVolume(), com.nodevoltex.game.managers.SettingsManager.getEffectVolume());
         else if (type.equals("effect")) com.nodevoltex.game.managers.SettingsManager.saveVolumes(com.nodevoltex.game.managers.SettingsManager.getMasterVolume(), com.nodevoltex.game.managers.SettingsManager.getMusicVolume(), val / 100f);
         else if (type.equals("music")) com.nodevoltex.game.managers.SettingsManager.saveVolumes(com.nodevoltex.game.managers.SettingsManager.getMasterVolume(), val / 100f, com.nodevoltex.game.managers.SettingsManager.getEffectVolume());
-            // --- NEW: Task 3 - Save Hooks ---
         else if (type.equals("hitpos")) com.nodevoltex.game.managers.SettingsManager.savePlayfield(val, com.nodevoltex.game.managers.SettingsManager.getPlayfieldWidth());
         else if (type.equals("width")) com.nodevoltex.game.managers.SettingsManager.savePlayfield(com.nodevoltex.game.managers.SettingsManager.getPlayfieldHitPosY(), val);
         else if (type.equals("bgbright")) com.nodevoltex.game.managers.SettingsManager.saveUI(val, com.nodevoltex.game.managers.SettingsManager.getJudgmentComboTopOffset());
         else if (type.equals("judg")) com.nodevoltex.game.managers.SettingsManager.saveUI(com.nodevoltex.game.managers.SettingsManager.getBackgroundBrightness(), val);
+            // --- THE FIX: Hook up the new Retry Timer Slider! ---
+        else if (type.equals("retryhold")) com.nodevoltex.game.managers.SettingsManager.setRetryHoldTime(val);
     }
 
     private TextButton createNavButton(String text) {

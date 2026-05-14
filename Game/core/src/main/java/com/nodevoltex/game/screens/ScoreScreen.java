@@ -267,10 +267,8 @@ public class ScoreScreen implements Screen {
         });
 
         retryBtn.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                // Pass the PlayScreen switch into the animation
-                animateOut(() -> game.setScreen(new PlayScreen(game, mapFilePath)));
+            @Override public void clicked(InputEvent event, float x, float y) {
+                animateOut(() -> game.setScreen(new PlayScreen(game, mapFilePath, 0L, true))); // Pass TRUE!
             }
         });
 

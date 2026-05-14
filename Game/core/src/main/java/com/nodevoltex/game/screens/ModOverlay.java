@@ -126,12 +126,17 @@ public class ModOverlay {
         root.setVisible(true);
         root.setTouchable(Touchable.enabled);
 
-        // --- THE FIX: Fade in the dark background shield ---
         clickShield.getColor().a = 0f;
-        clickShield.addAction(Actions.fadeIn(0.4f, Interpolation.pow2Out));
+        clickShield.addAction(Actions.fadeIn(0.25f, Interpolation.sineOut)); // Smoother, faster fade
 
         mainContainer.clearActions();
-        mainContainer.addAction(Actions.moveTo(0, 0, 0.5f, Interpolation.pow3Out));
+        // THE FIX: Disable touch while sliding so buttons don't accidentally hover!
+        mainContainer.setTouchable(Touchable.disabled);
+        mainContainer.addAction(Actions.sequence(
+            // THE FIX: 0.3s and exp10Out makes it incredibly fast, snappy, and flowy
+            Actions.moveTo(0, 0, 0.3f, Interpolation.exp10Out),
+            Actions.run(() -> mainContainer.setTouchable(Touchable.enabled)) // Re-enable touch when done
+        ));
     }
 
     public void hide() {
@@ -139,12 +144,12 @@ public class ModOverlay {
         isOpen = false;
         root.setTouchable(Touchable.disabled);
 
-        // --- THE FIX: Fade out the dark background shield ---
-        clickShield.addAction(Actions.fadeOut(0.4f, Interpolation.pow2In));
+        clickShield.addAction(Actions.fadeOut(0.25f, Interpolation.sineIn));
 
         mainContainer.clearActions();
+        mainContainer.setTouchable(Touchable.disabled);
         mainContainer.addAction(Actions.sequence(
-            Actions.moveTo(0, -mainContainer.getHeight(), 0.5f, Interpolation.pow3In),
+            Actions.moveTo(0, -mainContainer.getHeight(), 0.3f, Interpolation.exp10In),
             Actions.run(() -> root.setVisible(false))
         ));
     }

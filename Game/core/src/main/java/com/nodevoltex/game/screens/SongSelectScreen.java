@@ -47,7 +47,15 @@ public class SongSelectScreen implements Screen {
     public SongSelectScreen(NodeVoltex game, com.badlogic.gdx.audio.Music mainMenuMusic, String preselectedMapPath, boolean slideInFromRight, String preselectedDifficulty) {
         this.game = game;
         this.stage = new Stage(new ScreenViewport());
+
+        // --- THE FIX: Force the Viewport to instantly snap to your true resolution! ---
+        this.stage.getViewport().update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+
         this.skin = NodeVoltex.skin;
+
+        // --- THE FIX: Reset the global font scale so PlayScreen doesn't make the menu massive! ---
+        this.skin.getFont("default").getData().setScale(1.0f);
+
         Gdx.input.setInputProcessor(stage);
 
         bgTexture = new Texture(Gdx.files.internal("assets/Back.png"));
@@ -289,7 +297,17 @@ public class SongSelectScreen implements Screen {
     }
 
     @Override public void show() { Gdx.input.setInputProcessor(stage); }
-    @Override public void render(float delta) { Gdx.gl.glClearColor(0, 0, 0, 1); Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT); stage.act(delta); stage.draw(); }
+    @Override
+    public void render(float delta) {
+        Gdx.gl.glClearColor(0, 0, 0, 1);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        // --- THE FIX: Force the OpenGL matrix to snap back to the UI camera! ---
+        stage.getViewport().apply();
+
+        stage.act(delta);
+        stage.draw();
+    }
     @Override public void pause() {} @Override public void resume() {} @Override public void hide() {}
     @Override public void dispose() { stage.dispose(); if (bgTexture != null) bgTexture.dispose(); prevBgTexture.dispose(); }
 }
