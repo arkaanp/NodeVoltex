@@ -21,9 +21,16 @@ public class SettingsManager {
     public static float getMusicVolume() { return getPrefs().getFloat("musicVolume", 0.8f); }
     public static float getEffectVolume() { return getPrefs().getFloat("effectVolume", 1.0f); }
 
-    // --- NEW: Task 3 - Playfield Customization ---
+    // --- Playfield Customization ---
     public static float getPlayfieldHitPosY() { return getPrefs().getFloat("playfieldHitPosY", 100f); }
     public static float getPlayfieldWidth() { return getPrefs().getFloat("playfieldWidth", 300f); } // Default is 75f * 4
+
+    // --- Mod Settings ---
+    public static boolean getModAutoPlay() { return getPrefs().getBoolean("modAutoPlay", false); }
+    public static void setModAutoPlay(boolean val) { getPrefs().putBoolean("modAutoPlay", val); getPrefs().flush(); }
+
+    public static boolean getModNoLaser() { return getPrefs().getBoolean("modNoLaser", false); }
+    public static void setModNoLaser(boolean val) { getPrefs().putBoolean("modNoLaser", val); getPrefs().flush(); }
 
     // --- STRING GETTER FOR THE UI TO READ ---
     public static String getKeyString(String buttonCode, boolean isPrimary) {

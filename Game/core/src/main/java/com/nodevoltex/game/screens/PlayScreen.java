@@ -165,6 +165,12 @@ public class PlayScreen implements Screen {
         // --- 4. INITIALIZE MANAGERS ---
         inputController = new InputController();
         laserManager = new LaserManager();
+
+        // --- THE FIX: Pass the mod flags to the gameplay managers! ---
+        inputController.isAutoPlay = SettingsManager.getModAutoPlay();
+        laserManager.isAutoPlay = SettingsManager.getModAutoPlay();
+        laserManager.isNoLaser = SettingsManager.getModNoLaser(); // You will add this field in Step 4
+
         inputController.isRecording = true;
         scoreManager = new ScoreManager(new StrictJudgment());
 
@@ -193,8 +199,7 @@ public class PlayScreen implements Screen {
                 inputController.currentReplay = savedReplay;
                 inputController.isReplayPlayback = false;
                 inputController.isRecording = false;
-                inputController.isAutoPlay = false;
-                laserManager.isAutoPlay = false;
+                // Removed the forced 'false' overrides so your mods actually work!
             }
         } catch (Exception e) {}
 
@@ -367,7 +372,9 @@ public class PlayScreen implements Screen {
                 else if (mapFilePath.contains("exh.json")) diffName = "EXH";
                 else if (mapFilePath.contains("mxm.json")) diffName = "MXM";
 
-                if (inputController.isRecording) {
+                boolean isModded = SettingsManager.getModAutoPlay() || SettingsManager.getModNoLaser();
+
+                if (inputController.isRecording && !isModded) {
                     inputController.currentReplay.songTitle = beatmap.general.title;
                     inputController.currentReplay.difficulty = diffName;
                     inputController.currentReplay.finalScore = scoreManager.getFinalScore();

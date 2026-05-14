@@ -12,6 +12,7 @@ import com.nodevoltex.game.patterns.LockedState;
 public class LaserManager {
 
     public boolean isAutoPlay = false;
+    public boolean isNoLaser = false;
 
     private int getSlamEndNodeIndex(Beatmap.LaserSequence seq, float tickTime) {
         if (seq.nodes.size < 2) return -1;
@@ -19,7 +20,7 @@ public class LaserManager {
             Beatmap.LaserNode prev = seq.nodes.get(i - 1);
             Beatmap.LaserNode curr = seq.nodes.get(i);
             if (Math.abs(curr.offset - tickTime) < 1.0f) {
-                if (curr.offset - prev.offset < 50f && Math.abs(curr.x - prev.x) > 0.01f) {
+                if (curr.offset - prev.offset < 90f && Math.abs(curr.x - prev.x) > 0.01f) {
                     return i;
                 }
             }
@@ -119,7 +120,7 @@ public class LaserManager {
                 cursor.pollInputs(direction, inputController, currentTime);
 
                 // --- THE LASER ROBOT OVERRIDE ---
-                if (isAutoPlay) {
+                if (isAutoPlay || isNoLaser) {
                     cursor.x = currentLaserX;
                     // Fool the engine into thinking the player is holding the exact right keys!
                     cursor.isHoldingCorrectKey = true;
@@ -160,7 +161,7 @@ public class LaserManager {
                             boolean correctFlick = false;
 
                             // --- ROBOT FLICK OVERRIDE ---
-                            if (isAutoPlay) {
+                            if (isAutoPlay || isNoLaser) {
                                 correctFlick = true; // The robot never misses a flick!
                             } else {
                                 if (slamDirection > 0 && cursor.isMovingRight) correctFlick = true;

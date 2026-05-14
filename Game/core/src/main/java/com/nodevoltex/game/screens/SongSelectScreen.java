@@ -36,6 +36,7 @@ public class SongSelectScreen implements Screen {
     private Table rightLayer;
 
     private SettingsOverlay settingsOverlay;
+    private ModOverlay modOverlay;
 
     // --- THE FIX: Added slideInFromRight flag! ---
     public SongSelectScreen(NodeVoltex game, com.badlogic.gdx.audio.Music mainMenuMusic, String preselectedMapPath, boolean slideInFromRight) {
@@ -111,6 +112,13 @@ public class SongSelectScreen implements Screen {
 
         TextButton modsBtn = new TextButton("Mods", NodeVoltex.skin);
         modsBtn.setColor(Color.valueOf("#7a9e35"));
+        // --- THE FIX: Hook up the button to open the overlay ---
+        modsBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                modOverlay.show();
+            }
+        });
 
         TextButton optionsBtn = new TextButton("Options", NodeVoltex.skin);
         optionsBtn.setColor(Color.valueOf("#4b1d82"));
@@ -128,6 +136,7 @@ public class SongSelectScreen implements Screen {
         stage.addActor(backTable);
 
         settingsOverlay = new SettingsOverlay(stage, skin);
+        modOverlay = new ModOverlay(skin, stage); // <--- ADD THIS
 
         // --- THE FIX: Dynamic Entry Vector ---
         if (slideInFromRight) {
@@ -139,7 +148,8 @@ public class SongSelectScreen implements Screen {
         stage.addCaptureListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
             @Override
             public boolean scrolled(InputEvent event, float x, float y, float amountX, float amountY) {
-                if (settingsOverlay.isOpen()) return false;
+                // --- THE FIX: Block scrolling if EITHER overlay is open ---
+                if (settingsOverlay.isOpen() || modOverlay.isOpen()) return false;
 
                 float screenWidth = stage.getWidth();
                 if (x < screenWidth / 2f) leftPanel.scroll(amountY);
@@ -274,7 +284,9 @@ public class SongSelectScreen implements Screen {
     @Override public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
         if (settingsOverlay != null) settingsOverlay.resize(width, height);
+        if (modOverlay != null) modOverlay.resize(width, height); // <--- ADD THIS
     }
+
     @Override public void show() { Gdx.input.setInputProcessor(stage); }
     @Override public void render(float delta) { Gdx.gl.glClearColor(0, 0, 0, 1); Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT); stage.act(delta); stage.draw(); }
     @Override public void pause() {} @Override public void resume() {} @Override public void hide() {}

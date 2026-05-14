@@ -30,6 +30,7 @@ import com.nodevoltex.game.NodeVoltex;
 import com.nodevoltex.game.data.Beatmap;
 import com.nodevoltex.game.managers.ScoreManager;
 import com.nodevoltex.game.data.SaveData;
+import com.nodevoltex.game.managers.SettingsManager;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -89,7 +90,11 @@ public class ScoreScreen implements Screen {
             totalEarly = scoreManager.noteStats.early + scoreManager.releaseStats.early;
             totalLate = scoreManager.noteStats.late + scoreManager.releaseStats.late;
 
-            saveScoreData(mapFilePath, finalScore, grade, scoreManager, totalSCrit, totalCrit, totalNear, totalMid, totalFar, totalMiss, totalEarly, totalLate);
+            // --- THE FIX: Block score history saving if a mod was used ---
+            boolean isModded = SettingsManager.getModAutoPlay() || SettingsManager.getModNoLaser();
+            if (!isModded) {
+                saveScoreData(mapFilePath, finalScore, grade, scoreManager, totalSCrit, totalCrit, totalNear, totalMid, totalFar, totalMiss, totalEarly, totalLate);
+            }
         }
 
         // Resolution Independent Math
@@ -274,7 +279,7 @@ public class ScoreScreen implements Screen {
 
         Table rightBtns = new Table();
         rightBtns.bottom().right();
-        TextButton replayBtn = new TextButton("Replay Score", skin);
+        TextButton replayBtn = new TextButton("Watch Replay", skin);
         rightBtns.add(replayBtn).width(160).height(40).bottom().right();
 
         bottomRow.add(leftBtns).expandX().fillX().bottom().left();
