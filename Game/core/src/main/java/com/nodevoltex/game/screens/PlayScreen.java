@@ -2,17 +2,26 @@ package com.nodevoltex.game.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.actions.Actions;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Interpolation;
+import com.badlogic.gdx.utils.Align;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Json;
 import com.badlogic.gdx.utils.Pool;
@@ -28,7 +37,6 @@ import com.nodevoltex.game.managers.InputController;
 import com.nodevoltex.game.managers.LaserManager;
 import com.nodevoltex.game.managers.ScoreManager;
 import com.nodevoltex.game.managers.SettingsManager;
-import com.nodevoltex.game.patterns.GameArchitecture;
 import com.badlogic.gdx.audio.Music;
 import com.nodevoltex.game.patterns.StrictJudgment;
 
@@ -41,20 +49,32 @@ public class PlayScreen implements Screen {
     private Music music;
     private com.badlogic.gdx.audio.Sound slamSound;
 
+    // --- BACKGROUND ---
+    private Texture bgTexture;
+    private Texture jacketTexture;
+
+    // --- INTRO & UI ANIMATION VARIABLES ---
+    private Stage uiStage;
+    private Actor playfieldAnchor;
+    private Label bigScoreLabel;
+    private Label smallScoreLabel;
+    private Table scoreHud;
+    private boolean isIntroDone = false;
+    private float introTimer = 0f;
+
     // Time & Math Variables
     private float currentAudioTimeMs = -2000f;
     private boolean hasAudioStarted = false;
-    // --- THE FIX: Load Speed dynamically! ---
     private final float BASE_SCROLL_SPEED = SettingsManager.getScrollSpeed();
     private float hiSpeedMult = 1.0f;
 
-    // Playfield Dimensions
-    private final float WORLD_WIDTH = 800f;
-    private final float WORLD_HEIGHT = 600f;
-    private final float HIT_LINE_Y = 100f;
-    private final float LANE_WIDTH = 75f;
-    private final float TRACK_WIDTH = LANE_WIDTH * 4;
-    private final float TRACK_START_X = (WORLD_WIDTH - TRACK_WIDTH) / 2f;
+    // Playfield Dimensions (Dynamic for ScreenViewport)
+    private float WORLD_WIDTH;
+    private float WORLD_HEIGHT;
+    private float HIT_LINE_Y;
+    private float LANE_WIDTH;
+    private float TRACK_WIDTH;
+    private float TRACK_START_X;
 
     // Data & Parsing
     private Beatmap beatmap;
@@ -80,7 +100,6 @@ public class PlayScreen implements Screen {
         @Override protected Note newObject() { return new Note(); }
     };
 
-    // Factory Method for the Pool
     private Note createNote(int lane, float start, float end, String type) {
         Note note = notePool.obtain();
         note.init(lane, start, end, "HOLD".equals(type));
@@ -93,201 +112,249 @@ public class PlayScreen implements Screen {
 
         // --- 1. SETUP GRAPHICS & CAMERA ---
         camera = new OrthographicCamera();
-        viewport = new FitViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
-        camera.position.set(WORLD_WIDTH / 2f, WORLD_HEIGHT / 2f, 0);
+        viewport = new com.badlogic.gdx.utils.viewport.ScreenViewport(camera);
+        viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
+
+        WORLD_WIDTH = viewport.getWorldWidth();
+        WORLD_HEIGHT = viewport.getWorldHeight();
+        HIT_LINE_Y = SettingsManager.getPlayfieldHitPosY();
+        TRACK_WIDTH = SettingsManager.getPlayfieldWidth();
+        LANE_WIDTH = TRACK_WIDTH / 4f;
+        TRACK_START_X = (WORLD_WIDTH - TRACK_WIDTH) / 2f;
+
+        // Ensures the transition from SongSelect is seamless!
+        bgTexture = new Texture(Gdx.files.internal("assets/Back.png"));
 
         // --- 2. PARSE THE DYNAMIC JSON ---
         BeatmapParser parser = new BeatmapParser();
         this.beatmap = parser.parse(mapFilePath);
 
-        // CRITICAL SAFETY NET: If the JSON was completely empty or failed to parse
         if (this.beatmap == null) {
             System.out.println("WARNING: JSON failed to parse! Creating blank map.");
             this.beatmap = new Beatmap();
             this.beatmap.general = new Beatmap.General();
         }
 
-        // --- 3. LOAD THE DYNAMIC AUDIO ---
+        // --- 3. LOAD THE DYNAMIC AUDIO & JACKET ---
         com.badlogic.gdx.files.FileHandle jsonFile = Gdx.files.internal(mapFilePath);
         com.badlogic.gdx.files.FileHandle audioFile = jsonFile.parent().child(this.beatmap.general.audioFilename);
         slamSound = Gdx.audio.newSound(Gdx.files.internal("assets/audio/laser_slam1.wav"));
 
         try {
+            com.badlogic.gdx.files.FileHandle jacketFile = jsonFile.parent().child(this.beatmap.general.jacketFilename);
+            if (jacketFile.exists()) {
+                jacketTexture = new Texture(jacketFile);
+            }
+        } catch (Exception e) {}
+
+        try {
             if (audioFile.exists()) {
                 music = Gdx.audio.newMusic(audioFile);
                 music.setVolume(SettingsManager.getMasterVolume() * SettingsManager.getMusicVolume());
-            } else {
-                System.out.println("WARNING: Audio file not found at " + audioFile.path());
             }
         } catch (Exception e) {
             System.out.println("CRITICAL: Could not load gameplay audio!");
         }
 
-        // Initialize UI Font
         font = com.nodevoltex.game.NodeVoltex.skin.getFont("default");
         font.getData().setScale(2f);
 
-        // --- 4. INITIALIZE MANAGERS & ENTITIES ---
+        // --- 4. INITIALIZE MANAGERS ---
         inputController = new InputController();
         laserManager = new LaserManager();
-
-        // --- TURN ON/OFF RECORDING ---
         inputController.isRecording = true;
-        // --- TURN ON/OFF AUTO-MOD FOR TESTING ---
-        //inputController.isAutoPlay = true;
-        //laserManager.isAutoPlay = true;
         scoreManager = new ScoreManager(new StrictJudgment());
 
-        // --- THE FIX: Separate Note Heads and Hold Tails ---
         int totalNotes = 0;
         int totalReleases = 0;
         if (this.beatmap != null && this.beatmap.hitObjects != null) {
             for (Beatmap.HitObject note : this.beatmap.hitObjects) {
-                totalNotes++; // Every single note has an initial press
-                if ("HOLD".equals(note.type)) {
-                    totalReleases++; // Only HOLD notes have a release tail
-                }
+                totalNotes++;
+                if ("HOLD".equals(note.type)) totalReleases++;
             }
         }
         int totalLaserTicks = bakeAndCountLaserTicks(this.beatmap);
-
-        // Now it perfectly satisfies the new 3-argument requirement!
         scoreManager.setMaxPossibleScore(totalNotes, totalReleases, totalLaserTicks);
 
         activeNotes = new Array<>();
-        // --- THE FIX: Dynamically load Laser keys! ---
-        // --- THE FIX: Alternate Lasers Enabled! ---
-        leftCursor = new LaserCursor(true,
-            com.nodevoltex.game.managers.SettingsManager.getKey("LL", true),
-            com.nodevoltex.game.managers.SettingsManager.getKey("LR", true),
-            com.nodevoltex.game.managers.SettingsManager.getKey("LL", false),
-            com.nodevoltex.game.managers.SettingsManager.getKey("LR", false)
-        );
-
-        rightCursor = new LaserCursor(false,
-            com.nodevoltex.game.managers.SettingsManager.getKey("RL", true),
-            com.nodevoltex.game.managers.SettingsManager.getKey("RR", true),
-            com.nodevoltex.game.managers.SettingsManager.getKey("RL", false),
-            com.nodevoltex.game.managers.SettingsManager.getKey("RR", false)
-        );
-
-        // Note: If you want alternate laser keys, you'll need to update your LaserCursor.java
-        // constructor to accept 4 keys instead of 2!
-
+        leftCursor = new LaserCursor(true, SettingsManager.getKey("LL", true), SettingsManager.getKey("LR", true), SettingsManager.getKey("LL", false), SettingsManager.getKey("LR", false));
+        rightCursor = new LaserCursor(false, SettingsManager.getKey("RL", true), SettingsManager.getKey("RR", true), SettingsManager.getKey("RL", false), SettingsManager.getKey("RR", false));
 
         // --- THE REPLAY LOADER ---
         try {
-            // 1. Point to the exact file you recorded
             com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("assets/replays/replay_1778315319697.json");
-
-            // 2. Read the JSON back into Java memory
             com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
             com.nodevoltex.game.data.ReplayData savedReplay = json.fromJson(com.nodevoltex.game.data.ReplayData.class, replayFile);
 
-            // 3. Hand the loaded data to the InputController
             if (savedReplay != null) {
                 inputController.currentReplay = savedReplay;
-
-                // 4. Turn Playback ON, and ensure everything else is OFF
                 inputController.isReplayPlayback = false;
                 inputController.isRecording = false;
                 inputController.isAutoPlay = false;
                 laserManager.isAutoPlay = false;
-
-                System.out.println("SUCCESS: Loaded Replay with " + savedReplay.events.size + " events!");
             }
-        } catch (Exception e) {
-            System.out.println("ERROR: Could not load replay file! " + e.getMessage());
-        }
+        } catch (Exception e) {}
 
+        // --- 5. BUILD INTRO & SCORE UI ---
+        buildIntroAndUI();
 
         // --- 6. PAUSE MENU SETUP ---
-        // Pass your existing viewport so it scales perfectly with the game window
         pauseStage = new Stage(viewport, game.batch);
         Table pauseTable = new Table();
         pauseTable.setFillParent(true);
         pauseStage.addActor(pauseTable);
 
         Skin skin = NodeVoltex.skin;
-
         TextButton continueBtn = new TextButton("Continue", skin);
         TextButton retryBtn = new TextButton("Retry", skin);
         TextButton exitBtn = new TextButton("Exit", skin);
 
-        // Stack the buttons in the center of the screen
         pauseTable.add(continueBtn).fillX().pad(10).height(60).row();
         pauseTable.add(retryBtn).fillX().pad(10).height(60).row();
         pauseTable.add(exitBtn).fillX().pad(10).height(60).row();
 
-        // --- BUTTON EVENTS ---
-        continueBtn.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                resumeGame();
-            }
-        });
-
-        retryBtn.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                music.stop();
-                game.setScreen(new PlayScreen(game, mapFilePath)); // Reload the exact same map
-            }
-        });
-
+        continueBtn.addListener(new ClickListener() { @Override public void clicked(InputEvent event, float x, float y) { resumeGame(); } });
+        retryBtn.addListener(new ClickListener() { @Override public void clicked(InputEvent event, float x, float y) { if (music != null) music.stop(); game.setScreen(new PlayScreen(game, mapFilePath)); } });
         exitBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                music.stop();
-                //System.out.println("BATON PASS 1 (PlayScreen): Handing off -> " + mapFilePath);
-                // Instead of: game.setScreen(new SongSelectScreen(game));
+                if (music != null) music.stop();
 
-                // Do this:
+                // --- THE FIX: Destroy the old, off-screen SongSelect menu ---
                 if (game.songSelectScreen != null) {
-                    game.setScreen(game.songSelectScreen);
-                } else {
-                    game.songSelectScreen = new SongSelectScreen(game, null, null, false);
-                    game.setScreen(game.songSelectScreen);
+                    game.songSelectScreen.dispose();
                 }
+
+                // --- Create a fresh one that automatically slides back in from the right! ---
+                game.songSelectScreen = new SongSelectScreen(game, null, mapFilePath, true);
+                game.setScreen(game.songSelectScreen);
             }
         });
     }
 
+    private Image dimOverlay;
+
+    private void buildIntroAndUI() {
+        uiStage = new Stage(viewport, game.batch);
+        Skin skin = NodeVoltex.skin;
+
+        // 1. Background Dim Overlay
+        dimOverlay = new Image(skin.newDrawable("white", new Color(0, 0, 0, 1)));
+        dimOverlay.setFillParent(true);
+        dimOverlay.getColor().a = 0f;
+        dimOverlay.setVisible(false); // <--- THE FIX: Hides it from drawing over the UI
+        uiStage.addActor(dimOverlay);
+
+        // 2. The Intro Card (Smaller, Cleaner)
+        Table introCard = new Table();
+        introCard.setBackground(skin.newDrawable("white", new Color(0.1f, 0.1f, 0.15f, 0.9f)));
+        introCard.pad(15);
+
+        Image albumArt = new Image(skin.newDrawable("white", Color.DARK_GRAY));
+        if (jacketTexture != null) albumArt.setDrawable(new com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable(new com.badlogic.gdx.graphics.g2d.TextureRegion(jacketTexture)));
+        introCard.add(albumArt).width(130).height(130).padRight(15);
+
+        Table metaText = new Table();
+        Label titleLbl = new Label(beatmap.general.title, skin); titleLbl.setFontScale(1.0f);
+        Label artistLbl = new Label(beatmap.general.artist, skin); artistLbl.setFontScale(1.0f);
+        Label mapperLbl = new Label("mapped by " + beatmap.general.mapper, skin); mapperLbl.setFontScale(1.0f);
+
+        metaText.add(titleLbl).left().row();
+        metaText.add(artistLbl).left().padTop(5).row();
+        metaText.add(mapperLbl).left().padTop(5).row();
+        introCard.add(metaText).left();
+
+        introCard.pack();
+
+        // Start completely off-screen to the RIGHT
+        introCard.setPosition(WORLD_WIDTH + 100f, WORLD_HEIGHT / 2f - introCard.getHeight() / 2f);
+
+        // Transition Sequence
+        introCard.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(WORLD_WIDTH / 2f - introCard.getWidth() / 2f, introCard.getY(), 0.7f, Interpolation.pow3Out), // Slide to center
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(1.5f), // Hold in center
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.parallel(
+                com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(40f, WORLD_HEIGHT - introCard.getHeight() - 40f, 0.6f, Interpolation.pow3), // Slide to top left
+                com.badlogic.gdx.scenes.scene2d.actions.Actions.run(() -> {
+                    // Dim the background to the exact setting
+                    float targetDim = 1.0f - SettingsManager.getBackgroundBrightness();
+                    dimOverlay.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha(targetDim, 0.6f, Interpolation.pow3));
+                })
+            )
+        ));
+
+        // 3. The Score HUD (Top Right)
+        scoreHud = new Table();
+        scoreHud.top().right();
+        scoreHud.setFillParent(true);
+        scoreHud.padTop(20).padRight(30);
+
+        Table scoreTable = new Table();
+        bigScoreLabel = new Label("0000", skin); bigScoreLabel.setFontScale(1.6f);
+        smallScoreLabel = new Label("0000", skin); smallScoreLabel.setFontScale(1.1f);
+        scoreTable.add(bigScoreLabel).align(Align.bottom);
+        scoreTable.add(smallScoreLabel).align(Align.bottom).padBottom(3).padLeft(2);
+        scoreHud.add(scoreTable).right().row();
+
+        scoreHud.getColor().a = 0f;
+        scoreHud.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(2.8f), // Wait until playfield slides up
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.fadeIn(0.5f)
+        ));
+
+        // 4. Playfield Anchor
+        playfieldAnchor = new Actor();
+        playfieldAnchor.setY(-WORLD_HEIGHT); // Start bottom
+        playfieldAnchor.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(2.8f), // Start sliding when jacket hits corner
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(0, 0, 0.8f, Interpolation.pow3Out)
+        ));
+
+        uiStage.addActor(introCard);
+        uiStage.addActor(scoreHud);
+        uiStage.addActor(playfieldAnchor);
+    }
+
     @Override
     public void render(float delta) {
-        // --- ESC Key Listener ---
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             if (isPaused) resumeGame();
             else pauseGame();
         }
 
-        // --- MATH & LOGIC UPDATES (Only runs if NOT paused) ---
+        // --- MATH & LOGIC UPDATES ---
         if (!isPaused) {
+            uiStage.act(delta);
+
+            // --- INTRO & AUDIO SYNC ENGINE ---
             // --- TIMELINE & AUDIO SYNC ENGINE ---
-            if (!hasAudioStarted) {
-                // 1. Move the visual gameplay timeline forward using the framerate
+            if (!isIntroDone) {
+                introTimer += delta;
+                // Intro animations (Card + Playfield) finish completely at 3.6s.
+                if (introTimer >= 3.6f) {
+                    isIntroDone = true;
+                    // Start the visual timeline 2 seconds BEFORE the song's zero point.
+                    // This creates the 2-second visual delay, letting notes fall before audio plays.
+                    currentAudioTimeMs = -2000f;
+                }
+            } else if (!hasAudioStarted) {
                 currentAudioTimeMs += delta * 1000f;
 
-                // 2. The audio offset strictly controls when the music starts playing.
-                // If offset is 500, the gameplay ignores it, but the music waits until 500ms to play.
-                // If offset is -500, the music plays early while the visual timer is at -500ms.
-                // Inside render() -> if (!hasAudioStarted)
                 if (currentAudioTimeMs >= beatmap.general.audioOffset + SettingsManager.getGlobalOffset()) {
-                    music.play();
-                    music.setVolume(SettingsManager.getMasterVolume() * SettingsManager.getMusicVolume());
+                    if (music != null) {
+                        music.play();
+                        music.setVolume(SettingsManager.getMasterVolume() * SettingsManager.getMusicVolume());
+                    }
                     hasAudioStarted = true;
                 }
             } else {
-                // --- Check if song finished naturally ---
-                if (!music.isPlaying() && !isPaused) {
-                    // Determine difficulty name from the file path
+                if (music != null && !music.isPlaying() && !isPaused) {
                     String diffName = "UNKNOWN";
                     if (mapFilePath.contains("nov.json")) diffName = "NOV";
                     else if (mapFilePath.contains("adv.json")) diffName = "ADV";
                     else if (mapFilePath.contains("exh.json")) diffName = "EXH";
                     else if (mapFilePath.contains("mxm.json")) diffName = "MXM";
 
-                    // --- SAVE THE REPLAY ---
                     if (inputController.isRecording) {
                         inputController.currentReplay.songTitle = beatmap.general.title;
                         inputController.currentReplay.difficulty = diffName;
@@ -298,37 +365,47 @@ public class PlayScreen implements Screen {
                         com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
                         replayFile.writeString(json.prettyPrint(inputController.currentReplay), false);
                     }
-
                     game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, null, diffName, mapFilePath, false));
                     return;
                 }
-                // 3. Once playing, anchor the visual timeline to the music hardware so they never drift.
-                // We add the offset back here so the visual timer stays accurately synced to the audio.
-                // Inside render() -> else (anchoring timeline)
-                currentAudioTimeMs = (music.getPosition() * 1000f) + beatmap.general.audioOffset + SettingsManager.getGlobalOffset();
+
+                if (music != null) currentAudioTimeMs = (music.getPosition() * 1000f) + beatmap.general.audioOffset + SettingsManager.getGlobalOffset();
+                else currentAudioTimeMs += delta * 1000f; // Failsafe if audio is missing
             }
 
-            // --- LOGIC UPDATES ---
-
-            // Process Note Inputs
+            // Logic Updates
             inputController.processNoteInputs(activeNotes, currentAudioTimeMs, scoreManager);
 
-            // Process Laser Interpolation & States
             if (beatmap.lasers != null) {
                 laserManager.updateCursor(leftCursor, beatmap.lasers.left, currentAudioTimeMs, delta, scoreManager, slamSound, inputController);
                 laserManager.updateCursor(rightCursor, beatmap.lasers.right, currentAudioTimeMs, delta, scoreManager, slamSound, inputController);
             }
 
-            // --- CLEAR SCREEN & SETUP CAMERA ---
-            Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1);
-            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
             camera.update();
         }
 
+        // --- CLEAR SCREEN & DRAW BACKGROUND ---
+        Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        game.shapeRenderer.setProjectionMatrix(camera.combined);
         game.batch.setProjectionMatrix(camera.combined);
+        game.shapeRenderer.setProjectionMatrix(camera.combined);
+
+        // Draw seamless background
+        game.batch.begin();
+        if (bgTexture != null) game.batch.draw(bgTexture, 0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+        game.batch.end();
+
+        // --- THE FIX: Draw the Background Dim HERE, behind the notes! ---
+        if (dimOverlay.getColor().a > 0f) {
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
+            game.shapeRenderer.setColor(0f, 0f, 0f, dimOverlay.getColor().a);
+            game.shapeRenderer.rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+            game.shapeRenderer.end();
+            Gdx.gl.glDisable(GL20.GL_BLEND);
+        }
 
         // --- SPAWNER WINDOW ---
         while (nextNoteIndex < beatmap.hitObjects.size) {
@@ -341,148 +418,151 @@ public class PlayScreen implements Screen {
             }
         }
 
-        // --- RENDER SHAPES ---
+        // --- RENDER PLAYFIELD (With dynamic slide-up offset!) ---
+        float drawHitY = HIT_LINE_Y + playfieldAnchor.getY();
+
         game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
+        drawTrack(drawHitY);
 
-        // Draw Track
-        drawTrack();
-
-        // --- NEW: Enable Alpha Blending for Lasers ---
+        // --- KEY PRESS INDICATORS ---
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        // 3rd: Draw Lasers (Top Layer - Overwrites Notes)
+        float btY = drawHitY - 12f;
+        float fxY = drawHitY - 24f;
+
+        for(int lane = 1; lane <= 6; lane++) {
+            if(inputController.isLanePressed(lane)) {
+                if(lane <= 4) { // BT Keys (White)
+                    game.shapeRenderer.setColor(1f, 1f, 1f, 0.4f);
+                    game.shapeRenderer.rect(TRACK_START_X + (lane-1)*LANE_WIDTH + 5f, btY, LANE_WIDTH - 10f, 10f);
+                } else { // FX Keys (Orange/Red)
+                    game.shapeRenderer.setColor(1f, 0.3f, 0f, 0.5f);
+                    float fxX = (lane == 5) ? TRACK_START_X : TRACK_START_X + LANE_WIDTH*2;
+                    game.shapeRenderer.rect(fxX + 5f, fxY, LANE_WIDTH*2 - 10f, 10f);
+                }
+            }
+        }
+        Gdx.gl.glDisable(GL20.GL_BLEND);
+
+        Gdx.gl.glEnable(GL20.GL_BLEND);
+        Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
         if (beatmap.lasers != null) {
-            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.left, true, leftCursor, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
-            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.right, false, rightCursor, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
+            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.left, true, leftCursor, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, drawHitY);
+            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.right, false, rightCursor, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, drawHitY);
         }
 
-        // --- NEW: Draw Laser Alert Backgrounds ---
         float leftWarningAlpha = laserManager.getWarningAlpha(beatmap.lasers.left, currentAudioTimeMs);
         float rightWarningAlpha = laserManager.getWarningAlpha(beatmap.lasers.right, currentAudioTimeMs);
 
+        // Fade out warnings if the playfield is still hidden to prevent ugly clipping
+        float visibilityRatio = 1f - (Math.abs(playfieldAnchor.getY()) / WORLD_HEIGHT);
+
         if (leftWarningAlpha > 0f) {
-            // Faint Cyan Box
-            game.shapeRenderer.setColor(0f, 1f, 1f, leftWarningAlpha * 0.2f);
+            game.shapeRenderer.setColor(0f, 1f, 1f, leftWarningAlpha * 0.2f * visibilityRatio);
             game.shapeRenderer.rect(50, WORLD_HEIGHT / 2f - 100, 150, 200);
         }
-
         if (rightWarningAlpha > 0f) {
-            // Faint Magenta Box
-            game.shapeRenderer.setColor(1f, 0f, 1f, rightWarningAlpha * 0.2f);
+            game.shapeRenderer.setColor(1f, 0f, 1f, rightWarningAlpha * 0.2f * visibilityRatio);
             game.shapeRenderer.rect(WORLD_WIDTH - 200, WORLD_HEIGHT / 2f - 100, 150, 200);
         }
 
-        // --- Disable Blending to keep Cursors and UI opaque ---
         Gdx.gl.glDisable(GL20.GL_BLEND);
 
-        // Update, Draw, and Manage Notes
-        // 1. First Pass: Update math and handle Miss/Cleanup logic for ALL notes
+        // Update and Draw Notes
         for (int i = activeNotes.size - 1; i >= 0; i--) {
             Note note = activeNotes.get(i);
-
-            // Miss Detection
             if (!note.wasHeadHit && !note.isMissed && currentAudioTimeMs - note.startTime > 150.0f) {
-                scoreManager.onMiss("NOTE"); // <--- ADD "NOTE" HERE
+                scoreManager.onMiss("NOTE");
                 note.isMissed = true;
             }
-
-            // Cleanup
-            if (note.getTailY(currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, HIT_LINE_Y) < -200 || note.isCompleted) {
+            if (note.getTailY(currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, drawHitY) < -200 || note.isCompleted) {
                 activeNotes.removeIndex(i);
                 notePool.free(note);
             }
         }
 
-        // 2nd: Draw All Notes (Middle Layers)
-        for (Note note : activeNotes) {
-            if (note.isHold && note.lane >= 5)
-                note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, HIT_LINE_Y);
-        }
-        for (Note note : activeNotes) {
-            if (note.isHold && note.lane <= 4)
-                note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, HIT_LINE_Y);
-        }
-        for (Note note : activeNotes) {
-            if (!note.isHold && note.lane >= 5)
-                note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, HIT_LINE_Y);
-        }
-        for (Note note : activeNotes) {
-            if (!note.isHold && note.lane <= 4)
-                note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, HIT_LINE_Y);
-        }
+        for (Note note : activeNotes) if (note.isHold && note.lane >= 5) note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, drawHitY);
+        for (Note note : activeNotes) if (note.isHold && note.lane <= 4) note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, drawHitY);
+        for (Note note : activeNotes) if (!note.isHold && note.lane >= 5) note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, drawHitY);
+        for (Note note : activeNotes) if (!note.isHold && note.lane <= 4) note.updateAndDraw(game.shapeRenderer, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, LANE_WIDTH, drawHitY);
 
-        // 3rd: Draw Lasers (Top Layer - Overwrites Notes)
         if (beatmap.lasers != null) {
-            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.left, true, leftCursor, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
-            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.right, false, rightCursor, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
+            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.left, true, leftCursor, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, drawHitY);
+            laserManager.drawLasers(game.shapeRenderer, beatmap.lasers.right, false, rightCursor, currentAudioTimeMs, BASE_SCROLL_SPEED, hiSpeedMult, TRACK_START_X, TRACK_WIDTH, drawHitY);
         }
 
-        // 4th: Draw Cursors (Absolute Top)
-        leftCursor.draw(game.shapeRenderer, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
-        rightCursor.draw(game.shapeRenderer, TRACK_START_X, TRACK_WIDTH, HIT_LINE_Y);
+        leftCursor.draw(game.shapeRenderer, TRACK_START_X, TRACK_WIDTH, drawHitY);
+        rightCursor.draw(game.shapeRenderer, TRACK_START_X, TRACK_WIDTH, drawHitY);
 
         game.shapeRenderer.end();
 
         // --- RENDER UI ---
-        game.batch.begin();
-
-        // Temporarily double the font size for the massive warning letters
-        font.getData().setScale(4f);
-
-        if (leftWarningAlpha > 0f) {
-            //font.setColor(0f, 1f, 1f, leftWarningAlpha); // Blinking Cyan
-            font.draw(game.batch, "L", 95, WORLD_HEIGHT / 2f + 30);
-        }
-
-        if (rightWarningAlpha > 0f) {
-            //font.setColor(1f, 0f, 1f, rightWarningAlpha); // Blinking Magenta
-            font.draw(game.batch, "R", WORLD_WIDTH - 145, WORLD_HEIGHT / 2f + 30);
-        }
-
-        // Reset the font size back to normal for the Combo text
-        font.getData().setScale(1f);
-
-
-        font.setColor(Color.WHITE);
-        font.draw(game.batch, "Combo: " + scoreManager.combo, WORLD_WIDTH / 2f - 80, WORLD_HEIGHT - 125);
-
-        // --- NEW: Draw Live Score (Top Right) ---
         String liveScore = String.format("%08d", scoreManager.getFinalScore());
-        font.draw(game.batch, "SCORE: " + liveScore, WORLD_WIDTH - 250, WORLD_HEIGHT - 20);
+        bigScoreLabel.setText(liveScore.substring(0, 4));
+        smallScoreLabel.setText(liveScore.substring(4, 8));
 
-        // Dynamic Judgment Color
-        if (scoreManager.latestJudgment.contains("CRITICAL")) font.setColor(Color.GOLD);
-        else if (scoreManager.latestJudgment.equals("NEAR")) font.setColor(Color.GREEN);
-        else font.setColor(Color.RED);
+        uiStage.draw(); // Draws dim overlay, intro card, and score hud
 
-        font.draw(game.batch, scoreManager.latestJudgment, WORLD_WIDTH / 2f - 80, WORLD_HEIGHT / 2f + 100);
+        game.batch.begin();
+        //float visibilityRatio = 1f - (Math.abs(playfieldAnchor.getY()) / WORLD_HEIGHT);
+
+        if (visibilityRatio > 0.5f) {
+            float centerX = TRACK_START_X + (TRACK_WIDTH / 2f);
+            float comboY = WORLD_HEIGHT - SettingsManager.getJudgmentComboTopOffset();
+            float judY = comboY - 40f;
+            float timingY = judY - 30f;
+
+            com.badlogic.gdx.graphics.g2d.GlyphLayout layout = new com.badlogic.gdx.graphics.g2d.GlyphLayout();
+
+            // Draw Combo
+            font.getData().setScale(1.0f);
+            font.setColor(1f, 1f, 1f, scoreHud.getColor().a);
+            layout.setText(font, "Combo " + scoreManager.combo);
+            font.draw(game.batch, layout, centerX - layout.width/2f, comboY);
+
+            // Parse Timing
+            String jud = scoreManager.latestJudgment;
+            String timing = "";
+            if (jud.endsWith(" EARLY")) { timing = "EARLY"; jud = jud.replace(" EARLY", ""); }
+            else if (jud.endsWith(" LATE")) { timing = "LATE"; jud = jud.replace(" LATE", ""); }
+
+            // Draw Judgment
+            if (jud.contains("CRITICAL")) font.setColor(Color.GOLD.r, Color.GOLD.g, Color.GOLD.b, scoreHud.getColor().a);
+            else if (jud.equals("NEAR")) font.setColor(Color.GREEN.r, Color.GREEN.g, Color.GREEN.b, scoreHud.getColor().a);
+            else font.setColor(Color.RED.r, Color.RED.g, Color.RED.b, scoreHud.getColor().a);
+            layout.setText(font, jud);
+            font.draw(game.batch, layout, centerX - layout.width/2f, judY);
+
+            // Draw Early/Late
+            if (!timing.isEmpty()) {
+                if (timing.equals("EARLY")) font.setColor(Color.SKY.r, Color.SKY.g, Color.SKY.b, scoreHud.getColor().a);
+                else font.setColor(Color.PINK.r, Color.PINK.g, Color.PINK.b, scoreHud.getColor().a);
+                font.getData().setScale(0.85f);
+                layout.setText(font, timing);
+                font.draw(game.batch, layout, centerX - layout.width/2f, timingY);
+            }
+        }
         game.batch.end();
 
+        // --- PAUSE MENU ---
         if (isPaused) {
-            // 1. Draw 80% Black Dimming Layer
             Gdx.gl.glEnable(GL20.GL_BLEND);
             Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
             game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
-            game.shapeRenderer.setColor(0f, 0f, 0f, 0.8f); // R, G, B, Alpha
+            game.shapeRenderer.setColor(0f, 0f, 0f, 0.8f);
             game.shapeRenderer.rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
             game.shapeRenderer.end();
-
             Gdx.gl.glDisable(GL20.GL_BLEND);
-
-            // 2. Draw the Buttons on top
             pauseStage.act(delta);
             pauseStage.draw();
         }
     }
 
-    private void drawTrack() {
-        // Red hit line
+    private void drawTrack(float drawHitY) {
         game.shapeRenderer.setColor(Color.RED);
-        game.shapeRenderer.rect(TRACK_START_X - 20, HIT_LINE_Y, TRACK_WIDTH + 40, 5);
-
-        // Gray lane dividers
+        game.shapeRenderer.rect(TRACK_START_X - 20, drawHitY, TRACK_WIDTH + 40, 5);
         game.shapeRenderer.setColor(Color.DARK_GRAY);
         for(int i = 0; i <= 4; i++) {
             game.shapeRenderer.rect(TRACK_START_X + (i * LANE_WIDTH), 0, 2, WORLD_HEIGHT);
@@ -491,37 +571,29 @@ public class PlayScreen implements Screen {
 
     @Override
     public void resize(int width, int height) {
-        viewport.update(width, height);
+        viewport.update(width, height, true);
+        WORLD_WIDTH = viewport.getWorldWidth();
+        WORLD_HEIGHT = viewport.getWorldHeight();
+        TRACK_START_X = (WORLD_WIDTH - TRACK_WIDTH) / 2f;
+        if (uiStage != null) uiStage.getViewport().update(width, height, true);
+        if (pauseStage != null) pauseStage.getViewport().update(width, height, true);
     }
 
-    @Override public void show() {}
-    @Override public void pause() {}
-    @Override public void resume() {}
-    @Override public void hide() {}
+    @Override public void show() {} @Override public void pause() {} @Override public void resume() {} @Override public void hide() {}
+    @Override public void dispose() { font.dispose(); pauseStage.dispose(); uiStage.dispose(); if (slamSound != null) slamSound.dispose(); if (bgTexture != null) bgTexture.dispose(); if (jacketTexture != null) jacketTexture.dispose(); }
 
     private void pauseGame() {
         isPaused = true;
-        // Only pause the music if the 2-second lead-in timer has finished!
-        if (hasAudioStarted && music.isPlaying()) {
-            music.pause();
-        }
-        // Give control to the UI Stage so buttons can be clicked
+        if (hasAudioStarted && music != null && music.isPlaying()) music.pause();
         Gdx.input.setInputProcessor(pauseStage);
     }
 
     private void resumeGame() {
         isPaused = false;
-        // Only resume music if it was actually playing before
-        if (hasAudioStarted) {
-            music.play();
-            music.setVolume(SettingsManager.getMasterVolume() * SettingsManager.getMusicVolume());
-        }
-        // Take control away from UI so they can't accidentally click buttons while playing
+        if (hasAudioStarted && music != null) { music.play(); music.setVolume(SettingsManager.getMasterVolume() * SettingsManager.getMusicVolume()); }
         Gdx.input.setInputProcessor(null);
     }
 
-    // --- LASER TICK CALCULATION ---
-    // --- NEW: PRE-BAKED LASER TICK ENGINE ---
     private int bakeAndCountLaserTicks(Beatmap beatmap) {
         if (beatmap == null || beatmap.lasers == null) return 0;
         int totalTicks = 0;
@@ -533,26 +605,17 @@ public class PlayScreen implements Screen {
     private int bakeArray(Array<Beatmap.LaserSequence> sequences) {
         if (sequences == null) return 0;
         int ticks = 0;
-
         for (Beatmap.LaserSequence seq : sequences) {
             seq.tickTimes = new Array<>();
             if (seq.nodes == null || seq.nodes.size == 0) continue;
-
-            // 1. GUARANTEED: Add tick at the exact Start of the laser
             seq.tickTimes.add(seq.nodes.first().offset);
-
             for (int i = 1; i < seq.nodes.size; i++) {
                 Beatmap.LaserNode prev = seq.nodes.get(i - 1);
                 Beatmap.LaserNode curr = seq.nodes.get(i);
                 float duration = curr.offset - prev.offset;
-
                 if (duration <= 100.0f) {
-                    // SLAM: Only add a tick at the exact End of the slam
-                    if (!seq.tickTimes.contains(curr.offset, false)) {
-                        seq.tickTimes.add(curr.offset);
-                    }
+                    if (!seq.tickTimes.contains(curr.offset, false)) seq.tickTimes.add(curr.offset);
                 } else {
-                    // CONTINUOUS: Add ticks every 50ms
                     float tickTime = prev.offset + 100.0f;
                     while (tickTime < curr.offset) {
                         if (!seq.tickTimes.contains(tickTime, false)) seq.tickTimes.add(tickTime);
@@ -560,63 +623,13 @@ public class PlayScreen implements Screen {
                     }
                 }
             }
-
-
-            // 2. GUARANTEED: Add tick at the exact End of the laser
             float lastOffset = seq.nodes.get(seq.nodes.size - 1).offset;
-            if (!seq.tickTimes.contains(lastOffset, false)) {
-                seq.tickTimes.add(lastOffset);
-            }
-
-            seq.tickTimes.sort(); // Ensure chronological order
-            ticks += seq.tickTimes.size; // Count exactly how many ticks were baked
+            if (!seq.tickTimes.contains(lastOffset, false)) seq.tickTimes.add(lastOffset);
+            seq.tickTimes.sort();
+            ticks += seq.tickTimes.size;
         }
         return ticks;
     }
 
-    // --- NEW: Calculate exact ticks for Long Notes ---
-    private int bakeAndCountNoteTicks(Beatmap beatmap) {
-        if (beatmap == null || beatmap.hitObjects == null) return 0;
-        int totalTicks = 0;
 
-        for (Beatmap.HitObject note : beatmap.hitObjects) {
-            if ("HOLD".equals(note.type)) {
-                // If your InputController gives a combo tick every 100ms, we calculate it here!
-                // Change the 100.0f if your InputController uses a different interval.
-                float duration = note.endTime - note.startTime;
-                int holdTicks = (int) (duration / 100.0f);
-
-                // 1 tick for the initial hit, plus all the continuous hold ticks
-                totalTicks += (1 + holdTicks);
-            } else {
-                // Standard chip note
-                totalTicks += 1;
-            }
-        }
-        return totalTicks;
-    }
-
-    // --- Calculate exact note hits (Hold = 2, Chip = 1) ---
-//    private int countTotalNoteHits(Beatmap beatmap) {
-//        if (beatmap == null || beatmap.hitObjects == null) return 0;
-//        int totalHits = 0;
-//
-//        for (Beatmap.HitObject note : beatmap.hitObjects) {
-//            if ("HOLD".equals(note.type)) {
-//                totalHits += 2; // 1 for the initial press, 1 for the release
-//            } else {
-//                totalHits += 1; // 1 for the standard tap
-//            }
-//        }
-//        return totalHits;
-//    }
-
-    @Override
-    public void dispose() {
-        font.dispose();
-        pauseStage.dispose();
-        if (slamSound != null) {
-            slamSound.dispose();
-        }
-    }
 }

@@ -21,6 +21,10 @@ public class SettingsManager {
     public static float getMusicVolume() { return getPrefs().getFloat("musicVolume", 0.8f); }
     public static float getEffectVolume() { return getPrefs().getFloat("effectVolume", 1.0f); }
 
+    // --- NEW: Task 3 - Playfield Customization ---
+    public static float getPlayfieldHitPosY() { return getPrefs().getFloat("playfieldHitPosY", 100f); }
+    public static float getPlayfieldWidth() { return getPrefs().getFloat("playfieldWidth", 300f); } // Default is 75f * 4
+
     // --- STRING GETTER FOR THE UI TO READ ---
     public static String getKeyString(String buttonCode, boolean isPrimary) {
         String defaultKey = "";
@@ -76,8 +80,24 @@ public class SettingsManager {
         getPrefs().flush();
     }
 
+    public static void savePlayfield(float hitPosY, float width) {
+        getPrefs().putFloat("playfieldHitPosY", hitPosY);
+        getPrefs().putFloat("playfieldWidth", width);
+        getPrefs().flush();
+    }
+
     public static void saveKey(String buttonCode, boolean isPrimary, String keyName) {
         getPrefs().putString((isPrimary ? "pri_" : "alt_") + buttonCode, keyName);
+        getPrefs().flush();
+    }
+
+    // --- NEW: Task 1 & 2 - UI Customization ---
+    public static float getBackgroundBrightness() { return getPrefs().getFloat("bgBrightness", 0.6f); }
+    public static float getJudgmentComboTopOffset() { return getPrefs().getFloat("judgOffset", 200f); }
+
+    public static void saveUI(float brightness, float offset) {
+        getPrefs().putFloat("bgBrightness", brightness);
+        getPrefs().putFloat("judgOffset", offset);
         getPrefs().flush();
     }
 }

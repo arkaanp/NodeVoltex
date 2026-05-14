@@ -22,6 +22,15 @@ public class InputController {
     private boolean[] laneJustPressed = new boolean[7];
     private boolean[] laneIsPressed = new boolean[7];
 
+    // --- ADD THIS SNIPPET ---
+    public boolean isLanePressed(int lane) {
+        if (lane >= 1 && lane <= 6) {
+            return laneIsPressed[lane];
+        }
+        return false;
+    }
+    // -------------------------
+
     private void recordEventIfChanged(int lane, String label, boolean currentState, float timeMs) {
         if (laneJustPressed[lane]) {
             currentReplay.events.add(new ReplayData.InputEvent(timeMs, label, true));

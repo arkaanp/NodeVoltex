@@ -254,6 +254,23 @@ public class SongSelectScreen implements Screen {
         ));
     }
 
+    // --- NEW: Task 1 - Slide left to enter PlayScreen ---
+    public void animateOutToPlayScreen(final String mapPath) {
+        stage.getRoot().setTouchable(Touchable.disabled);
+        float w = stage.getWidth();
+
+        // Slide everything OUT to the left smoothly
+        leftLayer.addAction(Actions.moveBy(-w, 0, 0.6f, Interpolation.pow3In));
+        rightLayer.addAction(Actions.sequence(Actions.delay(0.05f), Actions.moveBy(-w, 0, 0.6f, Interpolation.pow3In)));
+        backTable.addAction(Actions.sequence(Actions.delay(0.1f), Actions.moveBy(-w, 0, 0.6f, Interpolation.pow3In)));
+
+        // Wait 0.8s for the animation to finish, then hand off to PlayScreen
+        stage.addAction(Actions.sequence(
+            Actions.delay(0.8f),
+            Actions.run(() -> game.setScreen(new PlayScreen(game, mapPath)))
+        ));
+    }
+
     @Override public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
         if (settingsOverlay != null) settingsOverlay.resize(width, height);

@@ -135,6 +135,12 @@ public class SettingsOverlay {
         container.add(createSliderRow("Scroll speed", 0.01f, 2.0f, 0.01f, com.nodevoltex.game.managers.SettingsManager.getScrollSpeed(), "", "speed")).expandX().fillX().padBottom(15).row();
         container.add(createSliderRow("Global offset", -200f, 200f, 1f, com.nodevoltex.game.managers.SettingsManager.getGlobalOffset(), "ms", "offset")).expandX().fillX().padBottom(30).row();
 
+        // --- NEW: Task 3 - Playfield Sliders ---
+        container.add(createSliderRow("Hit Position Y", 50f, 300f, 1f, com.nodevoltex.game.managers.SettingsManager.getPlayfieldHitPosY(), "px", "hitpos")).expandX().fillX().padBottom(15).row();
+        container.add(createSliderRow("Playfield Width", 200f, 500f, 1f, com.nodevoltex.game.managers.SettingsManager.getPlayfieldWidth(), "px", "width")).expandX().fillX().padBottom(30).row();
+        container.add(createSliderRow("BG Brightness", 0.1f, 1.0f, 0.05f, com.nodevoltex.game.managers.SettingsManager.getBackgroundBrightness(), "", "bgbright")).expandX().fillX().padBottom(15).row();
+        container.add(createSliderRow("Judgment Offset Y", 50f, 600f, 5f, com.nodevoltex.game.managers.SettingsManager.getJudgmentComboTopOffset(), "px", "judg")).expandX().fillX().padBottom(30).row();
+
         Label inputHeader = new Label("Input", skin);
         inputHeader.setFontScale(1f);
         inputHeader.setColor(Color.WHITE);
@@ -165,6 +171,11 @@ public class SettingsOverlay {
         else if (type.equals("master")) com.nodevoltex.game.managers.SettingsManager.saveVolumes(val / 100f, com.nodevoltex.game.managers.SettingsManager.getMusicVolume(), com.nodevoltex.game.managers.SettingsManager.getEffectVolume());
         else if (type.equals("effect")) com.nodevoltex.game.managers.SettingsManager.saveVolumes(com.nodevoltex.game.managers.SettingsManager.getMasterVolume(), com.nodevoltex.game.managers.SettingsManager.getMusicVolume(), val / 100f);
         else if (type.equals("music")) com.nodevoltex.game.managers.SettingsManager.saveVolumes(com.nodevoltex.game.managers.SettingsManager.getMasterVolume(), val / 100f, com.nodevoltex.game.managers.SettingsManager.getEffectVolume());
+            // --- NEW: Task 3 - Save Hooks ---
+        else if (type.equals("hitpos")) com.nodevoltex.game.managers.SettingsManager.savePlayfield(val, com.nodevoltex.game.managers.SettingsManager.getPlayfieldWidth());
+        else if (type.equals("width")) com.nodevoltex.game.managers.SettingsManager.savePlayfield(com.nodevoltex.game.managers.SettingsManager.getPlayfieldHitPosY(), val);
+        else if (type.equals("bgbright")) com.nodevoltex.game.managers.SettingsManager.saveUI(val, com.nodevoltex.game.managers.SettingsManager.getJudgmentComboTopOffset());
+        else if (type.equals("judg")) com.nodevoltex.game.managers.SettingsManager.saveUI(com.nodevoltex.game.managers.SettingsManager.getBackgroundBrightness(), val);
     }
 
     private TextButton createNavButton(String text) {

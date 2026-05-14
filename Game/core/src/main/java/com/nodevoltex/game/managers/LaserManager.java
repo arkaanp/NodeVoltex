@@ -254,7 +254,8 @@ public class LaserManager {
                 float yA = (nodeA.offset - currentTime) * speed * mult + hitY;
                 float yB = (nodeB.offset - currentTime) * speed * mult + hitY;
 
-                if ((yA > 800 && yB > 800) || (yA < -200 && yB < -200)) continue;
+                // Culls the laser only if it is safely above the dynamic screen height
+                if ((yA > Gdx.graphics.getHeight() + 200f && yB > Gdx.graphics.getHeight() + 200f) || (yA < -200 && yB < -200)) continue;
 
                 float xA = trackX + (nodeA.x * trackW);
                 float xB = trackX + (nodeB.x * trackW);

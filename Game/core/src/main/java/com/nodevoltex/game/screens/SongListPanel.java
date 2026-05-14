@@ -328,7 +328,14 @@ public class SongListPanel extends Table {
             @Override public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                 if (selectedDiffName.equals(diffName)) {
                     stopAudio(); // ONLY stop audio if actually entering PlayScreen!
-                    if (mapPath != null) game.setScreen(new PlayScreen(game, mapPath));
+                    if (mapPath != null) {
+                        // --- THE FIX: Trigger the parent screen's leftward exit animation! ---
+                        if (game.getScreen() instanceof SongSelectScreen) {
+                            ((SongSelectScreen) game.getScreen()).animateOutToPlayScreen(mapPath);
+                        } else {
+                            game.setScreen(new PlayScreen(game, mapPath)); // Failsafe
+                        }
+                    }
                 } else {
                     selectedDiffName = diffName;
                     updateStatsPanel(song, diffName, level, mapPath, true);
