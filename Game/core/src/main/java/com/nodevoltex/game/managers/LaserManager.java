@@ -9,10 +9,17 @@ import com.nodevoltex.game.data.Beatmap;
 import com.nodevoltex.game.entities.LaserCursor;
 import com.nodevoltex.game.patterns.LockedState;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class LaserManager {
 
     public boolean isAutoPlay = false;
     public boolean isNoLaser = false;
+
+    public float graceWindowMs = 40f;
+
+    private Map<LaserCursor, Float> resolvedSlamTimes = new HashMap<>();
 
     private int getSlamEndNodeIndex(Beatmap.LaserSequence seq, float tickTime) {
         if (seq.nodes.size < 2) return -1;
@@ -20,7 +27,7 @@ public class LaserManager {
             Beatmap.LaserNode prev = seq.nodes.get(i - 1);
             Beatmap.LaserNode curr = seq.nodes.get(i);
             if (Math.abs(curr.offset - tickTime) < 1.0f) {
-                if (curr.offset - prev.offset < 90f && Math.abs(curr.x - prev.x) > 0.01f) {
+                if (curr.offset - prev.offset <= 50f && Math.abs(curr.x - prev.x) > 0.05f) {
                     return i;
                 }
             }
@@ -77,8 +84,8 @@ public class LaserManager {
             float firstOffset = sequence.nodes.get(0).offset;
             float lastOffset = sequence.nodes.get(sequence.nodes.size - 1).offset;
 
-            // --- PART 1: VISUALS & STATE UPDATES ---
-            if (currentTime >= firstOffset && currentTime <= lastOffset + 50f) {
+            // --- THE FIX: Wake up Part 1 early by expanding the window backwards to catch initial slams! ---
+            if (currentTime >= firstOffset - graceWindowMs && currentTime <= lastOffset + 50f) {
                 isCurrentlyOnLaser = true;
 
                 if (currentTime - firstOffset < 100f && !cursor.wasAutoSnapped) {
@@ -90,21 +97,6 @@ public class LaserManager {
 
                 float currentLaserX = calculateLaserPositionAtTime(sequence, currentTime);
 
-                // --- INSTANT RECOVERY & GRACE TIMER LOGIC ---
-                if (cursor.isMissed) {
-                    if (Math.abs(cursor.x - currentLaserX) <= 0.35f) {
-                        cursor.isMissed = false;
-                        cursor.missedTimer = 0f;
-                        cursor.setState(new LockedState());
-                    } else {
-                        cursor.missedTimer += delta * 1000f;
-                        if (cursor.missedTimer >= 200f && !cursor.hasComboBroken) {
-                            scoreManager.onMiss("LASER");
-                            cursor.hasComboBroken = true;
-                        }
-                    }
-                }
-
                 float direction = 0;
                 for (int i = 0; i < sequence.nodes.size - 1; i++) {
                     if (sequence.nodes.get(i).offset <= currentTime && sequence.nodes.get(i+1).offset > currentTime) {
@@ -113,94 +105,176 @@ public class LaserManager {
                     }
                 }
 
-                cursor.targetLaserX = currentLaserX;
                 cursor.requiresInput = (direction != 0);
-
-                // Read the human physical keyboard first...
                 cursor.pollInputs(direction, inputController, currentTime);
 
-                // --- THE LASER ROBOT OVERRIDE ---
+                boolean slamResolvedThisFrame = false;
+                boolean isCoastingOnResolvedSlam = false;
+
+                for (int i = 0; i < sequence.nodes.size - 1; i++) {
+                    Beatmap.LaserNode nodeA = sequence.nodes.get(i);
+                    Beatmap.LaserNode nodeB = sequence.nodes.get(i+1);
+
+                    if (nodeB.offset - nodeA.offset <= 50f && Math.abs(nodeB.x - nodeA.x) > 0.05f) {
+                        if (currentTime >= nodeA.offset - graceWindowMs && currentTime <= nodeA.offset + graceWindowMs) {
+
+                            float lastResolved = resolvedSlamTimes.getOrDefault(cursor, -1f);
+                            if (lastResolved >= nodeA.offset) {
+                                currentLaserX = nodeB.x;
+                                isCoastingOnResolvedSlam = true;
+                                continue;
+                            }
+
+                            if (slamResolvedThisFrame) continue;
+
+                            float expectedDir = Math.signum(nodeB.x - nodeA.x);
+                            boolean flicked = false;
+
+                            if (isAutoPlay || isNoLaser) {
+                                if (currentTime >= nodeA.offset) flicked = true;
+                            } else {
+                                if (expectedDir > 0 && cursor.isMovingRight) flicked = true;
+                                if (expectedDir < 0 && cursor.isMovingLeft) flicked = true;
+                            }
+
+                            if (flicked) {
+                                cursor.x = nodeB.x;
+                                currentLaserX = nodeB.x;
+                                resolvedSlamTimes.put(cursor, nodeA.offset);
+                                slamResolvedThisFrame = true;
+                                isCoastingOnResolvedSlam = true;
+
+                                if (slamSound != null && shouldPlayHitsound(sequence, i + 1)) {
+                                    // Make sure you have your SettingsManager properly imported for this!
+                                    float vol = SettingsManager.getMasterVolume() * SettingsManager.getEffectVolume();
+                                    slamSound.play(vol);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // --- THE FREEZE FIX: Absolutely bolt the cursor in place before the laser requires movement ---
+                if (currentTime < firstOffset) {
+                    // Since it hasn't technically started, enforce the position to stop physical wiggling.
+                    // (Note: currentLaserX perfectly accounts for early slam flicks because we updated it above!)
+                    cursor.x = currentLaserX;
+                }
+
+                cursor.targetLaserX = currentLaserX;
+
                 if (isAutoPlay || isNoLaser) {
                     cursor.x = currentLaserX;
-                    // Fool the engine into thinking the player is holding the exact right keys!
                     cursor.isHoldingCorrectKey = true;
+                    if (direction < 0) { cursor.isMovingLeft = true; cursor.isMovingRight = false; }
+                    else if (direction > 0) { cursor.isMovingRight = true; cursor.isMovingLeft = false; }
+                    else { cursor.isMovingLeft = false; cursor.isMovingRight = false; }
+                }
 
-                    if (direction < 0) {
-                        cursor.isMovingLeft = true;
-                        cursor.isMovingRight = false;
-                    } else if (direction > 0) {
-                        cursor.isMovingRight = true;
-                        cursor.isMovingLeft = false;
+                boolean driftedTooFar = Math.abs(cursor.x - currentLaserX) > 0.15f;
+                boolean wrongInput = cursor.requiresInput && !cursor.isHoldingCorrectKey;
+
+                if (wrongInput || driftedTooFar) {
+                    if (isCoastingOnResolvedSlam) {
+                        wrongInput = false;
+                        driftedTooFar = false;
                     } else {
-                        cursor.isMovingLeft = false;
-                        cursor.isMovingRight = false;
+                        // 1. EARLY TURN LENIENCY (Lookahead)
+                        float futureTime = currentTime + graceWindowMs;
+                        float futureDirection = 0;
+                        for (int i = 0; i < sequence.nodes.size - 1; i++) {
+                            if (sequence.nodes.get(i).offset <= futureTime && sequence.nodes.get(i+1).offset > futureTime) {
+                                futureDirection = Math.signum(sequence.nodes.get(i+1).x - sequence.nodes.get(i).x);
+                                break;
+                            }
+                        }
+
+                        if (futureDirection != 0 && futureDirection != direction) {
+                            boolean holdingFuture = (futureDirection < 0 && cursor.isMovingLeft) || (futureDirection > 0 && cursor.isMovingRight);
+                            if (holdingFuture) {
+                                wrongInput = false;
+                                driftedTooFar = false;
+                                currentLaserX = calculateLaserPositionAtTime(sequence, futureTime);
+                                cursor.x = currentLaserX;
+                            }
+                        }
+
+                        // 2. LATE TURN LENIENCY (Lookbehind)
+                        if (wrongInput) {
+                            float pastTime = currentTime - graceWindowMs;
+                            float pastDirection = 0;
+                            for (int i = 0; i < sequence.nodes.size - 1; i++) {
+                                if (sequence.nodes.get(i).offset <= pastTime && sequence.nodes.get(i+1).offset > pastTime) {
+                                    pastDirection = Math.signum(sequence.nodes.get(i+1).x - sequence.nodes.get(i).x);
+                                    break;
+                                }
+                            }
+
+                            if (pastDirection != 0 && pastDirection != direction) {
+                                boolean holdingPast = (pastDirection < 0 && cursor.isMovingLeft) || (pastDirection > 0 && cursor.isMovingRight);
+                                if (holdingPast) {
+                                    wrongInput = false;
+                                    driftedTooFar = false;
+                                }
+                            }
+                        }
                     }
+                }
+
+                if (driftedTooFar || wrongInput) {
+                    cursor.isMissed = true;
+                    cursor.missedTimer += delta * 1000f;
+                    cursor.setState(new com.nodevoltex.game.patterns.FreeState());
+
+                    if (cursor.missedTimer >= graceWindowMs && !cursor.hasComboBroken) {
+                        scoreManager.onMiss("LASER");
+                        cursor.hasComboBroken = true;
+                    }
+                } else {
+                    cursor.isMissed = false;
+                    cursor.missedTimer = 0f;
+                    cursor.hasComboBroken = false;
+                    cursor.setState(new LockedState());
                 }
             }
 
-            // --- PART 2: THE PRE-BAKED TICK ENGINE (SCORING) ---
+            // --- PART 2: THE PRE-BAKED SCORE DISPENSER ---
             if (sequence.tickTimes != null) {
                 while (sequence.nextTickIndex < sequence.tickTimes.size) {
                     float expectedTickTime = sequence.tickTimes.get(sequence.nextTickIndex);
 
                     if (currentTime >= expectedTickTime) {
-                        boolean isStartTick = (sequence.nextTickIndex == 0);
-                        int slamNodeIndex = getSlamEndNodeIndex(sequence, expectedTickTime);
-                        boolean isSlamEnd = (slamNodeIndex != -1);
-                        float targetLaserPos = calculateLaserPositionAtTime(sequence, expectedTickTime);
-                        boolean isHit = false;
+                        if (isAutoPlay || isNoLaser) {
+                            scoreManager.onLaserTick();
+                        } else {
+                            int slamNodeIndex = getSlamEndNodeIndex(sequence, expectedTickTime);
+                            boolean isSlamEnd = (slamNodeIndex != -1);
 
-                        if (isStartTick) {
-                            if (cursor.wasAutoSnapped || Math.abs(cursor.x - targetLaserPos) <= 0.40f) {
-                                isHit = true;
-                                cursor.x = targetLaserPos;
-                            }
-                        } else if (isSlamEnd) {
-                            float slamStartX = sequence.nodes.get(slamNodeIndex - 1).x;
-                            float slamDirection = Math.signum(targetLaserPos - slamStartX);
-                            boolean correctFlick = false;
+                            if (isSlamEnd) {
+                                float slamStartOffset = sequence.nodes.get(slamNodeIndex - 1).offset;
+                                float lastResolved = resolvedSlamTimes.getOrDefault(cursor, -1f);
 
-                            // --- ROBOT FLICK OVERRIDE ---
-                            if (isAutoPlay || isNoLaser) {
-                                correctFlick = true; // The robot never misses a flick!
+                                if (lastResolved >= slamStartOffset) {
+                                    scoreManager.onLaserTick();
+                                } else {
+                                    if (!cursor.hasComboBroken) {
+                                        scoreManager.onMiss("LASER");
+                                        cursor.hasComboBroken = true;
+                                    }
+                                }
                             } else {
-                                if (slamDirection > 0 && cursor.isMovingRight) correctFlick = true;
-                                if (slamDirection < 0 && cursor.isMovingLeft) correctFlick = true;
-                            }
-
-                            if (correctFlick || Math.abs(cursor.x - targetLaserPos) <= 0.30f) {
-                                isHit = true;
-                                cursor.x = targetLaserPos;
-
-                                if (correctFlick && slamSound != null) {
-                                    if (shouldPlayHitsound(sequence, slamNodeIndex)) {
-                                        // --- THE FIX: Apply Master & Effect Volume to the slam! ---
-                                        float vol = SettingsManager.getMasterVolume() * SettingsManager.getEffectVolume();
-                                        slamSound.play(vol);
+                                if (!cursor.isMissed) {
+                                    scoreManager.onLaserTick();
+                                } else if (cursor.missedTimer < graceWindowMs) {
+                                    scoreManager.onLaserTick();
+                                } else {
+                                    if (!cursor.hasComboBroken) {
+                                        scoreManager.onMiss("LASER");
+                                        cursor.hasComboBroken = true;
                                     }
                                 }
                             }
-                        } else {
-                            if (Math.abs(cursor.x - targetLaserPos) <= 0.35f) {
-                                isHit = true;
-                            }
                         }
-
-                        if (isHit) {
-                            scoreManager.onLaserTick();
-                            cursor.isMissed = false;
-                            cursor.missedTimer = 0f;
-                            cursor.hasComboBroken = false;
-                            cursor.setState(new LockedState());
-                        } else {
-                            cursor.isMissed = true;
-                            cursor.setState(new com.nodevoltex.game.patterns.FreeState());
-
-                            if (!cursor.hasComboBroken && cursor.missedTimer < 200f) {
-                                scoreManager.onLaserTick();
-                            }
-                        }
-
                         sequence.nextTickIndex++;
                     } else {
                         break;
@@ -216,6 +290,7 @@ public class LaserManager {
             cursor.wasAutoSnapped = false;
             cursor.missedTimer = 0f;
             cursor.hasComboBroken = false;
+            resolvedSlamTimes.put(cursor, -1f);
 
             Beatmap.LaserSequence upcomingLaser = null;
             for (Beatmap.LaserSequence sequence : laserData) {
@@ -229,6 +304,8 @@ public class LaserManager {
                 float timeToNextMs = upcomingLaser.nodes.get(0).offset - currentTime;
                 if (timeToNextMs <= 1000f) {
                     cursor.targetLaserX = upcomingLaser.nodes.get(0).x;
+                    // --- THE FREEZE FIX (Part 2): Bolt the cursor exactly in place while waiting ---
+                    cursor.x = cursor.targetLaserX;
                     cursor.setState(new LockedState());
                     cursor.isMissed = false;
                 }
@@ -255,22 +332,20 @@ public class LaserManager {
                 float yA = (nodeA.offset - currentTime) * speed * mult + hitY;
                 float yB = (nodeB.offset - currentTime) * speed * mult + hitY;
 
-                // Cull if entirely off-screen OR entirely below the hit line
                 if ((yA > Gdx.graphics.getHeight() + 200f && yB > Gdx.graphics.getHeight() + 200f) || (yA < hitY && yB < hitY)) continue;
 
                 float xA = trackX + (nodeA.x * trackW);
                 float xB = trackX + (nodeB.x * trackW);
 
-                // --- THE FIX: Mathematically clip the laser perfectly at the hit line ---
                 if (yA < hitY) {
                     float t = (hitY - yA) / (yB - yA);
-                    xA = xA + (t * (xB - xA)); // Calculate exact X intersection
-                    yA = hitY;                 // Snap Y to hit line
+                    xA = xA + (t * (xB - xA));
+                    yA = hitY;
                 }
                 if (yB < hitY) {
                     float t = (hitY - yB) / (yA - yB);
-                    xB = xB + (t * (xA - xB)); // Calculate exact X intersection
-                    yB = hitY;                 // Snap Y to hit line
+                    xB = xB + (t * (xA - xB));
+                    yB = hitY;
                 }
 
                 renderer.rectLine(xA, yA, xB, yB, 15f);

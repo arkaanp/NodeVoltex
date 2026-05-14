@@ -198,7 +198,9 @@ public class PlayScreen implements Screen {
         // --- THE REPLAY LOADER ---
         if (replayTimestampToLoad > 0) {
             try {
-                com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("assets/replays/replay_" + replayTimestampToLoad + ".json");
+                // --- THE FIX: Load from the safe 'local' directory ---
+                com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("replays/replay_" + replayTimestampToLoad + ".json");
+
                 if (replayFile.exists()) {
                     com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
                     com.nodevoltex.game.data.ReplayData savedReplay = json.fromJson(com.nodevoltex.game.data.ReplayData.class, replayFile);
@@ -206,18 +208,16 @@ public class PlayScreen implements Screen {
                     if (savedReplay != null) {
                         inputController.currentReplay = savedReplay;
 
-                        // --- THE FIX: Tell the InputController to simulate these keypresses! ---
                         inputController.isReplayPlayback = true;
-                        inputController.isRecording = false;     // Block overwriting the file
+                        inputController.isRecording = false;
 
-                        // Turn off manual mods so they don't break the replay
                         inputController.isAutoPlay = false;
                         laserManager.isAutoPlay = false;
                         laserManager.isNoLaser = false;
                     }
                 }
             } catch (Exception e) {
-                System.out.println("Failed to load replay: " + e.getMessage());
+                System.out.println("Failed to load replay file: " + e.getMessage());
             }
         }
 
@@ -401,12 +401,13 @@ public class PlayScreen implements Screen {
                     inputController.currentReplay.finalScore = scoreManager.getFinalScore();
                     inputController.currentReplay.timestamp = runTimestamp;
 
-                    com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("assets/replays/replay_" + runTimestamp + ".json");
+                    // --- Save as a real .json file in the safe 'local' directory (NOT assets!) ---
+                    com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("replays/replay_" + runTimestamp + ".json");
                     com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
                     replayFile.writeString(json.prettyPrint(inputController.currentReplay), false);
                 }
 
-                // --- THE FIX: Pass the exact runTimestamp to the ScoreScreen ---
+                // --- Pass the exact runTimestamp to the ScoreScreen ---
                 game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, null, diffName, mapFilePath, false, runTimestamp));
             })
         ));

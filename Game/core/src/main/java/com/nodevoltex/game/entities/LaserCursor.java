@@ -91,8 +91,25 @@ public class LaserCursor {
 
     public void draw(ShapeRenderer renderer, float trackX, float trackWidth, float hitLineY) {
         float screenX = trackX + (this.x * trackWidth);
-        if (isMissed) renderer.setColor(Color.DARK_GRAY);
-        else renderer.setColor(isLeftLaser ? Color.CYAN : Color.MAGENTA);
-        renderer.rect(screenX - 15, hitLineY - 10, 30, 20);
+
+        // --- THE COLOR FIX: Keep base color, lower opacity to 30% if missed ---
+        float r = isLeftLaser ? 0f : 1f;  // Cyan: 0, Magenta: 1
+        float g = isLeftLaser ? 1f : 0f;  // Cyan: 1, Magenta: 0
+        float b = 1f;                     // Both use max Blue
+        float a = isMissed ? 0.3f : 1.0f; // Drop opacity instead of turning gray
+
+        renderer.setColor(r, g, b, a);
+
+        // --- THE SHAPE FIX: Draw an upward arrow/triangle instead of a rectangle ---
+        float peakX = screenX;
+        float peakY = hitLineY + 12f;  // Top point of the arrow
+
+        float leftX = screenX - 18f;
+        float leftY = hitLineY - 8f;   // Bottom left point
+
+        float rightX = screenX + 18f;
+        float rightY = hitLineY - 8f;  // Bottom right point
+
+        renderer.triangle(leftX, leftY, peakX, peakY, rightX, rightY);
     }
 }

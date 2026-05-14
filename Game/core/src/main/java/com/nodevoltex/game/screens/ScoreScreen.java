@@ -289,8 +289,9 @@ public class ScoreScreen implements Screen {
         TextButton replayBtn = new TextButton("Watch Replay", skin);
         replayBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
-                // --- THE FIX: Check if file exists, then boot PlayScreen with the timestamp! ---
-                com.badlogic.gdx.files.FileHandle checkFile = Gdx.files.local("assets/replays/replay_" + currentReplayTimestamp + ".json");
+                // --- THE FIX: Check if the .json file exists on the hard drive ---
+                com.badlogic.gdx.files.FileHandle checkFile = Gdx.files.local("replays/replay_" + currentReplayTimestamp + ".json");
+
                 if (checkFile.exists()) {
                     animateOut(() -> game.setScreen(new PlayScreen(game, mapFilePath, currentReplayTimestamp)));
                 } else {
