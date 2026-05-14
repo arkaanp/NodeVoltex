@@ -109,7 +109,13 @@ public class PlayScreen implements Screen {
         return note;
     }
 
+    // --- THE FIX: Overloaded constructor for normal gameplay ---
     public PlayScreen(NodeVoltex game, String mapFilePath) {
+        this(game, mapFilePath, 0L); // 0 means don't load a replay
+    }
+
+    // --- THE FIX: Master constructor that accepts a Replay Timestamp ---
+    public PlayScreen(NodeVoltex game, String mapFilePath, long replayTimestampToLoad) {
         this.game = game;
         this.mapFilePath = mapFilePath;
 
@@ -190,18 +196,30 @@ public class PlayScreen implements Screen {
         rightCursor = new LaserCursor(false, SettingsManager.getKey("RL", true), SettingsManager.getKey("RR", true), SettingsManager.getKey("RL", false), SettingsManager.getKey("RR", false));
 
         // --- THE REPLAY LOADER ---
-        try {
-            com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("assets/replays/replay_1778315319697.json");
-            com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
-            com.nodevoltex.game.data.ReplayData savedReplay = json.fromJson(com.nodevoltex.game.data.ReplayData.class, replayFile);
+        if (replayTimestampToLoad > 0) {
+            try {
+                com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("assets/replays/replay_" + replayTimestampToLoad + ".json");
+                if (replayFile.exists()) {
+                    com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
+                    com.nodevoltex.game.data.ReplayData savedReplay = json.fromJson(com.nodevoltex.game.data.ReplayData.class, replayFile);
 
-            if (savedReplay != null) {
-                inputController.currentReplay = savedReplay;
-                inputController.isReplayPlayback = false;
-                inputController.isRecording = false;
-                // Removed the forced 'false' overrides so your mods actually work!
+                    if (savedReplay != null) {
+                        inputController.currentReplay = savedReplay;
+
+                        // --- THE FIX: Tell the InputController to simulate these keypresses! ---
+                        inputController.isReplayPlayback = true;
+                        inputController.isRecording = false;     // Block overwriting the file
+
+                        // Turn off manual mods so they don't break the replay
+                        inputController.isAutoPlay = false;
+                        laserManager.isAutoPlay = false;
+                        laserManager.isNoLaser = false;
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("Failed to load replay: " + e.getMessage());
             }
-        } catch (Exception e) {}
+        }
 
         // --- 5. BUILD INTRO & SCORE UI ---
         buildIntroAndUI();
@@ -365,7 +383,6 @@ public class PlayScreen implements Screen {
         playfieldAnchor.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
             com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(0f, -WORLD_HEIGHT, 0.8f, Interpolation.pow3In),
             com.badlogic.gdx.scenes.scene2d.actions.Actions.run(() -> {
-                // When the animation finishes 0.8s later, compile the replay and switch screens!
                 String diffName = "UNKNOWN";
                 if (mapFilePath.contains("nov.json")) diffName = "NOV";
                 else if (mapFilePath.contains("adv.json")) diffName = "ADV";
@@ -374,17 +391,23 @@ public class PlayScreen implements Screen {
 
                 boolean isModded = SettingsManager.getModAutoPlay() || SettingsManager.getModNoLaser();
 
-                if (inputController.isRecording && !isModded) {
+                // --- THE FIX: Generate exactly ONE timestamp for both the Replay and the Score! ---
+                long runTimestamp = System.currentTimeMillis();
+
+                // Don't record if we are modded OR if we are currently watching a replay!
+                if (inputController.isRecording && !isModded && !inputController.isReplayPlayback) {
                     inputController.currentReplay.songTitle = beatmap.general.title;
                     inputController.currentReplay.difficulty = diffName;
                     inputController.currentReplay.finalScore = scoreManager.getFinalScore();
-                    inputController.currentReplay.timestamp = System.currentTimeMillis();
+                    inputController.currentReplay.timestamp = runTimestamp;
 
-                    com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("assets/replays/replay_" + inputController.currentReplay.timestamp + ".json");
+                    com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("assets/replays/replay_" + runTimestamp + ".json");
                     com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
                     replayFile.writeString(json.prettyPrint(inputController.currentReplay), false);
                 }
-                game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, null, diffName, mapFilePath, false));
+
+                // --- THE FIX: Pass the exact runTimestamp to the ScoreScreen ---
+                game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, null, diffName, mapFilePath, false, runTimestamp));
             })
         ));
     }

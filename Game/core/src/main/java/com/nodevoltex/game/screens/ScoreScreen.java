@@ -47,11 +47,13 @@ public class ScoreScreen implements Screen {
 
     private Group rootGroup;
 
-    // --- NEW: Store difficulty and map path for exit transition ---
     private String currentDifficulty;
     private String currentMapPath;
+    private long currentReplayTimestamp;
 
-    public ScoreScreen(NodeVoltex game, Beatmap.General metadata, ScoreManager scoreManager, SaveData historyData, String difficultyName, String mapFilePath, boolean fromHistory) {
+    // --- THE FIX: Added 'long playTimestamp' to the end of the constructor ---
+    public ScoreScreen(NodeVoltex game, Beatmap.General metadata, ScoreManager scoreManager,
+                       SaveData historyData, String difficultyName, String mapFilePath, boolean fromHistory, long playTimestamp) {
         this.game = game;
         this.stage = new Stage(new ScreenViewport());
         this.skin = NodeVoltex.skin;
@@ -72,12 +74,16 @@ public class ScoreScreen implements Screen {
         String grade;
 
         if (fromHistory && historyData != null) {
+            this.currentReplayTimestamp = historyData.timestamp; // <--- Capture from history
+
             finalScore = historyData.score; grade = historyData.grade; maxCombo = historyData.maxCombo;
             totalSCrit = historyData.sCriticals; totalCrit = historyData.criticals; totalNear = historyData.nears;
             totalMid = historyData.mids; totalFar = historyData.fars; totalMiss = historyData.misses;
             totalLaserTicks = historyData.laserTicks; totalLaserMisses = historyData.laserMisses;
             totalEarly = historyData.early; totalLate = historyData.late;
         } else {
+            this.currentReplayTimestamp = playTimestamp; // <--- Capture from the live play
+
             finalScore = scoreManager.getFinalScore(); grade = scoreManager.getGrade(); maxCombo = scoreManager.maxCombo;
             totalSCrit = scoreManager.noteStats.sCriticals + scoreManager.releaseStats.sCriticals;
             totalCrit = scoreManager.noteStats.criticals + scoreManager.releaseStats.criticals;
@@ -93,7 +99,8 @@ public class ScoreScreen implements Screen {
             // --- THE FIX: Block score history saving if a mod was used ---
             boolean isModded = SettingsManager.getModAutoPlay() || SettingsManager.getModNoLaser();
             if (!isModded) {
-                saveScoreData(mapFilePath, finalScore, grade, scoreManager, totalSCrit, totalCrit, totalNear, totalMid, totalFar, totalMiss, totalEarly, totalLate);
+                // --- THE FIX: Pass 'playTimestamp' to the save method! ---
+                saveScoreData(mapFilePath, finalScore, grade, scoreManager, totalSCrit, totalCrit, totalNear, totalMid, totalFar, totalMiss, totalEarly, totalLate, playTimestamp);
             }
         }
 
@@ -280,6 +287,18 @@ public class ScoreScreen implements Screen {
         Table rightBtns = new Table();
         rightBtns.bottom().right();
         TextButton replayBtn = new TextButton("Watch Replay", skin);
+        replayBtn.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent event, float x, float y) {
+                // --- THE FIX: Check if file exists, then boot PlayScreen with the timestamp! ---
+                com.badlogic.gdx.files.FileHandle checkFile = Gdx.files.local("assets/replays/replay_" + currentReplayTimestamp + ".json");
+                if (checkFile.exists()) {
+                    animateOut(() -> game.setScreen(new PlayScreen(game, mapFilePath, currentReplayTimestamp)));
+                } else {
+                    replayBtn.setText("No Replay Found");
+                    replayBtn.setColor(Color.DARK_GRAY);
+                }
+            }
+        });
         rightBtns.add(replayBtn).width(160).height(40).bottom().right();
 
         bottomRow.add(leftBtns).expandX().fillX().bottom().left();
@@ -342,7 +361,8 @@ public class ScoreScreen implements Screen {
         return currentShift + (deltaY * tan3);
     }
 
-    private void saveScoreData(String mapFilePath, int finalScore, String grade, ScoreManager scoreManager, int sc, int c, int n, int m, int f, int miss, int early, int late) {
+    private void saveScoreData(String mapFilePath, int finalScore, String grade, ScoreManager scoreManager,
+                              int sc, int c, int n, int m, int f, int miss, int early, int late, long playTimestamp) {
         String safeFileName = mapFilePath.replace("/", "_").replace("\\", "_") + "_save.json";
         com.badlogic.gdx.files.FileHandle saveFile = Gdx.files.local("assets/scores/" + safeFileName);
         com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
@@ -354,7 +374,10 @@ public class ScoreScreen implements Screen {
         }
 
         com.nodevoltex.game.data.SaveData newData = new com.nodevoltex.game.data.SaveData();
-        newData.score = finalScore; newData.grade = grade; newData.timestamp = System.currentTimeMillis();
+        newData.score = finalScore; newData.grade = grade;
+
+        // --- Use the synchronized timestamp! ---
+        newData.timestamp = playTimestamp;
         newData.maxCombo = scoreManager.maxCombo; newData.sCriticals = sc; newData.criticals = c; newData.nears = n;
         newData.mids = m; newData.fars = f; newData.misses = miss; newData.early = early; newData.late = late;
         newData.laserTicks = scoreManager.laserTicks; newData.laserMisses = scoreManager.laserMisses;

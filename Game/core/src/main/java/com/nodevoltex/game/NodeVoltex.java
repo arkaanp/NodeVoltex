@@ -23,6 +23,24 @@ public class NodeVoltex extends Game {
         // 1. Build the UI Skin FIRST so it exists in memory
         createBasicSkin();
 
+        // --- THE FIX: Force Global Smooth Text ---
+        com.badlogic.gdx.utils.ObjectMap<String, com.badlogic.gdx.graphics.g2d.BitmapFont> fonts = skin.getAll(com.badlogic.gdx.graphics.g2d.BitmapFont.class);
+
+        if (fonts != null) {
+            for (com.badlogic.gdx.graphics.g2d.BitmapFont font : fonts.values()) {
+                // 1. Double check the graphics card is using smooth bilinear filtering
+                font.getRegion().getTexture().setFilter(
+                    com.badlogic.gdx.graphics.Texture.TextureFilter.Linear,
+                    com.badlogic.gdx.graphics.Texture.TextureFilter.Linear
+                );
+
+                // 2. Stop LibGDX from forcing text onto rigid pixel grids.
+                // This permanently stops the pixelation/blurriness after transitioning screens!
+                font.setUseIntegerPositions(false);
+            }
+        }
+        // -----------------------------------------
+
         // 2. Boot the Main Menu SECOND
         this.setScreen(new MainMenuScreen(this));
     }

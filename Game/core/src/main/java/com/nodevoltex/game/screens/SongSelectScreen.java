@@ -193,7 +193,8 @@ public class SongSelectScreen implements Screen {
         // Wait 0.8s for the animation to finish, then hand off to ScoreScreen
         stage.addAction(Actions.sequence(
             Actions.delay(0.8f),
-            Actions.run(() -> game.setScreen(new ScoreScreen(game, mockMeta, null, data, diffNameOnly, mapPath, true)))
+            // --- Pass data.timestamp as the final parameter ---
+            Actions.run(() -> game.setScreen(new ScoreScreen(game, mockMeta, null, data, diffNameOnly, mapPath, true, data.timestamp)))
         ));
     }
 
