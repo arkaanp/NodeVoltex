@@ -5,17 +5,22 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.utils.FocusListener;
 
 public class TopSearchBar extends Table {
 
     private final ShapeRenderer shapeRenderer;
     private final Skin skin;
     private boolean isSearchFocused = false;
-    private String activeSort = "title"; // Tracks which tab is selected
+    private String activeSort = "title";
+
+    // --- Promoted to Class Variable for Focus Control ---
+    private TextField searchField;
 
     public TopSearchBar(Skin skin, final SongListPanel songListPanel) {
         this.shapeRenderer = new ShapeRenderer();
@@ -31,16 +36,18 @@ public class TopSearchBar extends Table {
         fieldStyle.fontColor = Color.WHITE;
         fieldStyle.background = null;
 
-        final TextField searchField = new TextField("search: ...", fieldStyle);
+        searchField = new TextField("search: ...", fieldStyle);
+
         searchField.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                if (!isSearchFocused) {
+                if (!isSearchFocused && searchField.getText().trim().equals("search: ...")) {
                     searchField.setText("");
                     isSearchFocused = true;
                 }
             }
         });
+
         searchField.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ChangeListener() {
             @Override
             public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
@@ -48,16 +55,29 @@ public class TopSearchBar extends Table {
             }
         });
 
+        // --- Automatic Placeholder Restoration ---
+        searchField.addListener(new FocusListener() {
+            @Override
+            public void keyboardFocusChanged(FocusEvent event, Actor actor, boolean focused) {
+                if (!focused) {
+                    if (searchField.getText().trim().isEmpty()) {
+                        isSearchFocused = false;
+                        searchField.setText("search: ...");
+                    }
+                }
+            }
+        });
+
         searchRow.add(searchField).width(350).padLeft(30);
         this.add(searchRow).expandX().fillX().height(40).row();
 
-        // --- ROW 2: SORT BUTTONS (Custom Underline Tabs) ---
+        // --- ROW 2: SORT BUTTONS ---
         Table sortTable = new Table();
         sortTable.left();
 
         Label sortLbl = new Label("sorted by:", skin);
         sortLbl.setColor(Color.valueOf("#222222"));
-        sortLbl.setFontScale(0.85f); // Matches the tabs
+        sortLbl.setFontScale(0.85f);
 
         Table titleTab = createSortTab("title", songListPanel);
         Table artistTab = createSortTab("artist", songListPanel);
@@ -71,19 +91,41 @@ public class TopSearchBar extends Table {
         this.add(sortTable).expandX().fillX().height(35);
     }
 
-    // --- Custom Animated Tab Builder ---
+    // --- Smart Unfocus Scanner ---
+    @Override
+    public void act(float delta) {
+        super.act(delta);
+
+        // Scan for screen taps/clicks
+        if (Gdx.input.justTouched() && getStage() != null) {
+            com.badlogic.gdx.math.Vector2 pos = new com.badlogic.gdx.math.Vector2(Gdx.input.getX(), Gdx.input.getY());
+            getStage().screenToStageCoordinates(pos);
+            this.stageToLocalCoordinates(pos);
+
+            float topHeight = 40f;
+            float innerY = getHeight() - topHeight;
+
+            // If the click lands anywhere OUTSIDE the top 40 pixels (the inner trapezoid bounds)
+            if (pos.y < innerY || pos.x < 0 || pos.y > getHeight() || pos.x > getWidth()) {
+                // If the search bar was actively typing, kill the focus!
+                if (getStage().getKeyboardFocus() == searchField) {
+                    getStage().setKeyboardFocus(null);
+                }
+            }
+        }
+    }
+
     private Table createSortTab(final String text, final SongListPanel songListPanel) {
         final Table tab = new Table();
         tab.setTouchable(Touchable.enabled);
 
         final Label label = new Label(text, skin);
-        label.setFontScale(0.85f); // Matched size
+        label.setFontScale(0.85f);
 
-        // The underline image (Black to match the text on the pink background)
         final Image underline = new Image(skin.newDrawable("white", Color.BLACK));
 
         tab.add(label).padBottom(2).row();
-        tab.add(underline).growX().height(2); // 2 pixels thick, stretches to text width
+        tab.add(underline).growX().height(2);
 
         final ClickListener listener = new ClickListener() {
             @Override
@@ -94,25 +136,45 @@ public class TopSearchBar extends Table {
         };
         tab.addListener(listener);
 
-        // Permanent logic loop to handle visual states seamlessly
         tab.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
             @Override
             public boolean act(float delta) {
                 if (activeSort.equals(text)) {
-                    underline.getColor().a = 1.0f;          // Fully visible
-                    label.setColor(Color.BLACK);            // Active color
+                    underline.getColor().a = 1.0f;
+                    label.setColor(Color.BLACK);
                 } else if (listener.isOver()) {
-                    underline.getColor().a = 0.4f;          // Low opacity hover
-                    label.setColor(Color.valueOf("#222222")); // Slightly faded text
+                    underline.getColor().a = 0.4f;
+                    label.setColor(Color.valueOf("#222222"));
                 } else {
-                    underline.getColor().a = 0.0f;          // Invisible
-                    label.setColor(Color.valueOf("#444444")); // Inactive color
+                    underline.getColor().a = 0.0f;
+                    label.setColor(Color.valueOf("#444444"));
                 }
-                return false; // Loop forever
+                return false;
             }
         });
 
         return tab;
+    }
+
+    // --- Mathematically Perfect Rounded Trapezoid Helper ---
+    private void drawRoundedTrapezoid(ShapeRenderer sr, float x, float y, float w, float h, float tanAngle, Color color, float radius) {
+        sr.setColor(color);
+        float slantTotal = h * tanAngle;
+
+        // Calculate the exact center point so the arc seamlessly matches the 5-degree slant
+        float arcCenterX = x + slantTotal + radius - (radius * tanAngle);
+        float arcCenterY = y + radius;
+
+        // 1. Draw the smooth bottom-left corner
+        sr.arc(arcCenterX, arcCenterY, radius, 180f, 95f, 25);
+
+        // 2. Draw the flat bottom connecting the arc to the right edge
+        sr.rect(arcCenterX, y, (x + w) - arcCenterX, radius);
+
+        // 3. Draw the main geometric body using two triangles
+        float slantAtRadiusY = slantTotal - (radius * tanAngle);
+        sr.triangle(x, y + h, x + slantAtRadiusY, arcCenterY, x + w, y + h);
+        sr.triangle(x + slantAtRadiusY, arcCenterY, x + w, arcCenterY, x + w, y + h);
     }
 
     @Override
@@ -132,17 +194,13 @@ public class TopSearchBar extends Table {
         Color lightPink = new Color(1f, 0.4f, 0.75f, 0.95f * parentAlpha);
         Color darkPink = new Color(1f, 0.15f, 0.65f, 0.95f * parentAlpha);
 
-        float slantTotal = h * tanAngle;
-        shapeRenderer.setColor(lightPink);
-        shapeRenderer.triangle(x, y + h, x + slantTotal, y, x + w, y);
-        shapeRenderer.triangle(x, y + h, x + w, y, x + w, y + h);
+        // --- Draw both background bands using the rounded geometry ---
+        // 1. MAIN BACKGROUND (Light Pink with 12px radius)
+        drawRoundedTrapezoid(shapeRenderer, x, y, w, h, tanAngle, lightPink, 12f);
 
-        float shiftRight = 10f, slantInner = topHeight * tanAngle;
-        float innerTopX = x + shiftRight, innerBotX = innerTopX + slantInner;
-
-        shapeRenderer.setColor(darkPink);
-        shapeRenderer.triangle(innerTopX, y + h, innerBotX, splitY, x + w, splitY);
-        shapeRenderer.triangle(innerTopX, y + h, x + w, splitY, x + w, y + h);
+        // 2. INNER SEARCH BAND (Dark Pink with 8px radius)
+        float shiftRight = 10f;
+        drawRoundedTrapezoid(shapeRenderer, x + shiftRight, splitY, w - shiftRight, topHeight, tanAngle, darkPink, 8f);
 
         shapeRenderer.end();
         Gdx.gl.glDisable(GL20.GL_BLEND);

@@ -35,7 +35,6 @@ public class SongListPanel extends Table {
     private final com.badlogic.gdx.math.Vector2 tempPos1 = new com.badlogic.gdx.math.Vector2();
     private final com.badlogic.gdx.math.Vector2 tempPos2 = new com.badlogic.gdx.math.Vector2();
 
-    // --- True Global Audio State ---
     private static com.badlogic.gdx.audio.Music mainMenuMusic;
     private static Music previewMusic;
     private static String currentPreviewPath = "";
@@ -44,6 +43,12 @@ public class SongListPanel extends Table {
     private static String GLOBAL_LAST_PLAYED_PATH = null;
     private static String GLOBAL_LAST_PLAYED_DIFFICULTY = null;
     private long lastSelectionTime = 0;
+
+    // --- Dual 9-Patch Memory for Borders & Fills ---
+    private static com.badlogic.gdx.graphics.g2d.NinePatch normalPatch;
+    private static com.badlogic.gdx.graphics.g2d.NinePatch outlinePatch;
+    private static com.badlogic.gdx.graphics.Texture roundedTexture;
+
 
     private static class SongData {
         String title, artist, mapper, audioPath;
@@ -71,9 +76,7 @@ public class SongListPanel extends Table {
         this.skin = skin;
         this.statsPanel = statsPanel;
 
-        if (mainMenuMusicIn != null) {
-            mainMenuMusic = mainMenuMusicIn;
-        }
+        if (mainMenuMusicIn != null) mainMenuMusic = mainMenuMusicIn;
 
         songListTable = new Table() {
             @Override
@@ -99,6 +102,52 @@ public class SongListPanel extends Table {
 
         this.add(scrollPane).expand().fill().pad(10);
         loadSongsFromDirectory();
+    }
+
+    // --- Advanced Bordered 9-Patch Generator ---
+    private static void initPatches() {
+        if (normalPatch != null) return;
+        int radius = 10;
+        int size = radius * 2 + 1;
+
+        // 1. Solid Normal Patch
+        com.badlogic.gdx.graphics.Pixmap normalPix = new com.badlogic.gdx.graphics.Pixmap(size, size, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+        normalPix.setColor(Color.WHITE);
+        normalPix.fillCircle(radius, radius, radius);
+        com.badlogic.gdx.graphics.Texture normalTex = new com.badlogic.gdx.graphics.Texture(normalPix);
+        normalTex.setFilter(com.badlogic.gdx.graphics.Texture.TextureFilter.Linear, com.badlogic.gdx.graphics.Texture.TextureFilter.Linear);
+        normalPatch = new com.badlogic.gdx.graphics.g2d.NinePatch(normalTex, radius, radius, radius, radius);
+        normalPix.dispose();
+
+        // 2. Solid Patch with a Colored Border
+        com.badlogic.gdx.graphics.Pixmap outlinePix = new com.badlogic.gdx.graphics.Pixmap(size, size, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+        // Changed from BLACK to GRAY. When tinted, this becomes a darker shade of the fill color
+        outlinePix.setColor(Color.GRAY);
+        outlinePix.fillCircle(radius, radius, radius);
+        outlinePix.setColor(Color.WHITE);
+        outlinePix.fillCircle(radius, radius, radius - 2);
+
+        com.badlogic.gdx.graphics.Texture outlineTex = new com.badlogic.gdx.graphics.Texture(outlinePix);
+        outlineTex.setFilter(com.badlogic.gdx.graphics.Texture.TextureFilter.Linear, com.badlogic.gdx.graphics.Texture.TextureFilter.Linear);
+        outlinePatch = new com.badlogic.gdx.graphics.g2d.NinePatch(outlineTex, radius, radius, radius, radius);
+        outlinePix.dispose();
+    }
+
+    private com.badlogic.gdx.scenes.scene2d.utils.Drawable createRoundedBackground(Color color) {
+        if (normalPatch == null) {
+            int radius = 10;
+            int size = radius * 2 + 1;
+
+            com.badlogic.gdx.graphics.Pixmap pixmap = new com.badlogic.gdx.graphics.Pixmap(size, size, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
+            pixmap.setColor(Color.WHITE);
+            pixmap.fillCircle(radius, radius, radius);
+
+            roundedTexture = new com.badlogic.gdx.graphics.Texture(pixmap);
+            roundedTexture.setFilter(com.badlogic.gdx.graphics.Texture.TextureFilter.Linear, com.badlogic.gdx.graphics.Texture.TextureFilter.Linear);
+            normalPatch = new com.badlogic.gdx.graphics.g2d.NinePatch(roundedTexture, radius, radius, radius, radius);
+            pixmap.dispose();
+        }
+        return new com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable(normalPatch).tint(color);
     }
 
     private void loadSongsFromDirectory() {
@@ -229,8 +278,6 @@ public class SongListPanel extends Table {
             songListTable.add(item).width(fixedWidth).left().padBottom(5).row();
         }
 
-        // Force a layout pass so newly created rows have valid heights before
-        // slant positioning runs. This prevents teleport/flicker when animating.
         songListTable.validate();
 
         if (currentlyExpandedActor != null && animateCascade) {
@@ -241,9 +288,14 @@ public class SongListPanel extends Table {
     }
 
     private Table buildCollapsedItem(SongData song) {
-        Table item = new Table();
+        final Table item = new Table();
         item.setName("slantHeader");
-        item.background(skin.newDrawable("white", new Color(0.1f, 0.1f, 0.15f, 0.7f)));
+
+        // --- Soft hover, no outline ---
+        final com.badlogic.gdx.scenes.scene2d.utils.Drawable normalBg = createRoundedBackground(new Color(0.15f, 0.15f, 0.2f, 0.7f));
+        final com.badlogic.gdx.scenes.scene2d.utils.Drawable hoverBg = createRoundedBackground(new Color(0.12f, 0.12f, 0.17f, 0.8f)); // Soft hover
+
+        item.setBackground(normalBg);
 
         Table textTable = new Table();
         textTable.left();
@@ -269,11 +321,22 @@ public class SongListPanel extends Table {
         item.add(thinBars).expandX().fillX().padLeft(20).padRight(20).padBottom(5);
 
         item.setTouchable(Touchable.enabled);
-        item.addListener(new ClickListener() {
+        final ClickListener listener = new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
                 handleSongSelection(song, null);
             }
+        };
+        item.addListener(listener);
+
+        item.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
+            @Override
+            public boolean act(float delta) {
+                if (listener.isOver() && !isTransitioning) item.setBackground(hoverBg);
+                else item.setBackground(normalBg);
+                return false;
+            }
         });
+
         return item;
     }
 
@@ -282,7 +345,9 @@ public class SongListPanel extends Table {
 
         Table headerBox = new Table();
         headerBox.setName("slantHeader");
-        headerBox.background(skin.newDrawable("white", new Color(0.1f, 0.1f, 0.15f, 0.7f)));
+
+        // --- Selected Header (Slightly darker/more opaque, no outline) ---
+        headerBox.background(createRoundedBackground(new Color(0.15f, 0.15f, 0.2f, 0.9f)));
 
         Table textTable = new Table();
         textTable.left();
@@ -320,28 +385,33 @@ public class SongListPanel extends Table {
     }
 
     private com.badlogic.gdx.scenes.scene2d.ui.Container<Table> createAnimatedDiffRow(SongData song, String diffName, int level, Color color, String mapPath, int delayIndex, float fixedWidth, boolean animate) {
-        Table row = new Table();
-        boolean isSelected = selectedDiffName.equals(diffName);
-        float alpha = isSelected ? 0.8f : 0.3f;
-        row.background(skin.newDrawable("white", new Color(color.r, color.g, color.b, alpha)));
+        final Table diffBox = new Table(); // This is the physical box
+
+        // --- Diff Box States (No Outlines) ---
+        Color dimCol = new Color(color.r * 0.6f, color.g * 0.6f, color.b * 0.6f, 0.4f);
+        Color hoverCol = new Color(color.r * 0.5f, color.g * 0.5f, color.b * 0.5f, 0.5f); // Soft hover
+        Color activeCol = new Color(color.r, color.g, color.b, 0.85f); // Bright active color
+
+        final com.badlogic.gdx.scenes.scene2d.utils.Drawable normalBg = createRoundedBackground(dimCol);
+        final com.badlogic.gdx.scenes.scene2d.utils.Drawable hoverBg = createRoundedBackground(hoverCol);
+        final com.badlogic.gdx.scenes.scene2d.utils.Drawable activeBg = createRoundedBackground(activeCol);
 
         Label diffLabel = new Label(diffName + " " + level, skin);
         if (level >= 1 && level <= 12) diffLabel.setColor(Color.BLACK);
         else diffLabel.setColor(Color.WHITE);
 
-        row.add(diffLabel).expandX().left().pad(8).padLeft(20);
+        diffBox.add(diffLabel).expandX().left().pad(8).padLeft(20);
 
-        row.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.enabled);
-        row.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
+        diffBox.setTouchable(com.badlogic.gdx.scenes.scene2d.Touchable.enabled);
+        final ClickListener listener = new ClickListener() {
             @Override public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                 if (selectedDiffName.equals(diffName)) {
-                    stopAudio(); // ONLY stop audio if actually entering PlayScreen
+                    stopAudio();
                     if (mapPath != null) {
-                        // --- Trigger the parent screen's leftward exit animation ---
                         if (game.getScreen() instanceof SongSelectScreen) {
                             ((SongSelectScreen) game.getScreen()).animateOutToPlayScreen(mapPath);
                         } else {
-                            game.setScreen(new PlayScreen(game, mapPath)); // Failsafe
+                            game.setScreen(new PlayScreen(game, mapPath));
                         }
                     }
                 } else {
@@ -350,11 +420,29 @@ public class SongListPanel extends Table {
                     refreshSongList(false);
                 }
             }
+        };
+        diffBox.addListener(listener);
+
+        diffBox.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
+            @Override
+            public boolean act(float delta) {
+                if (selectedDiffName.equals(diffName)) diffBox.setBackground(activeBg);
+                else if (listener.isOver() && !isTransitioning) diffBox.setBackground(hoverBg);
+                else diffBox.setBackground(normalBg);
+                return false;
+            }
         });
 
-        float exactHeight = 35f;
+        // --- Spacing Table ---
+        // We wrap the colored diffBox inside a transparent margin table.
+        // The padTop(5f) creates a physical 5 pixel gap ABOVE every single diff box
+        Table marginTable = new Table();
+        marginTable.add(diffBox).expandX().fillX().height(35f).padTop(5f);
 
-        com.badlogic.gdx.scenes.scene2d.ui.Container<Table> clipWrapper = new com.badlogic.gdx.scenes.scene2d.ui.Container<>(row);
+        // The exact animated height is now 40f (35f box + 5f gap)
+        float exactHeight = 40f;
+
+        com.badlogic.gdx.scenes.scene2d.ui.Container<Table> clipWrapper = new com.badlogic.gdx.scenes.scene2d.ui.Container<>(marginTable);
         clipWrapper.setName("slantDiff");
         clipWrapper.align(com.badlogic.gdx.utils.Align.top);
 
@@ -563,7 +651,6 @@ public class SongListPanel extends Table {
     private void playAudio(String audioPath, float offsetSeconds) {
         if (audioPath == null) return;
 
-        // --- Let the audio keep playing smoothly ---
         if (audioPath.equals(currentPreviewPath) && previewMusic != null && previewMusic.isPlaying()) {
             return;
         }
@@ -612,7 +699,6 @@ public class SongListPanel extends Table {
             previewMusic.dispose();
             previewMusic = null;
         }
-        // ONLY clear the path if we are hard stopping (e.g. starting a play).
         currentPreviewPath = "";
     }
 
@@ -640,12 +726,10 @@ public class SongListPanel extends Table {
         }
     }
 
-    // --- Static setter for preserving difficulty selection ---
     public static void setLastPlayedDifficulty(String difficulty) {
         GLOBAL_LAST_PLAYED_DIFFICULTY = difficulty;
     }
 
-    // --- Static getter for retrieving last difficulty ---
     public static String getLastPlayedDifficulty() {
         return GLOBAL_LAST_PLAYED_DIFFICULTY;
     }
@@ -662,10 +746,9 @@ public class SongListPanel extends Table {
         else if (target.endsWith("exh.json") || target.contains("/exh.json")) expectedDiff = "EXH";
         else if (target.endsWith("adv.json") || target.contains("/adv.json")) expectedDiff = "ADV";
 
-        // --- Try to restore the last played difficulty if available ---
         if (GLOBAL_LAST_PLAYED_DIFFICULTY != null && !GLOBAL_LAST_PLAYED_DIFFICULTY.isEmpty()) {
             expectedDiff = GLOBAL_LAST_PLAYED_DIFFICULTY;
-            GLOBAL_LAST_PLAYED_DIFFICULTY = null; // Clear it after using
+            GLOBAL_LAST_PLAYED_DIFFICULTY = null;
         }
 
         String[] targetParts = target.split("/");
@@ -790,7 +873,6 @@ public class SongListPanel extends Table {
                 }
             }
 
-            // --- Use actual baking math instead of just counting nodes ---
             com.badlogic.gdx.utils.JsonValue lasers = root.get("lasers");
             if (lasers != null) {
                 totalLaserTicks += bakeJsonLaserArray(lasers.get("left"));
@@ -803,7 +885,6 @@ public class SongListPanel extends Table {
         return new int[]{tapCount, holdCount, totalLaserTicks};
     }
 
-    // --- Helper method to simulate gameplay laser ticks ---
     private int bakeJsonLaserArray(com.badlogic.gdx.utils.JsonValue sequences) {
         if (sequences == null) return 0;
         int ticks = 0;
@@ -839,6 +920,6 @@ public class SongListPanel extends Table {
 
     public void filterSongs(String query) {
         this.searchQuery = query.toLowerCase();
-        refreshSongList(false); // Force the UI to redraw immediately!
+        refreshSongList(false);
     }
 }
