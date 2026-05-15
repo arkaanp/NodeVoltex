@@ -543,8 +543,12 @@ public class PlayScreen implements Screen {
                     }
                 }
 
-                if (music != null) currentAudioTimeMs = (music.getPosition() * 1000f) + beatmap.general.audioOffset + SettingsManager.getGlobalOffset();
-                else currentAudioTimeMs += delta * 1000f; // Failsafe if audio is missing
+                // --- Let the timer decouple from the audio if the track naturally ends early ---
+                if (music != null && music.isPlaying()) {
+                    currentAudioTimeMs = (music.getPosition() * 1000f) + beatmap.general.audioOffset + SettingsManager.getGlobalOffset();
+                } else {
+                    currentAudioTimeMs += delta * 1000f; // Ticks forward normally to finish the 2-second buffer
+                }
             }
 
             // Logic Updates
@@ -804,6 +808,20 @@ public class PlayScreen implements Screen {
                 font.getData().setScale(0.85f);
                 layout.setText(font, timing);
                 font.draw(game.batch, layout, centerX - layout.width/2f, timingY);
+            }
+
+            // --- AUTOPLAY & AUTO LASER INDICATORS ---
+            font.getData().setScale(1.0f);
+
+            if (inputController.isAutoPlay) {
+                font.setColor(Color.YELLOW.r, Color.YELLOW.g, Color.YELLOW.b, textAlpha); // Yellow for full Autoplay
+                layout.setText(font, "- AUTOPLAY -");
+                font.draw(game.batch, layout, WORLD_WIDTH / 2f - layout.width / 2f, WORLD_HEIGHT - 15f);
+            }
+            else if (laserManager.isNoLaser) {
+                font.setColor(Color.CYAN.r, Color.CYAN.g, Color.CYAN.b, textAlpha); // Cyan fits the laser theme perfectly!
+                layout.setText(font, "- AUTO LASER -");
+                font.draw(game.batch, layout, WORLD_WIDTH / 2f - layout.width / 2f, WORLD_HEIGHT - 15f);
             }
         }
         game.batch.end();
