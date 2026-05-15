@@ -30,6 +30,7 @@ public class SongListPanel extends Table {
     private boolean isTransitioning = false;
     private Actor cameraTarget = null;
     private float cameraLerpTime = 0f;
+    private String searchQuery = "";
 
     private final com.badlogic.gdx.math.Vector2 tempPos1 = new com.badlogic.gdx.math.Vector2();
     private final com.badlogic.gdx.math.Vector2 tempPos2 = new com.badlogic.gdx.math.Vector2();
@@ -211,6 +212,13 @@ public class SongListPanel extends Table {
         if (fixedWidth <= 0) fixedWidth = 800f;
 
         for (SongData song : allSongs) {
+            if (!searchQuery.isEmpty()) {
+                if (!song.title.toLowerCase().contains(searchQuery) &&
+                    !song.artist.toLowerCase().contains(searchQuery) &&
+                    !song.mapper.toLowerCase().contains(searchQuery)) {
+                    continue;
+                }
+            }
             Table item;
             if (song == selectedSong) {
                 item = buildExpandedItem(song, fixedWidth, animateCascade);
@@ -827,5 +835,10 @@ public class SongListPanel extends Table {
             ticks += tickTimes.size;
         }
         return ticks;
+    }
+
+    public void filterSongs(String query) {
+        this.searchQuery = query.toLowerCase();
+        refreshSongList(false); // Force the UI to redraw immediately!
     }
 }

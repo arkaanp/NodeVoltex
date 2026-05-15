@@ -14,8 +14,6 @@ import com.nodevoltex.game.NodeVoltex;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.math.Interpolation;
-
-// --- IMPORTS FOR GHOST SCORE ---
 import com.nodevoltex.game.data.Beatmap;
 
 public class SongSelectScreen implements Screen {
@@ -38,22 +36,22 @@ public class SongSelectScreen implements Screen {
     private SettingsOverlay settingsOverlay;
     private ModOverlay modOverlay;
 
-    // --- THE FIX: Added slideInFromRight flag! ---
+    // --- slideInFromRight flag ---
     public SongSelectScreen(NodeVoltex game, com.badlogic.gdx.audio.Music mainMenuMusic, String preselectedMapPath, boolean slideInFromRight) {
         this(game, mainMenuMusic, preselectedMapPath, slideInFromRight, null);
     }
 
-    // --- NEW: Constructor that accepts difficulty to restore after ScoreScreen ---
+    // --- Constructor that accepts difficulty to restore after ScoreScreen ---
     public SongSelectScreen(NodeVoltex game, com.badlogic.gdx.audio.Music mainMenuMusic, String preselectedMapPath, boolean slideInFromRight, String preselectedDifficulty) {
         this.game = game;
         this.stage = new Stage(new ScreenViewport());
 
-        // --- THE FIX: Force the Viewport to instantly snap to your true resolution! ---
+        // --- Force the Viewport to instantly snap to your true resolution ---
         this.stage.getViewport().update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
 
         this.skin = NodeVoltex.skin;
 
-        // --- THE FIX: Reset the global font scale so PlayScreen doesn't make the menu massive! ---
+        // --- Reset the global font scale so PlayScreen doesn't make the menu massive ---
         this.skin.getFont("default").getData().setScale(1.0f);
 
         Gdx.input.setInputProcessor(stage);
@@ -69,21 +67,27 @@ public class SongSelectScreen implements Screen {
         prevBgImage.setY(Gdx.graphics.getHeight());
         stage.addActor(prevBgImage);
 
-        // --- FIX: Set difficulty BEFORE creating SongListPanel! ---
+        // --- Set difficulty BEFORE creating SongListPanel ---
         if (preselectedDifficulty != null && !preselectedDifficulty.isEmpty()) {
             SongListPanel.setLastPlayedDifficulty(preselectedDifficulty);
         }
 
         leftPanel = new StatsPanel(NodeVoltex.skin);
-        // Link the panel so it can trigger our transitions!
+        // Link the panel so it can trigger our transitions
         leftPanel.setParentScreen(this);
 
         SongListPanel rightPanel = new SongListPanel(game, NodeVoltex.skin, leftPanel, mainMenuMusic);
         TopSearchBar searchBar = new TopSearchBar(NodeVoltex.skin, rightPanel);
 
+        // --- 1. RIGHT COLUMN SETUP ---
         rightColumn = new Table();
-        rightColumn.add(searchBar).expandX().fillX().padRight(40).height(60).row();
-        rightColumn.add(rightPanel).expand().fill();
+        rightColumn.top().right(); // Anchor everything inside the column to the top-right
+
+        // The Search Bar has NO padding, so it is allowed to touch the ceiling
+        rightColumn.add(searchBar).expandX().fillX().height(75).row();
+
+        // --- padTop(0) makes the list perfectly touch the search bar ---
+        rightColumn.add(rightPanel).expand().fill().padTop(0).padBottom(40);
 
         leftLayer = new Table();
         leftLayer.setFillParent(true);
@@ -94,13 +98,17 @@ public class SongSelectScreen implements Screen {
             .padTop(40).padBottom(40);
         stage.addActor(leftLayer);
 
+        // --- 2. RIGHT LAYER SETUP ---
         rightLayer = new Table();
         rightLayer.setFillParent(true);
-        rightLayer.right();
+
+        // Force the layer itself to align to the absolute top-right of the screen
+        rightLayer.top().right();
+
         rightLayer.add(rightColumn)
             .width(com.badlogic.gdx.scenes.scene2d.ui.Value.percentWidth(0.48f, rightLayer))
-            .expandY().fillY()
-            .padTop(40).padBottom(40);
+            .expandY().fillY(); // Removed padTop(40) and padBottom(40) from here!
+
         stage.addActor(rightLayer);
 
         backTable = new Table();
@@ -120,7 +128,7 @@ public class SongSelectScreen implements Screen {
 
         TextButton modsBtn = new TextButton("Mods", NodeVoltex.skin);
         modsBtn.setColor(Color.valueOf("#7a9e35"));
-        // --- THE FIX: Hook up the button to open the overlay ---
+        // --- Hook up the button to open the overlay ---
         modsBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -144,9 +152,9 @@ public class SongSelectScreen implements Screen {
         stage.addActor(backTable);
 
         settingsOverlay = new SettingsOverlay(stage, skin);
-        modOverlay = new ModOverlay(skin, stage); // <--- ADD THIS
+        modOverlay = new ModOverlay(skin, stage);
 
-        // --- THE FIX: Dynamic Entry Vector ---
+        // --- Dynamic Entry Vector ---
         if (slideInFromRight) {
             animateInFromRight();
         } else {
@@ -156,7 +164,7 @@ public class SongSelectScreen implements Screen {
         stage.addCaptureListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
             @Override
             public boolean scrolled(InputEvent event, float x, float y, float amountX, float amountY) {
-                // --- THE FIX: Block scrolling if EITHER overlay is open ---
+                // --- Block scrolling if EITHER overlay is open ---
                 if (settingsOverlay.isOpen() || modOverlay.isOpen()) return false;
 
                 float screenWidth = stage.getWidth();
@@ -173,7 +181,7 @@ public class SongSelectScreen implements Screen {
         });
     }
 
-    // --- NEW: Exits Song Select to the right, boots Score Screen ---
+    // --- Exits Song Select to the right, boots Score Screen ---
     public void transitionToScoreScreenFromHistory(com.nodevoltex.game.data.SaveData data, String title, String artist, String mapperText, String diffText, String mapPath) {
         stage.getRoot().setTouchable(Touchable.disabled);
         float w = stage.getWidth();
@@ -189,7 +197,7 @@ public class SongSelectScreen implements Screen {
         mockMeta.artist = artist;
         mockMeta.mapper = mapperText.replace("mapped by ", "");
 
-        // --- THE FIX: Safely parse the number out of the String! ---
+        // --- Safely parse the number out of the String ---
         try {
             mockMeta.level = diffText.contains(" ") ? Integer.parseInt(diffText.split(" ")[1]) : 0;
         } catch (NumberFormatException e) {
@@ -206,7 +214,7 @@ public class SongSelectScreen implements Screen {
         ));
     }
 
-    // --- NEW: Returning from Score Screen ---
+    // --- Returning from Score Screen ---
     private void animateInFromRight() {
         float w = stage.getWidth();
 
@@ -273,7 +281,7 @@ public class SongSelectScreen implements Screen {
         ));
     }
 
-    // --- NEW: Task 1 - Slide left to enter PlayScreen ---
+    // --- Slide left to enter PlayScreen ---
     public void animateOutToPlayScreen(final String mapPath) {
         stage.getRoot().setTouchable(Touchable.disabled);
         float w = stage.getWidth();
@@ -293,7 +301,7 @@ public class SongSelectScreen implements Screen {
     @Override public void resize(int width, int height) {
         stage.getViewport().update(width, height, true);
         if (settingsOverlay != null) settingsOverlay.resize(width, height);
-        if (modOverlay != null) modOverlay.resize(width, height); // <--- ADD THIS
+        if (modOverlay != null) modOverlay.resize(width, height);
     }
 
     @Override public void show() { Gdx.input.setInputProcessor(stage); }
@@ -302,7 +310,7 @@ public class SongSelectScreen implements Screen {
         Gdx.gl.glClearColor(0, 0, 0, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // --- THE FIX: Force the OpenGL matrix to snap back to the UI camera! ---
+        // --- Force the OpenGL matrix to snap back to the UI camera ---
         stage.getViewport().apply();
 
         stage.act(delta);

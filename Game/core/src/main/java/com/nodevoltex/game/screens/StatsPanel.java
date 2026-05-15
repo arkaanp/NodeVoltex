@@ -12,7 +12,6 @@ import com.badlogic.gdx.utils.Align;
 public class StatsPanel extends Table {
     private final Skin skin;
 
-    // --- NEW: Link to parent screen to trigger transitions ---
     private SongSelectScreen parentScreen;
     public String currentMapPath = "";
 
@@ -23,7 +22,12 @@ public class StatsPanel extends Table {
     private Table leaderboardTable;
     private ScrollPane leaderboardScrollPane;
     private com.badlogic.gdx.utils.Array<com.nodevoltex.game.data.SaveData> currentScores = new com.badlogic.gdx.utils.Array<>();
+
     private boolean sortScoreAscending = true;
+
+    // --- Tab State Memory Variables ---
+    private String activeSortTab = "score";
+    private String activeScopeTab = "local";
 
     private Image jacketImage;
     private com.badlogic.gdx.graphics.Texture jacketTexture;
@@ -41,7 +45,6 @@ public class StatsPanel extends Table {
         skin.getFont("default").getRegion().getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
     }
 
-    // Call this from SongSelectScreen right after creating StatsPanel!
     public void setParentScreen(SongSelectScreen screen) {
         this.parentScreen = screen;
     }
@@ -98,33 +101,31 @@ public class StatsPanel extends Table {
         headerStack.add(textTable);
         backgroundsTable.add(headerStack).expandX().fillX().padLeft(40).height(150).row();
 
+        // --- Custom Underline Tabs ---
         Table toggleTable = new Table();
         toggleTable.left().pad(10);
         toggleTable.background(skin.newDrawable("white", new Color(0, 0, 0, 0.4f)));
 
         Label sortedByLabel = new Label("sorted by: ", skin);
-        toggleTable.add(sortedByLabel).padRight(5);
+        sortedByLabel.setFontScale(0.85f);
+        sortedByLabel.setColor(Color.LIGHT_GRAY);
+        toggleTable.add(sortedByLabel).padRight(10);
 
-        TextButton scoreBtn = new TextButton("score", skin);
-        TextButton dateBtn = new TextButton("date", skin);
+        Table scoreBtn = createStatsTab("score", "sort", () -> { sortScoreAscending = true; refreshLeaderboard(false); });
+        Table dateBtn = createStatsTab("date", "sort", () -> { sortScoreAscending = false; refreshLeaderboard(false); });
 
-        scoreBtn.addListener(new ClickListener() {
-            @Override public void clicked(InputEvent event, float x, float y) { sortScoreAscending = true; refreshLeaderboard(false); }
-        });
-        dateBtn.addListener(new ClickListener() {
-            @Override public void clicked(InputEvent event, float x, float y) { sortScoreAscending = false; refreshLeaderboard(false); }
-        });
-
-        toggleTable.add(scoreBtn).padRight(5);
-        toggleTable.add(dateBtn).padRight(20);
+        toggleTable.add(scoreBtn).padRight(10);
+        toggleTable.add(dateBtn).padRight(30);
 
         Label scopeLabel = new Label("scope: ", skin);
-        toggleTable.add(scopeLabel).padRight(5);
+        scopeLabel.setFontScale(0.85f);
+        scopeLabel.setColor(Color.LIGHT_GRAY);
+        toggleTable.add(scopeLabel).padRight(10);
 
-        TextButton localBtn = new TextButton("local", skin);
-        TextButton globalBtn = new TextButton("global", skin);
+        Table localBtn = createStatsTab("local", "scope", null);
+        Table globalBtn = createStatsTab("global", "scope", null);
 
-        toggleTable.add(localBtn).padRight(5);
+        toggleTable.add(localBtn).padRight(10);
         toggleTable.add(globalBtn);
 
         backgroundsTable.add(toggleTable).expandX().fillX().padLeft(40).height(50).row();
@@ -137,6 +138,52 @@ public class StatsPanel extends Table {
         topStack.add(jacketLayer);
 
         this.add(topStack).expandX().fillX().row();
+    }
+
+    // --- Custom Animated Tab Builder ---
+    private Table createStatsTab(final String text, final String group, final Runnable onClick) {
+        final Table tab = new Table();
+        tab.setTouchable(Touchable.enabled);
+
+        final Label label = new Label(text, skin);
+        label.setFontScale(0.85f);
+
+        // White underline for dark background
+        final Image underline = new Image(skin.newDrawable("white", Color.WHITE));
+
+        tab.add(label).padBottom(2).row();
+        tab.add(underline).growX().height(2);
+
+        final ClickListener listener = new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                if (group.equals("sort")) activeSortTab = text;
+                else if (group.equals("scope")) activeScopeTab = text;
+
+                if (onClick != null) onClick.run();
+            }
+        };
+        tab.addListener(listener);
+
+        tab.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
+            @Override
+            public boolean act(float delta) {
+                boolean isActive = group.equals("sort") ? activeSortTab.equals(text) : activeScopeTab.equals(text);
+                if (isActive) {
+                    underline.getColor().a = 1.0f;
+                    label.setColor(Color.WHITE);
+                } else if (listener.isOver()) {
+                    underline.getColor().a = 0.4f;
+                    label.setColor(Color.LIGHT_GRAY);
+                } else {
+                    underline.getColor().a = 0.0f;
+                    label.setColor(Color.LIGHT_GRAY);
+                }
+                return false;
+            }
+        });
+
+        return tab;
     }
 
     private void buildLeaderboard() {
@@ -181,13 +228,11 @@ public class StatsPanel extends Table {
         String oldJacket = currentJacketPath;
         currentJacketPath = jacketPath != null ? jacketPath : "";
 
-        // If the jacket path didn't change, don't reload — avoids flicker.
         if (jacketPath == null || jacketPath.isEmpty()) {
             jacketImage.setDrawable(skin.newDrawable("white", Color.DARK_GRAY));
         } else if (jacketPath.equals(oldJacket) && jacketTexture != null) {
-            // already loaded, nothing to do
+            // already loaded
         } else {
-            // show placeholder immediately to avoid a flash of a full-size box
             jacketImage.setDrawable(skin.newDrawable("white", Color.DARK_GRAY));
 
             Thread jacketThread = new Thread(() -> {
@@ -196,7 +241,6 @@ public class StatsPanel extends Table {
                 if (file.exists()) {
                     try {
                         final com.badlogic.gdx.graphics.Pixmap src = new com.badlogic.gdx.graphics.Pixmap(file);
-                        // target UI size (match jacketImage actor size)
                         final int targetMax = 180;
                         int srcW = src.getWidth();
                         int srcH = src.getHeight();
@@ -258,18 +302,15 @@ public class StatsPanel extends Table {
         if (sortScoreAscending) currentScores.sort((a, b) -> Integer.compare(b.score, a.score));
         else currentScores.sort((a, b) -> Long.compare(b.timestamp, a.timestamp));
 
-        // --- THE FIX: Added Hours and Minutes to the date format! ---
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm");
         int index = 0;
-        // Compute base delay so the full cascade duration is capped and scales with number of scores
-        float totalCascadeCap = 0.6f; // seconds
+        float totalCascadeCap = 0.6f;
         float baseDelay = totalCascadeCap / Math.max(1, currentScores.size);
         baseDelay = Math.max(0.02f, Math.min(0.08f, baseDelay));
 
         for (com.nodevoltex.game.data.SaveData data : currentScores) {
             String dateStr = sdf.format(new java.util.Date(data.timestamp));
             String scoreStr = String.format("%08d", data.score);
-            // Pass baseDelay so per-row delays scale with number of scores
             leaderboardTable.add(createAnimatedScoreRow(data, "Guest", scoreStr, data.grade, data.maxCombo + "x", dateStr, index, animate, baseDelay))
                 .expandX().right().padBottom(5).row();
             index++;
@@ -283,7 +324,6 @@ public class StatsPanel extends Table {
         }
     }
 
-    // --- THE FIX: Highly Interactive Rows connected to SongSelectScreen ---
     private Table createAnimatedScoreRow(final com.nodevoltex.game.data.SaveData data, String name, String score, String grade, String combo, String date, int delayIndex, boolean animate, float baseDelay) {
         final Table row = new Table();
 
@@ -294,7 +334,6 @@ public class StatsPanel extends Table {
         row.setBackground(normalBg);
         row.setTouchable(Touchable.enabled);
 
-        // 1. Hover State Manager (Separate Action so it never dies)
         final ClickListener listener = new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -311,11 +350,10 @@ public class StatsPanel extends Table {
                 if (listener.isVisualPressed()) row.setBackground(clickBg);
                 else if (listener.isOver()) row.setBackground(hoverBg);
                 else row.setBackground(normalBg);
-                return false; // Returns false so it loops forever
+                return false;
             }
         });
 
-        // 2. Slide In Animation Manager
         if (animate) {
             row.getColor().a = 0.5f;
             row.setUserObject(2500f);
@@ -335,7 +373,7 @@ public class StatsPanel extends Table {
                     row.getColor().a = 0.5f + (0.5f * progress);
                     row.setUserObject(2500f * (1f - progress));
 
-                    return time >= duration; // Returns true to kill the action when finished
+                    return time >= duration;
                 }
             });
         } else {
@@ -343,7 +381,6 @@ public class StatsPanel extends Table {
             row.setUserObject(0f);
         }
 
-        // --- Build UI elements ---
         Table profileTable = new Table();
         Image pfp = new Image(skin.newDrawable("white", Color.GRAY));
         profileTable.add(pfp).width(50).height(50).padRight(10);
@@ -366,7 +403,6 @@ public class StatsPanel extends Table {
 
         scoreTable.add(scoreLabel).align(Align.right).row();
         scoreTable.add(gradeLabel).align(Align.right);
-        // --- THE FIX: Added padRight(20) to push it away from the edge! ---
         row.add(scoreTable).align(Align.right).expandX().padRight(20);
 
         return row;
