@@ -767,6 +767,69 @@ public class PlayScreen implements Screen {
             Gdx.gl.glDisable(GL20.GL_BLEND);
         }
 
+        // --- UNSTABLE RATE (UR) BAR ---
+        // Only draw if the playfield is visible AND the setting is enabled
+        if (visibilityRatio > 0f && com.nodevoltex.game.managers.SettingsManager.isShowURBar()) {
+
+            // 1. Update timers and delete old hits (Fade out after 3 seconds)
+            for (int i = scoreManager.recentHits.size - 1; i >= 0; i--) {
+                com.nodevoltex.game.managers.ScoreManager.HitMarker marker = scoreManager.recentHits.get(i);
+                marker.timer += delta;
+                if (marker.timer > 1.5f) {
+                    scoreManager.recentHits.removeIndex(i);
+                }
+            }
+
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+            game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
+
+            // 2. Mathematically bind the UR Bar 80 pixels below Judgment text
+            float urAlpha = visibilityRatio;
+            float urCenterY = WORLD_HEIGHT - SettingsManager.getJudgmentComboTopOffset() + 20f;
+            float urCenterX = TRACK_START_X + (TRACK_WIDTH / 2f);
+            float urWidth = 240f;
+            float halfWidth = urWidth / 2f;
+            float maxMs = 180f; // The visual edge of the bar (e.g. +/- 90ms)
+
+            // Base Background Bar (Dark Gray)
+            //game.shapeRenderer.setColor(0.15f, 0.15f, 0.2f, 0.8f * urAlpha);
+            //game.shapeRenderer.rect(urCenterX - halfWidth, urCenterY - 2f, urWidth, 4f);
+
+            // Exact Center Target Tick (White)
+            game.shapeRenderer.setColor(1f, 1f, 1f, 0.9f * urAlpha);
+            game.shapeRenderer.rect(urCenterX - 1f, urCenterY - 6f, 3f, 14f);
+
+            // 3. Draw the individual Hit Markers
+            for (com.nodevoltex.game.managers.ScoreManager.HitMarker marker : scoreManager.recentHits) {
+                // Calculate fading alpha
+                float markerAlpha = Math.max(0f, 1f - (marker.timer / 3.0f)) * urAlpha;
+                if (markerAlpha <= 0f) continue;
+
+                // Assign the Arcade-accurate Tier Colors
+                Color c = Color.WHITE;
+                switch (marker.tier) {
+                    case "S-CRITICAL": c = Color.GOLD; break;
+                    case "CRITICAL": c = Color.YELLOW; break;
+                    case "NEAR": c = Color.LIME; break;
+                    case "MID": c = Color.ORANGE; break;
+                    case "FAR": c = Color.RED; break;
+                }
+
+                game.shapeRenderer.setColor(c.r, c.g, c.b, markerAlpha);
+
+                // Calculate physical position based on millisecond offset
+                // Negative = Left (Early), Positive = Right (Late)
+                float clampedMs = Math.max(-maxMs, Math.min(maxMs, marker.offsetMs));
+                float xOffset = (clampedMs / maxMs) * halfWidth;
+
+                // Draw the hit tick
+                game.shapeRenderer.rect(urCenterX + xOffset - 1f, urCenterY - 7f, 2f, 14f);
+            }
+            game.shapeRenderer.end();
+            Gdx.gl.glDisable(GL20.GL_BLEND);
+        }
+
         game.batch.begin();
         //float visibilityRatio = 1f - (Math.abs(playfieldAnchor.getY()) / WORLD_HEIGHT);
 

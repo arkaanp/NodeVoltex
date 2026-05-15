@@ -1,13 +1,27 @@
 package com.nodevoltex.game.managers;
 
 import com.nodevoltex.game.patterns.StrictJudgment;
+import com.badlogic.gdx.utils.Array;
 
 public class ScoreManager {
     public int combo = 0;
     public int maxCombo = 0;
     public String latestJudgment = "";
 
-    // --- NEW: Detailed Arcade Stat Trackers ---
+    // --- UR Bar Data Structure ---
+    public static class HitMarker {
+        public float offsetMs;
+        public String tier;
+        public float timer = 0f; // Used to fade out over time
+
+        public HitMarker(float offsetMs, String tier) {
+            this.offsetMs = offsetMs;
+            this.tier = tier;
+        }
+    }
+    public Array<HitMarker> recentHits = new Array<>();
+
+    // --- Detailed Arcade Stat Trackers ---
     public static class StatCategory {
         public int sCriticals = 0, criticals = 0, nears = 0, mids = 0, fars = 0, misses = 0;
         public int early = 0, late = 0;
@@ -28,7 +42,7 @@ public class ScoreManager {
         this.judgmentStrategy = strategy;
     }
 
-    // We now split Notes and Releases for the Max Score math!
+    // split Notes and Releases for the Max Score math
     public void setMaxPossibleScore(int totalNotes, int totalReleases, int totalLaserTicks) {
         this.maxHitScore = (totalNotes * 2.0f) + (totalReleases * 2.0f) + (totalLaserTicks * 1.5f);
     }
@@ -40,6 +54,11 @@ public class ScoreManager {
         if (!result.tier.equals("MISS")) {
             combo++;
             if (combo > maxCombo) maxCombo = combo;
+
+            // --- Record the hit for the UR Bar (Ignore lasers) ---
+            if (!type.equals("LASER")) {
+                recentHits.add(new HitMarker(diffMs, result.tier));
+            }
         } else {
             combo = 0;
         }
@@ -58,7 +77,7 @@ public class ScoreManager {
         // Apply Points (Weights can be tweaked here)
         switch (result.tier) {
             case "S-CRITICAL": stats.sCriticals++; currentHitScore += 2.0f; break;
-            case "CRITICAL":   stats.criticals++;  currentHitScore += 1.99f; break;
+            case "CRITICAL":   stats.criticals++;  currentHitScore += 1.999f; break;
             case "NEAR":       stats.nears++;      currentHitScore += 1.0f; break;
             case "MID":        stats.mids++;       currentHitScore += 0.5f; break;
             case "FAR":        stats.fars++;       currentHitScore += 0.1f; break;
@@ -81,7 +100,7 @@ public class ScoreManager {
         if (combo > maxCombo) maxCombo = combo;
         laserTicks++;
         currentHitScore += 1.5f;
-        // Notice we do NOT update latestJudgment here, keeping the UI clean!
+        // we do NOT update latestJudgment here, keeping the UI clean
     }
 
     public int getFinalScore() {

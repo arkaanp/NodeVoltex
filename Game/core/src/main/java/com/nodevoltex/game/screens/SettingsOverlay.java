@@ -68,7 +68,7 @@ public class SettingsOverlay {
         settingsScrollPane.setFadeScrollBars(false);
         settingsScrollPane.setScrollingDisabled(true, false);
 
-        // --- THE FIX: Stop the ScrollPane from stealing your slider drags! ---
+        // --- Stop the ScrollPane from stealing your slider drags ---
         settingsScrollPane.setCancelTouchFocus(false);
 
         settingsScrollPane.addListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
@@ -134,15 +134,47 @@ public class SettingsOverlay {
         gameplayHeader.setColor(Color.WHITE);
         container.add(gameplayHeader).left().padBottom(20).row();
 
-        // 1. Pull the actual saved numbers from the Manager!
+        // 1. Pull the actual saved numbers from the Manager
         container.add(createSliderRow("Scroll speed", 0.01f, 2.0f, 0.01f, com.nodevoltex.game.managers.SettingsManager.getScrollSpeed(), "", "speed")).expandX().fillX().padBottom(15).row();
         container.add(createSliderRow("Global offset", -200f, 200f, 1f, com.nodevoltex.game.managers.SettingsManager.getGlobalOffset(), "ms", "offset")).expandX().fillX().padBottom(30).row();
 
-        // --- NEW: Task 3 - Playfield Sliders ---
+        // --- Playfield Sliders ---
         container.add(createSliderRow("Hit Position Y", 50f, 300f, 1f, com.nodevoltex.game.managers.SettingsManager.getPlayfieldHitPosY(), "px", "hitpos")).expandX().fillX().padBottom(15).row();
         container.add(createSliderRow("Playfield Width", 200f, 500f, 1f, com.nodevoltex.game.managers.SettingsManager.getPlayfieldWidth(), "px", "width")).expandX().fillX().padBottom(30).row();
         container.add(createSliderRow("BG Brightness", 0.1f, 1.0f, 0.05f, com.nodevoltex.game.managers.SettingsManager.getBackgroundBrightness(), "", "bgbright")).expandX().fillX().padBottom(15).row();
         container.add(createSliderRow("Judgment Offset Y", 50f, 600f, 5f, com.nodevoltex.game.managers.SettingsManager.getJudgmentComboTopOffset(), "px", "judg")).expandX().fillX().padBottom(30).row();
+
+        // --- UR Bar Toggle Button ---
+        Table urToggleTable = new Table();
+        urToggleTable.left();
+
+        Label urLbl = new Label("Show Unstable Rate Bar", skin);
+        urLbl.setFontScale(0.85f);
+
+        TextButton.TextButtonStyle toggleStyle = new TextButton.TextButtonStyle(skin.get(TextButton.TextButtonStyle.class));
+        toggleStyle.up = skin.newDrawable("white", new Color(0.18f, 0.18f, 0.22f, 1f));
+        // Default color based on current setting
+        toggleStyle.fontColor = com.nodevoltex.game.managers.SettingsManager.isShowURBar() ? Color.CYAN : Color.GRAY;
+
+        final TextButton urBtn = new TextButton(com.nodevoltex.game.managers.SettingsManager.isShowURBar() ? "ON" : "OFF", toggleStyle);
+
+        urBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                boolean newState = !com.nodevoltex.game.managers.SettingsManager.isShowURBar();
+                com.nodevoltex.game.managers.SettingsManager.setShowURBar(newState);
+
+                urBtn.setText(newState ? "ON" : "OFF");
+                // Visually dim the button when disabled
+                urBtn.getStyle().fontColor = newState ? Color.CYAN : Color.GRAY;
+            }
+        });
+
+        urToggleTable.add(urLbl).padRight(15);
+        urToggleTable.add(urBtn).width(60).height(35);
+
+        container.add(urToggleTable).left().padBottom(30).row();
+        // ----------------------------------------
 
         Label inputHeader = new Label("Input", skin);
         inputHeader.setFontScale(1f);
@@ -152,7 +184,7 @@ public class SettingsOverlay {
         KeyConfigPanel keyPanel = new KeyConfigPanel(skin);
         container.add(keyPanel).expandX().fillX().padBottom(30).row();
 
-        // --- THE FIX: Interactive Retry Key Mapper ---
+        // --- Interactive Retry Key Mapper ---
         Table retryKeyTable = new Table();
         retryKeyTable.left();
 
@@ -170,7 +202,7 @@ public class SettingsOverlay {
             public void clicked(InputEvent event, float x, float y) {
                 retryBtn.setText("_");
                 retryBtn.setColor(Color.WHITE);
-                stage.setKeyboardFocus(retryBtn); // Steal keyboard focus!
+                stage.setKeyboardFocus(retryBtn); // Steal keyboard focus
             }
         });
 
@@ -255,7 +287,7 @@ public class SettingsOverlay {
         else if (type.equals("width")) com.nodevoltex.game.managers.SettingsManager.savePlayfield(com.nodevoltex.game.managers.SettingsManager.getPlayfieldHitPosY(), val);
         else if (type.equals("bgbright")) com.nodevoltex.game.managers.SettingsManager.saveUI(val, com.nodevoltex.game.managers.SettingsManager.getJudgmentComboTopOffset());
         else if (type.equals("judg")) com.nodevoltex.game.managers.SettingsManager.saveUI(com.nodevoltex.game.managers.SettingsManager.getBackgroundBrightness(), val);
-            // --- THE FIX: Hook up the new Retry Timer Slider! ---
+            // --- Hook up the new Retry Timer Slider ---
         else if (type.equals("retryhold")) com.nodevoltex.game.managers.SettingsManager.setRetryHoldTime(val);
     }
 
@@ -330,7 +362,7 @@ public class SettingsOverlay {
             @Override
             public void changed(ChangeEvent event, com.badlogic.gdx.scenes.scene2d.Actor actor) {
                 float val = slider.getValue();
-                saveSetting(settingType, val); // <--- Instantly saves to disk when dragging!
+                saveSetting(settingType, val); // Instantly saves to disk when dragging
 
                 if (!valueField.hasKeyboardFocus()) {
                     valueField.setText(String.format(java.util.Locale.US, formatStr, val) + suffix);
@@ -370,7 +402,7 @@ public class SettingsOverlay {
             parsed = Math.max(min, Math.min(max, parsed));
             slider.setValue(parsed);
 
-            // Wait, we can't easily reach 'settingType' from here unless we pass it down.
+            // can't easily reach 'settingType' from here unless we pass it down.
             // Luckily, slider.setValue(parsed) triggers the ChangeListener above automatically, so it's already saved
 
             valueField.setText(String.format(java.util.Locale.US, formatStr, parsed) + suffix);
@@ -431,7 +463,7 @@ public class SettingsOverlay {
         public KeyConfigPanel(Skin skin) {
             this.setTouchable(Touchable.enabled);
 
-            // 1. Instantly read the saved keys from the hard drive!
+            // 1. Instantly read the saved keys from the hard drive
             for (int i = 0; i < 10; i++) {
                 pri[i] = com.nodevoltex.game.managers.SettingsManager.getKeyString(codes[i], true);
                 alt[i] = com.nodevoltex.game.managers.SettingsManager.getKeyString(codes[i], false);
@@ -439,7 +471,7 @@ public class SettingsOverlay {
 
             TextButton.TextButtonStyle flatStyle = new TextButton.TextButtonStyle(skin.get(TextButton.TextButtonStyle.class));
             flatStyle.up = skin.newDrawable("white", Color.WHITE);
-            // --- THE FIX: Strip default skin animations to guarantee absolute hover immunity! ---
+            // --- Strip default skin animations to guarantee absolute hover immunity ---
             flatStyle.down = null;
             flatStyle.over = null;
             flatStyle.fontColor = Color.BLACK;
@@ -484,7 +516,7 @@ public class SettingsOverlay {
                         String[] currentArr = isPrimary ? pri : alt;
                         currentArr[editingIndex] = keyName;
 
-                        // 2. Instantly save the newly mapped key to the hard drive!
+                        // 2. Instantly save the newly mapped key to the hard drive
                         com.nodevoltex.game.managers.SettingsManager.saveKey(codes[editingIndex], isPrimary, keyName);
 
                         if (editingIndex == 0) editingIndex = 1;
@@ -578,7 +610,7 @@ public class SettingsOverlay {
             };
             btn.addListener(btnListener);
 
-            // --- THE FIX: Proper brightness hierarchy + Absolute immunity ---
+            // --- Proper brightness hierarchy + Absolute immunity ---
             btn.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
                 @Override
                 public boolean act(float delta) {
@@ -586,7 +618,7 @@ public class SettingsOverlay {
 
                     if (isEditingThisButton(startIndex)) {
                         // PRIORITY 1: Actively Editing.
-                        // Locked to 1.0f (maximum brightness). Ignores hover entirely!
+                        // Locked to 1.0f (maximum brightness). Ignores hover entirely
                         btn.setColor(base.r, base.g, base.b, 1.0f);
                     } else if (btnListener.isOver()) {
                         // PRIORITY 2: Hovering.

@@ -49,7 +49,7 @@ public class SettingsManager {
                 case "FXR": defaultKey = "M"; break;
             }
         } else {
-            // --- THE FIX: Alternate Defaults Applied! ---
+            // --- Alternate Defaults Applied ---
             switch(buttonCode) {
                 case "LL": defaultKey = "7"; break;
                 case "LR": defaultKey = "8"; break;
@@ -98,9 +98,13 @@ public class SettingsManager {
         getPrefs().flush();
     }
 
-    // --- NEW: Task 1 & 2 - UI Customization ---
+    // --- UI Customization ---
     public static float getBackgroundBrightness() { return getPrefs().getFloat("bgBrightness", 0.6f); }
     public static float getJudgmentComboTopOffset() { return getPrefs().getFloat("judgOffset", 200f); }
+
+    // --- UR Bar Setting (Defaults to TRUE) ---
+    public static boolean isShowURBar() { return getPrefs().getBoolean("showURBar", true); }
+    public static void setShowURBar(boolean val) { getPrefs().putBoolean("showURBar", val); getPrefs().flush(); }
 
     public static void saveUI(float brightness, float offset) {
         getPrefs().putFloat("bgBrightness", brightness);

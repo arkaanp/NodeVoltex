@@ -18,9 +18,14 @@ public class Lwjgl3Launcher {
     private static Lwjgl3ApplicationConfiguration getDefaultConfiguration() {
         Lwjgl3ApplicationConfiguration configuration = new Lwjgl3ApplicationConfiguration();
         configuration.setTitle("Node Voltex");
-        //// Vsync limits the frames per second to what your hardware can display, and helps eliminate
-        //// screen tearing. This setting doesn't always work on Linux, so the line after is a safeguard.
-        configuration.useVsync(true);
+        // 1. Turn off V-Sync so the monitor doesn't throttle the game to 60fps
+        configuration.useVsync(false);
+
+        // 2. Uncap the framerate entirely (0) or set a very high cap (like 1000)
+        // Setting it to 0 means it will run as fast as your CPU/GPU allows.
+        configuration.setForegroundFPS(0);
+        configuration.setIdleFPS(60); // Keep idle low to save power when tabbed out
+
         // --- NEW: Windowed Fullscreen Settings ---
 
         // 1. Maximize the window automatically on startup.
@@ -35,7 +40,6 @@ public class Lwjgl3Launcher {
         // you can delete this line.
         //configuration.setDecorated(false);
 
-        // Frame rate settings
         configuration.setForegroundFPS(Lwjgl3ApplicationConfiguration.getDisplayMode().refreshRate);
         configuration.setWindowedMode(1280, 720); // Fallback size if it gets un-maximized
         configuration.setWindowIcon("libgdx128.png", "libgdx64.png", "libgdx32.png", "libgdx16.png");
