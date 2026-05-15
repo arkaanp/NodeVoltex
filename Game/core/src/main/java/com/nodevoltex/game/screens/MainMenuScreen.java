@@ -44,9 +44,9 @@ public class MainMenuScreen implements Screen {
 
         // 1. LOAD ALL TEXTURES FIRST
         // If any of these are missing or below the 'new Image()' lines, the game will crash!
-        bgTexture = new Texture(Gdx.files.internal("assets/background_gaussianblurupscaled.jpeg"));
-        nextBgTexture = new Texture(Gdx.files.internal("assets/Back.png"));
-        titleTexture = new Texture(Gdx.files.internal("assets/title4.png"));
+        bgTexture = new Texture(Gdx.files.internal("background_gaussianblurupscaled.jpeg"));
+        nextBgTexture = new Texture(Gdx.files.internal("Back.png"));
+        titleTexture = new Texture(Gdx.files.internal("title4.png"));
 
         // 2. CREATE IMAGES USING THOSE TEXTURES SECOND
         bgImage = new Image(bgTexture);

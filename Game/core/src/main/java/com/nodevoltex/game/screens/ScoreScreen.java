@@ -63,7 +63,7 @@ public class ScoreScreen implements Screen {
         this.currentDifficulty = difficultyName;
         this.currentMapPath = mapFilePath;
 
-        bgTexture = new Texture(Gdx.files.internal("assets/Back.png"));
+        bgTexture = new Texture(Gdx.files.internal("Back.png"));
         bgImage = new Image(bgTexture);
         bgImage.setFillParent(true);
         stage.addActor(bgImage);
@@ -361,7 +361,7 @@ public class ScoreScreen implements Screen {
     private void saveScoreData(String mapFilePath, int finalScore, String grade, ScoreManager scoreManager,
                               int sc, int c, int n, int m, int f, int miss, int early, int late, long playTimestamp) {
         String safeFileName = mapFilePath.replace("/", "_").replace("\\", "_") + "_save.json";
-        com.badlogic.gdx.files.FileHandle saveFile = Gdx.files.local("assets/scores/" + safeFileName);
+        com.badlogic.gdx.files.FileHandle saveFile = Gdx.files.local("scores/" + safeFileName);
         com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
 
         com.nodevoltex.game.data.ScoreHistory history = new com.nodevoltex.game.data.ScoreHistory();

@@ -155,7 +155,7 @@ public class PlayScreen implements Screen {
         TRACK_START_X = (WORLD_WIDTH - TRACK_WIDTH) / 2f;
 
         // Ensures the transition from SongSelect is seamless
-        bgTexture = new Texture(Gdx.files.internal("assets/Back.png"));
+        bgTexture = new Texture(Gdx.files.internal("Back.png"));
 
         // --- 2. PARSE THE DYNAMIC JSON ---
         BeatmapParser parser = new BeatmapParser();
@@ -199,7 +199,7 @@ public class PlayScreen implements Screen {
         // --- 3. LOAD THE DYNAMIC AUDIO & JACKET ---
         com.badlogic.gdx.files.FileHandle jsonFile = Gdx.files.internal(mapFilePath);
         com.badlogic.gdx.files.FileHandle audioFile = jsonFile.parent().child(this.beatmap.general.audioFilename);
-        slamSound = Gdx.audio.newSound(Gdx.files.internal("assets/audio/laser_slam1.wav"));
+        slamSound = Gdx.audio.newSound(Gdx.files.internal("audio/laser_slam1.wav"));
 
         try {
             com.badlogic.gdx.files.FileHandle jacketFile = jsonFile.parent().child(this.beatmap.general.jacketFilename);

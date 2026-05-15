@@ -56,12 +56,12 @@ public class SongSelectScreen implements Screen {
 
         Gdx.input.setInputProcessor(stage);
 
-        bgTexture = new Texture(Gdx.files.internal("assets/Back.png"));
+        bgTexture = new Texture(Gdx.files.internal("Back.png"));
         bgImage = new Image(bgTexture);
         bgImage.setFillParent(true);
         stage.addActor(bgImage);
 
-        prevBgTexture = new Texture(Gdx.files.internal("assets/background_gaussianblurupscaled.jpeg"));
+        prevBgTexture = new Texture(Gdx.files.internal("background_gaussianblurupscaled.jpeg"));
         prevBgImage = new Image(prevBgTexture);
         prevBgImage.setFillParent(true);
         prevBgImage.setY(Gdx.graphics.getHeight());

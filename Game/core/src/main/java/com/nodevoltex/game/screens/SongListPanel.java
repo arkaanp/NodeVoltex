@@ -163,7 +163,7 @@ public class SongListPanel extends Table {
         }
 
         new Thread(() -> {
-            com.badlogic.gdx.files.FileHandle songsDir = Gdx.files.internal("assets/songs");
+            com.badlogic.gdx.files.FileHandle songsDir = Gdx.files.local("songs");
             if (!songsDir.exists() || !songsDir.isDirectory()) return;
 
             com.badlogic.gdx.utils.JsonReader jsonReader = new com.badlogic.gdx.utils.JsonReader();
@@ -625,7 +625,7 @@ public class SongListPanel extends Table {
 
                 com.badlogic.gdx.utils.Array<com.nodevoltex.game.data.SaveData> loadedScores = new com.badlogic.gdx.utils.Array<>();
                 String safeFileName = mapPath.replace("/", "_").replace("\\", "_") + "_save.json";
-                com.badlogic.gdx.files.FileHandle saveFile = Gdx.files.local("assets/scores/" + safeFileName);
+                com.badlogic.gdx.files.FileHandle saveFile = Gdx.files.local("scores/" + safeFileName);
 
                 if (saveFile.exists()) {
                     try {
