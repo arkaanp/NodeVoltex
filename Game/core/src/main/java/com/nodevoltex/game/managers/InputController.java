@@ -22,14 +22,12 @@ public class InputController {
     private boolean[] laneJustPressed = new boolean[7];
     private boolean[] laneIsPressed = new boolean[7];
 
-    // --- ADD THIS SNIPPET ---
     public boolean isLanePressed(int lane) {
         if (lane >= 1 && lane <= 6) {
             return laneIsPressed[lane];
         }
         return false;
     }
-    // -------------------------
 
     private void recordEventIfChanged(int lane, String label, boolean currentState, float timeMs) {
         if (laneJustPressed[lane]) {
@@ -118,30 +116,40 @@ public class InputController {
         laneIsPressed[5] = currentFXL;
         laneIsPressed[6] = currentFXR;
 
-        // ... (Keep the rest of your scoring logic exactly the same!) ...
+        // --- 1. HEAD HITS (Taps & Initial Hold Presses) ---
         for (int lane = 1; lane <= 6; lane++) {
             if (laneJustPressed[lane]) {
                 Note targetNote = null;
                 for (Note note : activeNotes) {
+                    // This strictly finds the absolute oldest unresolved note (TRUE NOTELOCK)
                     if (note.lane == lane && !note.isMissed && !note.isCompleted && !note.wasHeadHit) {
                         if (targetNote == null || note.startTime < targetNote.startTime) {
                             targetNote = note;
                         }
                     }
                 }
+
                 if (targetNote != null) {
                     float diffMs = currentAudioTimeMs - targetNote.startTime;
-                    if (Math.abs(diffMs) <= 200.0f) {
+
+                    // The widest FAR window based on x=8 (151 - 3*8 = 127ms)
+                    float maxNoteWindow = 127.0f;
+
+                    if (Math.abs(diffMs) <= maxNoteWindow) {
                         scoreManager.onHit(diffMs, "NOTE");
                         targetNote.wasHeadHit = true;
                         if (!targetNote.isHold) targetNote.isCompleted = true;
                     }
+                    // If diffMs < -127.0f, it is a Ghost Tap!
+                    // Because of Notelock, it completely ignores the input instead of breaking combo or piercing to the next note.
                 }
             }
         }
 
+        // --- 2. CONTINUOUS HOLD TRACKING ---
         for (Note note : activeNotes) {
             if (note.isMissed || note.isCompleted || !note.isHold || !note.wasHeadHit) continue;
+
             if (laneIsPressed[note.lane]) {
                 if (currentAudioTimeMs >= note.endTime) {
                     note.isCompleted = true;
@@ -149,10 +157,15 @@ public class InputController {
                 }
             } else {
                 float diffMs = currentAudioTimeMs - note.endTime;
-                if (Math.abs(diffMs) <= 200.0f) { // ### change soon
+
+                // Releases get double the leniency (254ms)
+                float maxReleaseWindow = 254.0f;
+
+                if (Math.abs(diffMs) <= maxReleaseWindow) {
                     note.isCompleted = true;
                     scoreManager.onHit(diffMs, "RELEASE");
-                } else {
+                } else if (diffMs < -maxReleaseWindow) {
+                    // Unlike ghost tapping, letting go of an active hold too early IS a dropped combo!
                     note.isMissed = true;
                     scoreManager.onMiss("RELEASE");
                 }
