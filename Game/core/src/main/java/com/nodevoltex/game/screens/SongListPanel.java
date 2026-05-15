@@ -34,7 +34,7 @@ public class SongListPanel extends Table {
     private final com.badlogic.gdx.math.Vector2 tempPos1 = new com.badlogic.gdx.math.Vector2();
     private final com.badlogic.gdx.math.Vector2 tempPos2 = new com.badlogic.gdx.math.Vector2();
 
-    // --- THE FIX: True Global Audio State ---
+    // --- True Global Audio State ---
     private static com.badlogic.gdx.audio.Music mainMenuMusic;
     private static Music previewMusic;
     private static String currentPreviewPath = "";
@@ -327,9 +327,9 @@ public class SongListPanel extends Table {
         row.addListener(new com.badlogic.gdx.scenes.scene2d.utils.ClickListener() {
             @Override public void clicked(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y) {
                 if (selectedDiffName.equals(diffName)) {
-                    stopAudio(); // ONLY stop audio if actually entering PlayScreen!
+                    stopAudio(); // ONLY stop audio if actually entering PlayScreen
                     if (mapPath != null) {
-                        // --- THE FIX: Trigger the parent screen's leftward exit animation! ---
+                        // --- Trigger the parent screen's leftward exit animation ---
                         if (game.getScreen() instanceof SongSelectScreen) {
                             ((SongSelectScreen) game.getScreen()).animateOutToPlayScreen(mapPath);
                         } else {
@@ -555,7 +555,7 @@ public class SongListPanel extends Table {
     private void playAudio(String audioPath, float offsetSeconds) {
         if (audioPath == null) return;
 
-        // --- THE FIX: Let the audio keep playing smoothly! ---
+        // --- Let the audio keep playing smoothly ---
         if (audioPath.equals(currentPreviewPath) && previewMusic != null && previewMusic.isPlaying()) {
             return;
         }
@@ -632,12 +632,12 @@ public class SongListPanel extends Table {
         }
     }
 
-    // --- NEW: Static setter for preserving difficulty selection ---
+    // --- Static setter for preserving difficulty selection ---
     public static void setLastPlayedDifficulty(String difficulty) {
         GLOBAL_LAST_PLAYED_DIFFICULTY = difficulty;
     }
 
-    // --- NEW: Static getter for retrieving last difficulty ---
+    // --- Static getter for retrieving last difficulty ---
     public static String getLastPlayedDifficulty() {
         return GLOBAL_LAST_PLAYED_DIFFICULTY;
     }
@@ -654,7 +654,7 @@ public class SongListPanel extends Table {
         else if (target.endsWith("exh.json") || target.contains("/exh.json")) expectedDiff = "EXH";
         else if (target.endsWith("adv.json") || target.contains("/adv.json")) expectedDiff = "ADV";
 
-        // --- NEW: Try to restore the last played difficulty if available ---
+        // --- Try to restore the last played difficulty if available ---
         if (GLOBAL_LAST_PLAYED_DIFFICULTY != null && !GLOBAL_LAST_PLAYED_DIFFICULTY.isEmpty()) {
             expectedDiff = GLOBAL_LAST_PLAYED_DIFFICULTY;
             GLOBAL_LAST_PLAYED_DIFFICULTY = null; // Clear it after using
@@ -767,42 +767,65 @@ public class SongListPanel extends Table {
         return Color.DARK_GRAY;
     }
 
-    private int[] calculateMapStatsFromTree(JsonValue root) {
+    private int[] calculateMapStatsFromTree(com.badlogic.gdx.utils.JsonValue root) {
         int tapCount = 0;
         int holdCount = 0;
         int totalLaserTicks = 0;
 
         try {
-            JsonValue hitObjects = root.get("hitObjects");
+            com.badlogic.gdx.utils.JsonValue hitObjects = root.get("hitObjects");
             if (hitObjects != null) {
-                for (JsonValue ho : hitObjects) {
+                for (com.badlogic.gdx.utils.JsonValue ho : hitObjects) {
                     String type = ho.getString("type", "TAP");
                     if (type.equals("TAP")) tapCount++;
                     else if (type.equals("HOLD")) holdCount++;
                 }
             }
 
-            JsonValue lasers = root.get("lasers");
+            // --- Use actual baking math instead of just counting nodes ---
+            com.badlogic.gdx.utils.JsonValue lasers = root.get("lasers");
             if (lasers != null) {
-                JsonValue left = lasers.get("left");
-                if (left != null) {
-                    for (JsonValue seq : left) {
-                        JsonValue nodes = seq.get("nodes");
-                        if (nodes != null) totalLaserTicks += nodes.size;
-                    }
-                }
-                JsonValue right = lasers.get("right");
-                if (right != null) {
-                    for (JsonValue seq : right) {
-                        JsonValue nodes = seq.get("nodes");
-                        if (nodes != null) totalLaserTicks += nodes.size;
-                    }
-                }
+                totalLaserTicks += bakeJsonLaserArray(lasers.get("left"));
+                totalLaserTicks += bakeJsonLaserArray(lasers.get("right"));
             }
         } catch (Exception e) {
             System.out.println("Failed to calculate map stats from tree.");
         }
 
         return new int[]{tapCount, holdCount, totalLaserTicks};
+    }
+
+    // --- Helper method to simulate gameplay laser ticks ---
+    private int bakeJsonLaserArray(com.badlogic.gdx.utils.JsonValue sequences) {
+        if (sequences == null) return 0;
+        int ticks = 0;
+
+        for (com.badlogic.gdx.utils.JsonValue seq : sequences) {
+            com.badlogic.gdx.utils.JsonValue nodes = seq.get("nodes");
+            if (nodes == null || nodes.size == 0) continue;
+
+            com.badlogic.gdx.utils.FloatArray tickTimes = new com.badlogic.gdx.utils.FloatArray();
+            tickTimes.add(nodes.get(0).getFloat("offset"));
+
+            for (int i = 1; i < nodes.size; i++) {
+                float prevOffset = nodes.get(i - 1).getFloat("offset");
+                float currOffset = nodes.get(i).getFloat("offset");
+                float duration = currOffset - prevOffset;
+
+                if (duration <= 100.0f) {
+                    if (!tickTimes.contains(currOffset)) tickTimes.add(currOffset);
+                } else {
+                    float tickTime = prevOffset + 100.0f;
+                    while (tickTime < currOffset) {
+                        if (!tickTimes.contains(tickTime)) tickTimes.add(tickTime);
+                        tickTime += 100.0f;
+                    }
+                }
+            }
+            float lastOffset = nodes.get(nodes.size - 1).getFloat("offset");
+            if (!tickTimes.contains(lastOffset)) tickTimes.add(lastOffset);
+            ticks += tickTimes.size;
+        }
+        return ticks;
     }
 }

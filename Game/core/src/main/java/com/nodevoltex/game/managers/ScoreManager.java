@@ -31,7 +31,7 @@ public class ScoreManager {
     public StatCategory releaseStats = new StatCategory();
 
     public int laserTicks = 0;
-    public int laserMisses = 0;
+    public int maxLaserTicks = 0;
 
     private float currentHitScore = 0f;
     private float maxHitScore = 0f;
@@ -44,7 +44,8 @@ public class ScoreManager {
 
     // split Notes and Releases for the Max Score math
     public void setMaxPossibleScore(int totalNotes, int totalReleases, int totalLaserTicks) {
-        this.maxHitScore = (totalNotes * 2.0f) + (totalReleases * 2.0f) + (totalLaserTicks * 1.5f);
+        this.maxHitScore = (totalNotes * 3.0f) + (totalReleases * 3.0f) + (totalLaserTicks * 3.0f);
+        this.maxLaserTicks = totalLaserTicks;
     }
 
     public void onHit(float diffMs, String type) {
@@ -76,11 +77,11 @@ public class ScoreManager {
 
         // Apply Points (Weights can be tweaked here)
         switch (result.tier) {
-            case "S-CRITICAL": stats.sCriticals++; currentHitScore += 2.0f; break;
-            case "CRITICAL":   stats.criticals++;  currentHitScore += 1.999f; break;
-            case "NEAR":       stats.nears++;      currentHitScore += 1.0f; break;
-            case "MID":        stats.mids++;       currentHitScore += 0.5f; break;
-            case "FAR":        stats.fars++;       currentHitScore += 0.1f; break;
+            case "S-CRITICAL": stats.sCriticals++; currentHitScore += 3.0f; break;
+            case "CRITICAL":   stats.criticals++;  currentHitScore += 3.0f; break;
+            case "NEAR":       stats.nears++;      currentHitScore += 2.0f; break;
+            case "MID":        stats.mids++;       currentHitScore += 1.0f; break;
+            case "FAR":        stats.fars++;       currentHitScore += 0.5f; break;
             case "MISS":       stats.misses++;     break;
         }
     }
@@ -91,7 +92,11 @@ public class ScoreManager {
 
         if (type.equals("NOTE")) noteStats.misses++;
         else if (type.equals("RELEASE")) releaseStats.misses++;
-        else if (type.equals("LASER")) laserMisses++;
+    }
+
+    // --- Calculate misses perfectly on demand ---
+    public int getLaserMisses() {
+        return Math.max(0, maxLaserTicks - laserTicks);
     }
 
     // Called natively by the LaserManager
@@ -99,7 +104,7 @@ public class ScoreManager {
         combo++;
         if (combo > maxCombo) maxCombo = combo;
         laserTicks++;
-        currentHitScore += 1.5f;
+        currentHitScore += 3.0f;
         // we do NOT update latestJudgment here, keeping the UI clean
     }
 

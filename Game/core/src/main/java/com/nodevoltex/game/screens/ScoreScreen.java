@@ -51,7 +51,6 @@ public class ScoreScreen implements Screen {
     private String currentMapPath;
     private long currentReplayTimestamp;
 
-    // --- THE FIX: Added 'long playTimestamp' to the end of the constructor ---
     public ScoreScreen(NodeVoltex game, Beatmap.General metadata, ScoreManager scoreManager,
                        SaveData historyData, String difficultyName, String mapFilePath, boolean fromHistory, long playTimestamp) {
         this.game = game;
@@ -60,7 +59,7 @@ public class ScoreScreen implements Screen {
         this.shapeRenderer = new ShapeRenderer();
         Gdx.input.setInputProcessor(stage);
 
-        // --- NEW: Store difficulty and map path for exit transition ---
+        // --- Store difficulty and map path for exit transition ---
         this.currentDifficulty = difficultyName;
         this.currentMapPath = mapFilePath;
 
@@ -74,7 +73,7 @@ public class ScoreScreen implements Screen {
         String grade;
 
         if (fromHistory && historyData != null) {
-            this.currentReplayTimestamp = historyData.timestamp; // <--- Capture from history
+            this.currentReplayTimestamp = historyData.timestamp; // <- Capture from history
 
             finalScore = historyData.score; grade = historyData.grade; maxCombo = historyData.maxCombo;
             totalSCrit = historyData.sCriticals; totalCrit = historyData.criticals; totalNear = historyData.nears;
@@ -82,7 +81,7 @@ public class ScoreScreen implements Screen {
             totalLaserTicks = historyData.laserTicks; totalLaserMisses = historyData.laserMisses;
             totalEarly = historyData.early; totalLate = historyData.late;
         } else {
-            this.currentReplayTimestamp = playTimestamp; // <--- Capture from the live play
+            this.currentReplayTimestamp = playTimestamp; // <- Capture from the live play
 
             finalScore = scoreManager.getFinalScore(); grade = scoreManager.getGrade(); maxCombo = scoreManager.maxCombo;
             totalSCrit = scoreManager.noteStats.sCriticals + scoreManager.releaseStats.sCriticals;
@@ -92,14 +91,14 @@ public class ScoreScreen implements Screen {
             totalFar = scoreManager.noteStats.fars + scoreManager.releaseStats.fars;
             totalMiss = scoreManager.noteStats.misses + scoreManager.releaseStats.misses;
             totalLaserTicks = scoreManager.laserTicks;
-            totalLaserMisses = scoreManager.laserMisses;
+            totalLaserMisses = scoreManager.getLaserMisses();
             totalEarly = scoreManager.noteStats.early + scoreManager.releaseStats.early;
             totalLate = scoreManager.noteStats.late + scoreManager.releaseStats.late;
 
-            // --- THE FIX: Block score history saving if a mod was used ---
+            // --- Block score history saving if a mod was used ---
             boolean isModded = SettingsManager.getModAutoPlay() || SettingsManager.getModNoLaser();
             if (!isModded) {
-                // --- THE FIX: Pass 'playTimestamp' to the save method! ---
+                // --- Pass 'playTimestamp' to the save method ---
                 saveScoreData(mapFilePath, finalScore, grade, scoreManager, totalSCrit, totalCrit, totalNear, totalMid, totalFar, totalMiss, totalEarly, totalLate, playTimestamp);
             }
         }
@@ -167,7 +166,6 @@ public class ScoreScreen implements Screen {
         diffLabel.setColor(Color.CYAN);
         metaBox.add(diffLabel).align(Align.left).row();
 
-        // THE FIX: Perfect Symmetry!
         // 40px left screen pad + Box Width + 40px right gap = Exact position of the slant line
         float metaBoxDistFromTop = 40f;
         float slantXAtMeta = topWidth + (metaBoxDistFromTop * tan3);
@@ -199,7 +197,7 @@ public class ScoreScreen implements Screen {
         Table statsTable = new Table();
         float currentLeftShift = 0f; // Pushes both text and numbers rightwards
 
-        // THE FIX: Calculate exact row width to reach the parallelogram!
+        // Calculate exact row width to reach the parallelogram
         // 40 (global pad) + 15 (statsTable pad) + 25 (safe gap from line) = 80f deduction.
         float statsRowWidth = topWidth - 80f;
 
@@ -268,7 +266,7 @@ public class ScoreScreen implements Screen {
 
         retryBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
-                animateOut(() -> game.setScreen(new PlayScreen(game, mapFilePath, 0L, true))); // Pass TRUE!
+                animateOut(() -> game.setScreen(new PlayScreen(game, mapFilePath, 0L, true)));
             }
         });
 
@@ -287,7 +285,7 @@ public class ScoreScreen implements Screen {
         TextButton replayBtn = new TextButton("Watch Replay", skin);
         replayBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
-                // --- THE FIX: Check if the .json file exists on the hard drive ---
+                // --- Check if the .json file exists on the hard drive ---
                 com.badlogic.gdx.files.FileHandle checkFile = Gdx.files.local("replays/replay_" + currentReplayTimestamp + ".json");
 
                 if (checkFile.exists()) {
@@ -328,7 +326,7 @@ public class ScoreScreen implements Screen {
         // Entire screen slides out to the left (-w)
         rootGroup.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
             com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(-w, 0, 0.5f, Interpolation.pow3In),
-            com.badlogic.gdx.scenes.scene2d.actions.Actions.run(onFinish) // <--- Runs the screen change here!
+            com.badlogic.gdx.scenes.scene2d.actions.Actions.run(onFinish) // <- Runs the screen change here
         ));
     }
 
@@ -343,7 +341,7 @@ public class ScoreScreen implements Screen {
         }
     }
 
-    // THE FIX: Adds padLeft dynamically to push the row rightwards, tracing the `\` slant!
+    // Add padLeft dynamically to push the row rightwards, tracing the `\` slant
     private float addSlantedStat(Table table, String label, int value, Color labelColor, float rowWidth, float currentShift, float deltaY, float tan3) {
         Table row = new Table();
         Label lbl = new Label(label, skin);
@@ -354,7 +352,7 @@ public class ScoreScreen implements Screen {
         row.add(lbl).expandX().left();
         row.add(val).width(60).align(Align.right);
 
-        // padLeft pushes the entire row rightwards, creating the visual slant!
+        // padLeft pushes the entire row rightwards, creating the visual slant
         table.add(row).width(rowWidth).left().padLeft(currentShift).padBottom(deltaY - 28f).row();
 
         return currentShift + (deltaY * tan3);
@@ -379,7 +377,7 @@ public class ScoreScreen implements Screen {
         newData.timestamp = playTimestamp;
         newData.maxCombo = scoreManager.maxCombo; newData.sCriticals = sc; newData.criticals = c; newData.nears = n;
         newData.mids = m; newData.fars = f; newData.misses = miss; newData.early = early; newData.late = late;
-        newData.laserTicks = scoreManager.laserTicks; newData.laserMisses = scoreManager.laserMisses;
+        newData.laserTicks = scoreManager.laserTicks; newData.laserMisses = scoreManager.getLaserMisses();
 
         history.plays.add(newData);
         saveFile.writeString(json.prettyPrint(history), false);
