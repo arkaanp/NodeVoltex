@@ -2,7 +2,9 @@ package com.nodevoltex.game.screens;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
@@ -25,7 +27,6 @@ public class StatsPanel extends Table {
 
     private boolean sortScoreAscending = true;
 
-    // --- Tab State Memory Variables ---
     private String activeSortTab = "score";
     private String activeScopeTab = "local";
 
@@ -36,6 +37,8 @@ public class StatsPanel extends Table {
     private Label noteCountLabel;
     private Label holdCountLabel;
     private Label laserCountLabel;
+
+    private final ShapeRenderer shapeRenderer = new ShapeRenderer();
 
     public StatsPanel(Skin skin) {
         this.skin = skin;
@@ -101,7 +104,6 @@ public class StatsPanel extends Table {
         headerStack.add(textTable);
         backgroundsTable.add(headerStack).expandX().fillX().padLeft(40).height(150).row();
 
-        // --- Custom Underline Tabs ---
         Table toggleTable = new Table();
         toggleTable.left().pad(10);
         toggleTable.background(skin.newDrawable("white", new Color(0, 0, 0, 0.4f)));
@@ -140,7 +142,6 @@ public class StatsPanel extends Table {
         this.add(topStack).expandX().fillX().row();
     }
 
-    // --- Custom Animated Tab Builder ---
     private Table createStatsTab(final String text, final String group, final Runnable onClick) {
         final Table tab = new Table();
         tab.setTouchable(Touchable.enabled);
@@ -148,7 +149,6 @@ public class StatsPanel extends Table {
         final Label label = new Label(text, skin);
         label.setFontScale(0.85f);
 
-        // White underline for dark background
         final Image underline = new Image(skin.newDrawable("white", Color.WHITE));
 
         tab.add(label).padBottom(2).row();
@@ -177,7 +177,7 @@ public class StatsPanel extends Table {
                     label.setColor(Color.LIGHT_GRAY);
                 } else {
                     underline.getColor().a = 0.0f;
-                    label.setColor(Color.LIGHT_GRAY);
+                    label.setColor(Color.GRAY);
                 }
                 return false;
             }
@@ -191,27 +191,31 @@ public class StatsPanel extends Table {
             @Override
             public void act(float delta) {
                 super.act(delta);
-                float tanAngle = (float) Math.tan(Math.toRadians(3f));
-                float rightWallTopX = StatsPanel.this.getWidth() - 20f;
-                float leftWallX = 50f;
-                float fixedBoxWidth = rightWallTopX - leftWallX - 5f;
+                // Keep the list cascade layout at 5 degrees so it tracks the main UI column
+                float tanAngle = (float) Math.tan(Math.toRadians(5f));
+
+                float rightWallTopX = StatsPanel.this.getWidth() - 40f;
+                float fixedBoxWidth = StatsPanel.this.getWidth() - 160f;
 
                 for (com.badlogic.gdx.scenes.scene2d.Actor child : getChildren()) {
                     child.setWidth(fixedBoxWidth);
                     com.badlogic.gdx.math.Vector2 pos = new com.badlogic.gdx.math.Vector2(0, child.getY() + child.getHeight());
                     localToAscendantCoordinates(StatsPanel.this, pos);
                     float distanceDown = StatsPanel.this.getHeight() - pos.y;
-                    float targetX = (rightWallTopX - (distanceDown * tanAngle)) - fixedBoxWidth;
+
+                    float rightEdgeAtCurrentY = rightWallTopX - (distanceDown * tanAngle);
+                    float targetX = rightEdgeAtCurrentY - fixedBoxWidth;
 
                     if (child.getUserObject() instanceof Float) {
-                        targetX -= (Float) child.getUserObject();
+                        targetX -= (Float) child.getUserObject(); // Subtracts to animate sliding in from left
                     }
-                    child.setX(targetX);
+
+                    child.setX(Math.round(targetX));
                 }
             }
         };
 
-        leaderboardTable.top().right();
+        leaderboardTable.top().left();
         leaderboardScrollPane = new ScrollPane(leaderboardTable, skin);
         leaderboardScrollPane.setScrollingDisabled(true, false);
         leaderboardScrollPane.setFadeScrollBars(false);
@@ -231,7 +235,6 @@ public class StatsPanel extends Table {
         if (jacketPath == null || jacketPath.isEmpty()) {
             jacketImage.setDrawable(skin.newDrawable("white", Color.DARK_GRAY));
         } else if (jacketPath.equals(oldJacket) && jacketTexture != null) {
-            // already loaded
         } else {
             jacketImage.setDrawable(skin.newDrawable("white", Color.DARK_GRAY));
 
@@ -304,15 +307,15 @@ public class StatsPanel extends Table {
 
         java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm");
         int index = 0;
-        float totalCascadeCap = 0.6f;
-        float baseDelay = totalCascadeCap / Math.max(1, currentScores.size);
-        baseDelay = Math.max(0.02f, Math.min(0.08f, baseDelay));
+
+        // Matches the diff box exactly
+        float baseDelay = 0.05f;
 
         for (com.nodevoltex.game.data.SaveData data : currentScores) {
             String dateStr = sdf.format(new java.util.Date(data.timestamp));
             String scoreStr = String.format("%08d", data.score);
             leaderboardTable.add(createAnimatedScoreRow(data, "Guest", scoreStr, data.grade, data.maxCombo + "x", dateStr, index, animate, baseDelay))
-                .expandX().right().padBottom(5).row();
+                .expandX().left().padBottom(10).row();
             index++;
         }
     }
@@ -325,13 +328,47 @@ public class StatsPanel extends Table {
     }
 
     private Table createAnimatedScoreRow(final com.nodevoltex.game.data.SaveData data, String name, String score, String grade, String combo, String date, int delayIndex, boolean animate, float baseDelay) {
-        final Table row = new Table();
 
-        final com.badlogic.gdx.scenes.scene2d.utils.Drawable normalBg = skin.newDrawable("white", new Color(0.1f, 0.1f, 0.15f, 0.65f));
-        final com.badlogic.gdx.scenes.scene2d.utils.Drawable hoverBg = skin.newDrawable("white", new Color(0.2f, 0.2f, 0.25f, 0.85f));
-        final com.badlogic.gdx.scenes.scene2d.utils.Drawable clickBg = skin.newDrawable("white", new Color(0.3f, 0.3f, 0.35f, 1f));
+        final Color[] bgColor = {new Color(0.1f, 0.1f, 0.15f, 0.65f)};
+        final Color normalColor = new Color(0.1f, 0.1f, 0.15f, 0.65f);
+        final Color hoverColor = new Color(0.15f, 0.15f, 0.2f, 0.85f);
+        final Color clickColor = new Color(0.2f, 0.2f, 0.25f, 1.0f);
 
-        row.setBackground(normalBg);
+        final Table row = new Table() {
+            @Override
+            public void draw(com.badlogic.gdx.graphics.g2d.Batch batch, float parentAlpha) {
+                batch.end();
+                Gdx.gl.glEnable(GL20.GL_BLEND);
+                Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+                shapeRenderer.setProjectionMatrix(batch.getProjectionMatrix());
+                shapeRenderer.setTransformMatrix(batch.getTransformMatrix());
+                shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+                float x = getX(), y = getY(), w = getWidth(), h = getHeight();
+
+                // Sharper 15-degree geometry for the boxes
+                float sharpTanAngle = (float) Math.tan(Math.toRadians(15f));
+
+                float bgH = h - 8f;
+                float bgY = y + 4f;
+                float slant = bgH * sharpTanAngle;
+
+                Color c = bgColor[0];
+                shapeRenderer.setColor(c.r, c.g, c.b, c.a * getColor().a * parentAlpha);
+
+                // / / Parallelogram
+                shapeRenderer.triangle(x, bgY, x + slant, bgY + bgH, x + w - slant, bgY);
+                shapeRenderer.triangle(x + slant, bgY + bgH, x + w - slant, bgY, x + w, bgY + bgH);
+
+                shapeRenderer.end();
+                Gdx.gl.glDisable(GL20.GL_BLEND);
+                batch.begin();
+
+                super.draw(batch, parentAlpha);
+            }
+        };
+
         row.setTouchable(Touchable.enabled);
 
         final ClickListener listener = new ClickListener() {
@@ -347,21 +384,25 @@ public class StatsPanel extends Table {
         row.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
             @Override
             public boolean act(float delta) {
-                if (listener.isVisualPressed()) row.setBackground(clickBg);
-                else if (listener.isOver()) row.setBackground(hoverBg);
-                else row.setBackground(normalBg);
+                if (listener.isVisualPressed()) bgColor[0].set(clickColor);
+                else if (listener.isOver()) bgColor[0].set(hoverColor);
+                else bgColor[0].set(normalColor);
                 return false;
             }
         });
 
         if (animate) {
-            row.getColor().a = 0.5f;
-            row.setUserObject(2500f);
+            row.getColor().a = 0f;
+            // Positive 800f so the layout math subtracts it, starting on the LEFT
+            row.setUserObject(800f);
 
             row.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
                 float time = 0;
                 float delay = delayIndex * baseDelay;
-                float duration = Math.max(0.12f, 0.4f * (1f - Math.min(0.8f, (currentScores.size / 30f))));
+
+                // Top score gets 0.3s. Lower scores are even faster (min 0.1s).
+                float duration = Math.max(0.1f, 0.3f - (delayIndex * 0.02f));
+
                 @Override
                 public boolean act(float delta) {
                     float safeDelta = Math.min(delta, 0.03f);
@@ -370,8 +411,10 @@ public class StatsPanel extends Table {
                     time += safeDelta;
                     float progress = com.badlogic.gdx.math.Interpolation.pow3Out.apply(Math.min(time / duration, 1f));
 
-                    row.getColor().a = 0.5f + (0.5f * progress);
-                    row.setUserObject(2500f * (1f - progress));
+                    row.getColor().a = progress;
+
+                    // Slides in from 800px to the left, slowing down as it reaches 0
+                    row.setUserObject(800f * (1f - progress));
 
                     return time >= duration;
                 }
@@ -383,27 +426,47 @@ public class StatsPanel extends Table {
 
         Table profileTable = new Table();
         Image pfp = new Image(skin.newDrawable("white", Color.GRAY));
-        profileTable.add(pfp).width(50).height(50).padRight(10);
+
+        // Increased padLeft to 30 to make sure it cleanly surpasses the newly sharpened 15-degree slant
+        profileTable.add(pfp).width(80).height(80).padRight(18).padLeft(30);
+        row.add(profileTable).align(Align.left);
 
         Table nameDateTable = new Table();
-        nameDateTable.add(new Label(name, skin)).align(Align.left).row();
-        nameDateTable.add(new Label(date, skin)).align(Align.left);
-        profileTable.add(nameDateTable);
+        Label nameLbl = new Label(name, skin);
+        nameLbl.setFontScale(1.0f);
 
-        row.add(profileTable).align(Align.left).expandX();
+        Label dateLbl = new Label(date, skin);
+        dateLbl.setFontScale(0.6f);
+        dateLbl.setColor(Color.LIGHT_GRAY);
+
+        nameDateTable.add(nameLbl).align(Align.left).row();
+        nameDateTable.add(dateLbl).align(Align.left);
+        row.add(nameDateTable).align(Align.left).expandX();
 
         Table comboTable = new Table();
-        comboTable.add(new Label("Max Combo", skin)).row();
-        comboTable.add(new Label(combo, skin));
+        Label comboTxt = new Label("Max Combo", skin);
+        comboTxt.setFontScale(0.8f);
+        comboTxt.setColor(Color.LIGHT_GRAY);
+
+        Label comboVal = new Label(combo, skin);
+        comboVal.setFontScale(0.8f);
+
+        comboTable.add(comboTxt).row();
+        comboTable.add(comboVal);
         row.add(comboTable).align(Align.center).expandX();
 
         Table scoreTable = new Table();
-        Label scoreLabel = new Label(score, skin);
-        Label gradeLabel = new Label(grade, skin);
+        Label scoreLbl = new Label(score, skin);
+        scoreLbl.setFontScale(1.0f);
 
-        scoreTable.add(scoreLabel).align(Align.right).row();
-        scoreTable.add(gradeLabel).align(Align.right);
-        row.add(scoreTable).align(Align.right).expandX().padRight(20);
+        Label gradeLbl = new Label(grade, skin);
+        gradeLbl.setFontScale(1.0f);
+
+        scoreTable.add(scoreLbl).align(Align.right).row();
+        scoreTable.add(gradeLbl).align(Align.right);
+
+        // Increased padRight to 50 to ensure text doesn't clip the sharpened right edge
+        row.add(scoreTable).align(Align.right).expandX().padRight(50);
 
         return row;
     }
