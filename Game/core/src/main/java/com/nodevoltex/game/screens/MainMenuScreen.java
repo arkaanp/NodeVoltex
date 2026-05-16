@@ -88,7 +88,7 @@ public class MainMenuScreen implements Screen {
             public void clicked(InputEvent event, float x, float y) {
                 stage.getRoot().setTouchable(Touchable.disabled);
 
-                // --- REMOVED THE MUSIC.STOP() CODE FROM HERE ---
+                // --- REMOVED THE MUSIC.STOP() ---
 
                 animateOutUpwards();
             }
@@ -104,7 +104,7 @@ public class MainMenuScreen implements Screen {
         rootTable.add(playBtn).width(300).height(60).padBottom(20).row();
         rootTable.add(exitBtn).width(300).height(60).row();
 
-        // --- NEW: Trigger entry animation when screen is created ---
+        // --- Trigger entry animation when screen is created ---
         // If coming back from SongSelect, we drop down from the top.
         animateInFromTop();
     }
@@ -125,7 +125,7 @@ public class MainMenuScreen implements Screen {
             Actions.moveBy(0, h, 0.7f, Interpolation.pow4In),
             Actions.delay(0.05f),
             Actions.run(() -> {
-                // Create a NEW screen every time!
+                // Create a NEW screen every time
                 game.setScreen(new SongSelectScreen(game, music, null, false));
             })
         ));
@@ -133,8 +133,8 @@ public class MainMenuScreen implements Screen {
     private void animateInFromTop() {
         float h = Gdx.graphics.getHeight();
 
-        // --- CHANGED: Remove background animation here. ---
-        // Because SongSelect handled the transition, this screen just starts with bgImage at 0!
+        // --- Remove background animation ---
+        // Because SongSelect handled the transition, this screen just starts with bgImage at 0
         titleImage.addAction(Actions.moveBy(0, h));
         playBtn.addAction(Actions.moveBy(0, h));
         exitBtn.addAction(Actions.moveBy(0, h));

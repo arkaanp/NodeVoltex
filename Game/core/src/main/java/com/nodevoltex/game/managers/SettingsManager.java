@@ -112,7 +112,7 @@ public class SettingsManager {
         getPrefs().flush();
     }
 
-    // --- NEW: Retry Settings ---
+    // --- Retry Settings ---
     public static float getRetryHoldTime() { return getPrefs().getFloat("retryHoldTime", 1.0f); } // Default 1 second
     public static void setRetryHoldTime(float val) { getPrefs().putFloat("retryHoldTime", val); getPrefs().flush(); }
 

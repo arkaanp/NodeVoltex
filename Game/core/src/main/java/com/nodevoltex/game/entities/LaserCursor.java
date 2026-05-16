@@ -26,13 +26,12 @@ public class LaserCursor {
     public float missedTimer = 0f;
     public boolean hasComboBroken = false;
 
-    // --- CHANGED: Added Alternate Key Variables ---
+    // --- Alternate Key Variables ---
     private final int keyLeftPri;
     private final int keyRightPri;
     private final int keyLeftAlt;
     private final int keyRightAlt;
 
-    // --- CHANGED: Constructor now accepts 5 arguments to fix the error ---
     public LaserCursor(boolean isLeftLaser, int keyLeftPri, int keyRightPri, int keyLeftAlt, int keyRightAlt) {
         this.isLeftLaser = isLeftLaser;
         this.keyLeftPri = keyLeftPri;
@@ -59,7 +58,7 @@ public class LaserCursor {
             currentRight = inputController.virtualKeyboard.getOrDefault(labelR, false);
         } else {
             // NORMAL: Read Physical Keys
-            // --- CHANGED: Now checks if EITHER the Primary or Alternate key is pressed ---
+            // --- checks if EITHER the Primary or Alternate key is pressed ---
             currentLeft = Gdx.input.isKeyPressed(keyLeftPri) || Gdx.input.isKeyPressed(keyLeftAlt);
             currentRight = Gdx.input.isKeyPressed(keyRightPri) || Gdx.input.isKeyPressed(keyRightAlt);
         }
@@ -92,7 +91,7 @@ public class LaserCursor {
     public void draw(ShapeRenderer renderer, float trackX, float trackWidth, float hitLineY) {
         float screenX = trackX + (this.x * trackWidth);
 
-        // --- THE COLOR FIX: Keep base color, lower opacity to 30% if missed ---
+        // --- Keep base color, lower opacity to 30% if missed ---
         float r = isLeftLaser ? 0f : 1f;  // Cyan: 0, Magenta: 1
         float g = isLeftLaser ? 1f : 0f;  // Cyan: 1, Magenta: 0
         float b = 1f;                     // Both use max Blue
@@ -100,7 +99,7 @@ public class LaserCursor {
 
         renderer.setColor(r, g, b, a);
 
-        // --- THE SHAPE FIX: Draw an upward arrow/triangle instead of a rectangle ---
+        // --- Draw an upward arrow/triangle ---
         float peakX = screenX;
         float peakY = hitLineY + 12f;  // Top point of the arrow
 

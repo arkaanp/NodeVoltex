@@ -8,7 +8,7 @@ public class ReplayData {
     public int finalScore = 0;
     public long timestamp = 0;
 
-    // A chronological list of every single button press/release!
+    // A chronological list of every single button press/release
     public Array<InputEvent> events = new Array<>();
 
     public static class InputEvent {

@@ -5,9 +5,8 @@ import com.badlogic.gdx.utils.Array;
 public class Beatmap {
     public General general;
     public Array<HitObject> hitObjects;
-    public Lasers lasers; // NEW
+    public Lasers lasers;
 
-    // Inside Beatmap.java
     public static class General {
         public String title = "Unknown Title";
         public String artist = "Unknown Artist";
@@ -18,7 +17,7 @@ public class Beatmap {
         public int previewOffset = 0;
         public String jacketFilename = "jak.png";
 
-        // --- NEW: Pre-calculated Stats ---
+        // --- Pre-calculated Stats ---
         public int noteCount = 0;
         public int holdCount = 0;
         public int laserCount = 0;

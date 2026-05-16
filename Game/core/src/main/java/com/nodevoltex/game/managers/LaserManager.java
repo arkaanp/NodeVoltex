@@ -84,7 +84,7 @@ public class LaserManager {
             float firstOffset = sequence.nodes.get(0).offset;
             float lastOffset = sequence.nodes.get(sequence.nodes.size - 1).offset;
 
-            // --- THE FIX: Wake up Part 1 early by expanding the window backwards to catch initial slams! ---
+            // --- expanding the window backwards to catch initial slams ---
             if (currentTime >= firstOffset - graceWindowMs && currentTime <= lastOffset + 50f) {
                 isCurrentlyOnLaser = true;
 
@@ -145,7 +145,6 @@ public class LaserManager {
                                 isCoastingOnResolvedSlam = true;
 
                                 if (slamSound != null && shouldPlayHitsound(sequence, i + 1)) {
-                                    // Make sure you have your SettingsManager properly imported for this!
                                     float vol = SettingsManager.getMasterVolume() * SettingsManager.getEffectVolume();
                                     slamSound.play(vol);
                                 }
@@ -154,10 +153,10 @@ public class LaserManager {
                     }
                 }
 
-                // --- THE FREEZE FIX: Absolutely bolt the cursor in place before the laser requires movement ---
+                // --- Absolutely bolt the cursor in place before the laser requires movement ---
                 if (currentTime < firstOffset) {
                     // Since it hasn't technically started, enforce the position to stop physical wiggling.
-                    // (Note: currentLaserX perfectly accounts for early slam flicks because we updated it above!)
+                    // (Note: currentLaserX perfectly accounts for early slam flicks because we updated it above)
                     cursor.x = currentLaserX;
                 }
 
@@ -304,7 +303,7 @@ public class LaserManager {
                 float timeToNextMs = upcomingLaser.nodes.get(0).offset - currentTime;
                 if (timeToNextMs <= 1000f) {
                     cursor.targetLaserX = upcomingLaser.nodes.get(0).x;
-                    // --- THE FREEZE FIX (Part 2): Bolt the cursor exactly in place while waiting ---
+                    // --- Bolt the cursor exactly in place while waiting ---
                     cursor.x = cursor.targetLaserX;
                     cursor.setState(new LockedState());
                     cursor.isMissed = false;

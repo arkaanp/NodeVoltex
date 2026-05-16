@@ -1,4 +1,4 @@
-package com.nodevoltex.game; // Make sure this matches your actual package name!
+package com.nodevoltex.game;
 
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.Gdx;
@@ -12,7 +12,7 @@ public class NodeVoltex extends Game {
     public ShapeRenderer shapeRenderer;
     public com.badlogic.gdx.Screen songSelectScreen;
 
-    // --- OUR NEW GLOBAL UI SKIN ---
+    // --- NEW GLOBAL UI SKIN ---
     public static com.badlogic.gdx.scenes.scene2d.ui.Skin skin;
 
     @Override
@@ -23,7 +23,7 @@ public class NodeVoltex extends Game {
         // 1. Build the UI Skin FIRST so it exists in memory
         createBasicSkin();
 
-        // --- THE FIX: Force Global Smooth Text ---
+        // --- Force Global Smooth Text ---
         com.badlogic.gdx.utils.ObjectMap<String, com.badlogic.gdx.graphics.g2d.BitmapFont> fonts = skin.getAll(com.badlogic.gdx.graphics.g2d.BitmapFont.class);
 
         if (fonts != null) {
@@ -35,7 +35,7 @@ public class NodeVoltex extends Game {
                 );
 
                 // 2. Stop LibGDX from forcing text onto rigid pixel grids.
-                // This permanently stops the pixelation/blurriness after transitioning screens!
+                // This permanently stops the pixelation/blurriness after transitioning screens
                 font.setUseIntegerPositions(false);
             }
         }
@@ -84,7 +84,7 @@ public class NodeVoltex extends Game {
         fontHuge.setUseIntegerPositions(false); // Keeps the massive letter perfectly smooth
         skin.add("huge", fontHuge);
 
-        generator.dispose(); // CRITICAL: Only dispose AFTER generating all 4 sizes!
+        generator.dispose(); // CRITICAL: Only dispose AFTER generating all 4 sizes
 
         // --- 3. CREATE LABEL STYLES ---
         com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle defaultStyle = new com.badlogic.gdx.scenes.scene2d.ui.Label.LabelStyle();
@@ -103,7 +103,6 @@ public class NodeVoltex extends Game {
         hugeStyle.font = fontHuge;
         skin.add("huge", hugeStyle);
 
-        // --- THE REST OF YOUR SKIN LOGIC ---
         com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle textButtonStyle = new com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle();
         textButtonStyle.up = skin.newDrawable("white", new com.badlogic.gdx.graphics.Color(0.1f, 0.1f, 0.1f, 0.5f));
         textButtonStyle.down = skin.newDrawable("white", new com.badlogic.gdx.graphics.Color(0.3f, 0.3f, 0.3f, 0.7f));
@@ -124,7 +123,7 @@ public class NodeVoltex extends Game {
 
     @Override
     public void render() {
-        // CRITICAL: In LibGDX, this line is what actually tells your active Screen to draw!
+        // CRITICAL: In LibGDX, this line is what actually tells active Screen to draw
         super.render();
     }
 

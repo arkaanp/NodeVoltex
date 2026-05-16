@@ -17,7 +17,7 @@ import com.nodevoltex.game.managers.SettingsManager;
 public class ModOverlay {
     private final Group root;
     private final Table mainContainer;
-    private final Table clickShield; // <--- Extracted so we can animate it
+    private final Table clickShield; // Extracted so we can animate it
     private boolean isOpen = false;
 
     public ModOverlay(Skin skin, Stage stage) {
@@ -29,7 +29,7 @@ public class ModOverlay {
         // 1. The Screen-Dimming Shield
         clickShield = new Table();
         clickShield.setFillParent(true);
-        // --- THE FIX: Added a 75% dark background to dim the screen! ---
+        // --- 75% dark background to dim the screen ---
         clickShield.setBackground(skin.newDrawable("white", new Color(0, 0, 0, 0.75f)));
         clickShield.setTouchable(Touchable.enabled);
         clickShield.addListener(new ClickListener() {
@@ -60,7 +60,7 @@ public class ModOverlay {
         TextButton noLaserBtn = new TextButton("No Laser", skin);
 
         Runnable updateBtnColors = () -> {
-            // THE FIX: Color the text label directly so it glows bright, regardless of the button texture!
+            // Color the text label directly so it glows bright, regardless of the button texture
             if (SettingsManager.getModAutoPlay()) {
                 autoBtn.getLabel().setColor(Color.CYAN);
             } else {
@@ -130,10 +130,10 @@ public class ModOverlay {
         clickShield.addAction(Actions.fadeIn(0.25f, Interpolation.sineOut)); // Smoother, faster fade
 
         mainContainer.clearActions();
-        // THE FIX: Disable touch while sliding so buttons don't accidentally hover!
+        // Disable touch while sliding so buttons don't accidentally hover
         mainContainer.setTouchable(Touchable.disabled);
         mainContainer.addAction(Actions.sequence(
-            // THE FIX: 0.3s and exp10Out makes it incredibly fast, snappy, and flowy
+            // 0.3s and exp10Out makes it incredibly fast, snappy, and flowy
             Actions.moveTo(0, 0, 0.3f, Interpolation.exp10Out),
             Actions.run(() -> mainContainer.setTouchable(Touchable.enabled)) // Re-enable touch when done
         ));

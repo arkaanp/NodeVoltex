@@ -37,14 +37,14 @@ public class InputController {
         }
     }
 
-    // --- NEW: THE PLAYBACK ENGINE ---
+    // --- THE PLAYBACK ENGINE ---
     public void updatePlayback(float currentAudioTimeMs) {
         if (!isReplayPlayback || currentReplay == null) return;
 
         while (replayPlaybackIndex < currentReplay.events.size) {
             ReplayData.InputEvent event = currentReplay.events.get(replayPlaybackIndex);
 
-            // If the timeline has reached this exact event, press/release the virtual key!
+            // If the timeline has reached this exact event, press/release the virtual key
             if (currentAudioTimeMs >= event.audioTimeMs) {
                 virtualKeyboard.put(event.inputType, event.isPressed);
                 replayPlaybackIndex++;
@@ -74,7 +74,7 @@ public class InputController {
         // 1. Advance the Ghost Keyboard
         updatePlayback(currentAudioTimeMs);
 
-        // 2. Poll Physical OR Virtual Keys using the SettingsManager!
+        // 2. Poll Physical OR Virtual Keys using the SettingsManager
         boolean currentBT1 = isReplayPlayback ? virtualKeyboard.getOrDefault("BT1", false) :
             (Gdx.input.isKeyPressed(SettingsManager.getKey("BT1", true)) || Gdx.input.isKeyPressed(SettingsManager.getKey("BT1", false)));
 
@@ -140,7 +140,7 @@ public class InputController {
                         targetNote.wasHeadHit = true;
                         if (!targetNote.isHold) targetNote.isCompleted = true;
                     }
-                    // If diffMs < -127.0f, it is a Ghost Tap!
+                    // If diffMs < -127.0f, it is a Ghost Tap
                     // Because of Notelock, it completely ignores the input instead of breaking combo or piercing to the next note.
                 }
             }
@@ -165,7 +165,7 @@ public class InputController {
                     note.isCompleted = true;
                     scoreManager.onHit(diffMs, "RELEASE");
                 } else if (diffMs < -maxReleaseWindow) {
-                    // Unlike ghost tapping, letting go of an active hold too early IS a dropped combo!
+                    // Unlike ghost tapping, letting go of an active hold too early IS a dropped combo
                     note.isMissed = true;
                     scoreManager.onMiss("RELEASE");
                 }

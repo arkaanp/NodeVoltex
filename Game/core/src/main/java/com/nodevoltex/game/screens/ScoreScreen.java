@@ -159,6 +159,8 @@ public class ScoreScreen implements Screen {
         metaText.add(titleLabel).align(Align.left).row();
         metaText.add(new Label(metadata.artist, skin)).align(Align.left).row();
         metaText.add(new Label("mapped by " + metadata.mapper, skin)).align(Align.left).padTop(5).row();
+
+        // --- puts the text back next to the jacket ---
         innerSongBox.add(metaText).expandX().left();
 
         metaBox.add(innerSongBox).expandX().fillX().padBottom(7.5f).row();
@@ -166,12 +168,49 @@ public class ScoreScreen implements Screen {
         diffLabel.setColor(Color.CYAN);
         metaBox.add(diffLabel).align(Align.left).row();
 
-        // 40px left screen pad + Box Width + 40px right gap = Exact position of the slant line
+        // Calculate the exact width to the slant line
         float metaBoxDistFromTop = 40f;
         float slantXAtMeta = topWidth + (metaBoxDistFromTop * tan3);
         float metaBoxWidth = slantXAtMeta - 80f;
 
-        leftCol.add(metaBox).width(metaBoxWidth).left().padBottom(20).row();
+        // --- The Wrapper ---
+        // By wrapping these together, we protect them from the giant statsTable below
+        // which was secretly stretching the entire column and throwing your mods out of bounds
+        Table metaWrapper = new Table();
+
+        // 1. Add the dark box to the wrapper, locked to the exact slant width
+        metaWrapper.add(metaBox).width(metaBoxWidth).left().row();
+
+        // 2. Build the Mod Indicators
+        Table modTable = new Table();
+
+        // --- Tell the table itself to align contents right ---
+        modTable.right();
+
+        // Accurate logic: Only show mods if it's a live play.
+        boolean usedAutoplay = !fromHistory && SettingsManager.getModAutoPlay();
+        boolean usedNoLaser = !fromHistory && SettingsManager.getModNoLaser();
+
+        if (usedAutoplay) {
+            Label autoLbl = new Label("AUTOPLAY", skin);
+            autoLbl.setColor(Color.valueOf("#00E5FF")); // Arcade Cyan
+            autoLbl.setFontScale(0.85f);
+            modTable.add(autoLbl).padRight(15);
+        }
+
+        if (usedNoLaser) {
+            Label noLaserLbl = new Label("NO LASERS", skin);
+            noLaserLbl.setColor(Color.valueOf("#FF9100")); // Arcade Orange
+            noLaserLbl.setFontScale(0.85f);
+            modTable.add(noLaserLbl);
+        }
+
+        // --- Push the shrink-wrapped table to the right edge ---
+        // By using expandX().right() instead of width(), it slides perfectly into the corner.
+        metaWrapper.add(modTable).expandX().right().padTop(5).padBottom(15).row();
+
+        // 4. Add the protected wrapper safely to the main column
+        leftCol.add(metaWrapper).left().row();
 
         // B. The Big Score & Integrated Grade
         String scoreString = String.format("%08d", finalScore);
@@ -287,6 +326,8 @@ public class ScoreScreen implements Screen {
             @Override public void clicked(InputEvent event, float x, float y) {
                 // --- Check if the .json file exists on the hard drive ---
                 com.badlogic.gdx.files.FileHandle checkFile = Gdx.files.local("replays/replay_" + currentReplayTimestamp + ".json");
+
+                SongListPanel.stopAudio();
 
                 if (checkFile.exists()) {
                     animateOut(() -> game.setScreen(new PlayScreen(game, mapFilePath, currentReplayTimestamp)));

@@ -121,7 +121,7 @@ public class SongListPanel extends Table {
 
         // 2. Solid Patch with a Colored Border
         com.badlogic.gdx.graphics.Pixmap outlinePix = new com.badlogic.gdx.graphics.Pixmap(size, size, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
-        // Changed from BLACK to GRAY. When tinted, this becomes a darker shade of the fill color
+        // When tinted, this becomes a darker shade of the fill color
         outlinePix.setColor(Color.GRAY);
         outlinePix.fillCircle(radius, radius, radius);
         outlinePix.setColor(Color.WHITE);
@@ -416,6 +416,7 @@ public class SongListPanel extends Table {
                     }
                 } else {
                     selectedDiffName = diffName;
+                    GLOBAL_LAST_PLAYED_DIFFICULTY = diffName;
                     updateStatsPanel(song, diffName, level, mapPath, true);
                     refreshSongList(false);
                 }
@@ -519,6 +520,7 @@ public class SongListPanel extends Table {
                 selectedSong = song;
                 selectedDiffName = finalDiff;
                 GLOBAL_LAST_PLAYED_PATH = finalPath != null ? finalPath : song.novPath;
+                GLOBAL_LAST_PLAYED_DIFFICULTY = finalDiff;
 
                 refreshSongList(true);
                 isTransitioning = false;
@@ -688,7 +690,7 @@ public class SongListPanel extends Table {
         audioThread.start();
     }
 
-    public void stopAudio() {
+    public static void stopAudio() {
         if (mainMenuMusic != null) {
             mainMenuMusic.stop();
             mainMenuMusic.dispose();
@@ -748,7 +750,7 @@ public class SongListPanel extends Table {
 
         if (GLOBAL_LAST_PLAYED_DIFFICULTY != null && !GLOBAL_LAST_PLAYED_DIFFICULTY.isEmpty()) {
             expectedDiff = GLOBAL_LAST_PLAYED_DIFFICULTY;
-            GLOBAL_LAST_PLAYED_DIFFICULTY = null;
+            //GLOBAL_LAST_PLAYED_DIFFICULTY = null;
         }
 
         String[] targetParts = target.split("/");

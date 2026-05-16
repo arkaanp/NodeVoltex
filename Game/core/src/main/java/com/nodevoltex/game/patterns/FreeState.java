@@ -10,7 +10,7 @@ public class FreeState implements CursorState {
     private final float MAX_SPEED = 4.0f;        // Top speed (rapid whipping)
 
     // Time in seconds to wait before the acceleration kicks in
-    private final float ACCEL_DELAY = 0.2f;      // 200ms delay
+    private final float ACCEL_DELAY = 0.05f;      // 200ms delay
 
     // How quickly it reaches MAX_SPEED once the delay finishes
     private final float ACCEL_RATE = 5.0f;

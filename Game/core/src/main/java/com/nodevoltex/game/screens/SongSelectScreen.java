@@ -15,6 +15,7 @@ import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
 import com.badlogic.gdx.math.Interpolation;
 import com.nodevoltex.game.data.Beatmap;
+import com.nodevoltex.game.managers.SettingsManager;
 
 public class SongSelectScreen implements Screen {
     private final NodeVoltex game;
@@ -107,7 +108,7 @@ public class SongSelectScreen implements Screen {
 
         rightLayer.add(rightColumn)
             .width(com.badlogic.gdx.scenes.scene2d.ui.Value.percentWidth(0.48f, rightLayer))
-            .expandY().fillY(); // Removed padTop(40) and padBottom(40) from here!
+            .expandY().fillY(); // Removed padTop(40) and padBottom(40) from here
 
         stage.addActor(rightLayer);
 
@@ -145,9 +146,52 @@ public class SongSelectScreen implements Screen {
             }
         });
 
-        backTable.add(backBtn).width(150).height(50).padLeft(20).padBottom(20).padRight(10);
-        backTable.add(modsBtn).width(150).height(50).padBottom(20).padRight(10);
-        backTable.add(optionsBtn).width(150).height(50).padBottom(20);
+        // --- Dynamic Mod Indicator & Wrapper ---
+        Table modIndicatorTable = new Table() {
+            // Initialize with the opposite of current settings to force an immediate draw on boot
+            private boolean lastAuto = !SettingsManager.getModAutoPlay();
+            private boolean lastNoLaser = !SettingsManager.getModNoLaser();
+
+            @Override
+            public void act(float delta) {
+                super.act(delta);
+                boolean currentAuto = SettingsManager.getModAutoPlay();
+                boolean currentNoLaser = SettingsManager.getModNoLaser();
+
+                // Only rebuild the text if the player actually toggled a setting in the overlay
+                if (currentAuto != lastAuto || currentNoLaser != lastNoLaser) {
+                    lastAuto = currentAuto;
+                    lastNoLaser = currentNoLaser;
+
+                    clearChildren(); // Erase old text
+
+                    if (currentAuto) {
+                        Label autoLbl = new Label("AUTOPLAY", skin);
+                        autoLbl.setColor(Color.valueOf("#00E5FF")); // Cyan
+                        autoLbl.setFontScale(0.75f);
+                        add(autoLbl).padRight(8);
+                    }
+                    if (currentNoLaser) {
+                        Label noLaserLbl = new Label("NO LASERS", skin);
+                        noLaserLbl.setColor(Color.valueOf("#FF9100")); // Orange
+                        noLaserLbl.setFontScale(0.75f);
+                        add(noLaserLbl);
+                    }
+                }
+            }
+        };
+
+        // Wrap the button and the indicator together into a single vertical column
+        Table modsWrapper = new Table();
+        modsWrapper.add(modIndicatorTable).left().padBottom(5).row(); // Indicator sits on the top-left
+        modsWrapper.add(modsBtn).width(150).height(50); // Button sits underneath
+
+        // --- Add to Main Table ---
+        // Crucial: We add .bottom() to all cells so the buttons stay perfectly flush in a flat line
+        // even though the modsWrapper is technically taller now
+        backTable.add(backBtn).width(150).height(50).padLeft(20).padBottom(20).padRight(10).bottom();
+        backTable.add(modsWrapper).padBottom(20).padRight(10).bottom();
+        backTable.add(optionsBtn).width(150).height(50).padBottom(20).bottom();
 
         stage.addActor(backTable);
 

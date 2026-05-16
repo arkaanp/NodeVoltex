@@ -8,7 +8,7 @@ public class StrictJudgment {
         // Releases get exactly double the leniency window
         float mult = type.equals("RELEASE") ? 2.0f : 1.0f;
 
-        // Apply your formulas: e.g., 64 - 3(8) = 40ms
+        // Apply formulas
         float sCritWindow = 16.0f * mult;
         float critWindow = (64.0f - (3.0f * x)) * mult;
         float nearWindow = (97.0f - (3.0f * x)) * mult;

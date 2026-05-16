@@ -56,7 +56,7 @@ public class PlayScreen implements Screen {
     // --- INTRO & UI ANIMATION VARIABLES ---
     private Stage uiStage;
     private Actor playfieldAnchor;
-    private Table introCard; // <--- ADD THIS
+    private Table introCard;
     private Label bigScoreLabel;
     private Label smallScoreLabel;
     private Table scoreHud;
@@ -227,7 +227,7 @@ public class PlayScreen implements Screen {
         // --- Pass the mod flags to the gameplay managers ---
         inputController.isAutoPlay = SettingsManager.getModAutoPlay();
         laserManager.isAutoPlay = SettingsManager.getModAutoPlay();
-        laserManager.isNoLaser = SettingsManager.getModNoLaser(); // will add this field in Step 4
+        laserManager.isNoLaser = SettingsManager.getModNoLaser();
 
         inputController.isRecording = true;
         scoreManager = new ScoreManager(new StrictJudgment());
@@ -438,7 +438,7 @@ public class PlayScreen implements Screen {
         // 3. Move Score HUD UP and off-screen
         scoreHud.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.moveBy(0f, 250f, 0.8f, Interpolation.pow3In));
 
-        // 4. Move Playfield DOWN (This natively fades the 4 track lines & combo text to 0 opacity!)
+        // 4. Move Playfield DOWN (This natively fades the 4 track lines & combo text to 0 opacity)
         playfieldAnchor.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
             com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(0f, -WORLD_HEIGHT, 0.8f, Interpolation.pow3In),
             com.badlogic.gdx.scenes.scene2d.actions.Actions.run(() -> {
@@ -460,13 +460,13 @@ public class PlayScreen implements Screen {
                     inputController.currentReplay.finalScore = scoreManager.getFinalScore();
                     inputController.currentReplay.timestamp = runTimestamp;
 
-                    // --- Save as a real .json file in the safe 'local' directory (NOT assets) ---
+                    // --- Save as a real .json file in the safe 'local' directory ---
                     com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("replays/replay_" + runTimestamp + ".json");
                     com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
                     replayFile.writeString(json.prettyPrint(inputController.currentReplay), false);
                 }
 
-                // --- Stop the music exactly as the new screen loads! ---
+                // --- Stop the music exactly as the new screen loads ---
                 if (music != null) {
                     music.stop();
                 }
@@ -491,7 +491,7 @@ public class PlayScreen implements Screen {
                 game.songSelectScreen = new SongSelectScreen(game, null, mapFilePath, true);
                 game.setScreen(game.songSelectScreen);
 
-                // Manually force the viewport to capture the true screen size!
+                // Manually force the viewport to capture the true screen size
                 game.songSelectScreen.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
                 return;
             } else {
@@ -507,7 +507,7 @@ public class PlayScreen implements Screen {
             // --- TIMELINE & AUDIO SYNC ENGINE ---
             if (!isIntroDone) {
                 introTimer += delta;
-                // Use the calculated duration and dynamic preroll values!
+                // Use the calculated duration and dynamic preroll values
                 if (introTimer >= introTotalDuration) {
                     isIntroDone = true;
                     currentAudioTimeMs = prerollMs;
@@ -842,7 +842,7 @@ public class PlayScreen implements Screen {
 
             com.badlogic.gdx.graphics.g2d.GlyphLayout layout = new com.badlogic.gdx.graphics.g2d.GlyphLayout();
 
-            // Mathematically binds the text opacity to the sliding playfield!
+            // Mathematically binds the text opacity to the sliding playfield
             float textAlpha = scoreHud.getColor().a * visibilityRatio;
 
             // Draw Combo
@@ -882,7 +882,7 @@ public class PlayScreen implements Screen {
                 font.draw(game.batch, layout, WORLD_WIDTH / 2f - layout.width / 2f, WORLD_HEIGHT - 15f);
             }
             else if (laserManager.isNoLaser) {
-                font.setColor(Color.CYAN.r, Color.CYAN.g, Color.CYAN.b, textAlpha); // Cyan fits the laser theme perfectly!
+                font.setColor(Color.CYAN.r, Color.CYAN.g, Color.CYAN.b, textAlpha); // Cyan fits the laser theme perfectly
                 layout.setText(font, "- AUTO LASER -");
                 font.draw(game.batch, layout, WORLD_WIDTH / 2f - layout.width / 2f, WORLD_HEIGHT - 15f);
             }

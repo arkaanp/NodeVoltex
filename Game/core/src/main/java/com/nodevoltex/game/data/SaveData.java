@@ -5,7 +5,7 @@ public class SaveData {
     public String grade = "-";
     public long timestamp = 0;
 
-    // --- NEW: Arcade Statistics ---
+    // --- Arcade Statistics ---
     public int maxCombo = 0;
 
     // Note & Release Aggregates
