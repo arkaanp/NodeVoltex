@@ -7,13 +7,13 @@ public class FreeState implements CursorState {
     // --- TUNABLE ACCELERATION SETTINGS ---
     // 1.0f means it takes exactly 1 second to cross the entire track.
     private final float BASE_SPEED = 1.25f;       // Starting speed (fine control)
-    private final float MAX_SPEED = 4.0f;        // Top speed (rapid whipping)
+    private final float MAX_SPEED = 8.0f;        // Top speed (rapid whipping)
 
     // Time in seconds to wait before the acceleration kicks in
-    private final float ACCEL_DELAY = 0.05f;      // 200ms delay
+    private final float ACCEL_DELAY = 0.05f;      // 50ms delay
 
     // How quickly it reaches MAX_SPEED once the delay finishes
-    private final float ACCEL_RATE = 5.0f;
+    private final float ACCEL_RATE = 16.0f;
 
     // --- INTERNAL STATE TRACKERS ---
     private float currentSpeed = BASE_SPEED;
