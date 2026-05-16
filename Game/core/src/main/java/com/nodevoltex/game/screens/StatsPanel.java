@@ -65,20 +65,20 @@ public class StatsPanel extends Table {
         textTable.top().left().pad(15);
 
         titleLabel = new Label("magical, very magical world", skin);
-        titleLabel.setColor(Color.BLACK);
+        titleLabel.setColor(Color.WHITE);
         titleLabel.setFontScale(1f);
 
         artistLabel = new Label("Camellia", skin);
-        artistLabel.setColor(Color.DARK_GRAY);
+        artistLabel.setColor(Color.LIGHT_GRAY);
         artistLabel.setFontScale(1f);
 
         Table subInfoTable = new Table();
         diffLabel = new Label("EXH 17", skin);
-        diffLabel.setColor(Color.RED);
+        diffLabel.setColor(Color.WHITE);
         diffLabel.setFontScale(1f);
 
         mapperLabel = new Label("mapped by Sotarks", skin);
-        mapperLabel.setColor(Color.valueOf("#4A148C"));
+        mapperLabel.setColor(Color.DARK_GRAY);
         mapperLabel.setFontScale(1f);
 
         subInfoTable.add(diffLabel).padRight(10);
@@ -89,7 +89,7 @@ public class StatsPanel extends Table {
         holdCountLabel = new Label("HOLD: 0", skin);
         laserCountLabel = new Label("LASER: 0", skin);
 
-        noteCountLabel.setColor(Color.DARK_GRAY); holdCountLabel.setColor(Color.DARK_GRAY); laserCountLabel.setColor(Color.DARK_GRAY);
+        noteCountLabel.setColor(Color.BLACK); holdCountLabel.setColor(Color.BLACK); laserCountLabel.setColor(Color.BLACK);
         noteCountLabel.setFontScale(0.8f); holdCountLabel.setFontScale(0.8f); laserCountLabel.setFontScale(0.8f);
 
         objectStatsTable.add(noteCountLabel).padRight(15);
@@ -110,7 +110,7 @@ public class StatsPanel extends Table {
 
         Label sortedByLabel = new Label("sorted by: ", skin);
         sortedByLabel.setFontScale(0.85f);
-        sortedByLabel.setColor(Color.LIGHT_GRAY);
+        sortedByLabel.setColor(Color.WHITE);
         toggleTable.add(sortedByLabel).padRight(10);
 
         Table scoreBtn = createStatsTab("score", "sort", () -> { sortScoreAscending = true; refreshLeaderboard(false); });
@@ -121,7 +121,7 @@ public class StatsPanel extends Table {
 
         Label scopeLabel = new Label("scope: ", skin);
         scopeLabel.setFontScale(0.85f);
-        scopeLabel.setColor(Color.LIGHT_GRAY);
+        scopeLabel.setColor(Color.WHITE);
         toggleTable.add(scopeLabel).padRight(10);
 
         Table localBtn = createStatsTab("local", "scope", null);
@@ -174,10 +174,10 @@ public class StatsPanel extends Table {
                     label.setColor(Color.WHITE);
                 } else if (listener.isOver()) {
                     underline.getColor().a = 0.4f;
-                    label.setColor(Color.LIGHT_GRAY);
+                    label.setColor(Color.WHITE);
                 } else {
                     underline.getColor().a = 0.0f;
-                    label.setColor(Color.GRAY);
+                    label.setColor(Color.WHITE);
                 }
                 return false;
             }
@@ -436,8 +436,8 @@ public class StatsPanel extends Table {
         nameLbl.setFontScale(1.0f);
 
         Label dateLbl = new Label(date, skin);
-        dateLbl.setFontScale(0.6f);
-        dateLbl.setColor(Color.LIGHT_GRAY);
+        dateLbl.setFontScale(0.75f);
+        dateLbl.setColor(Color.WHITE);
 
         nameDateTable.add(nameLbl).align(Align.left).row();
         nameDateTable.add(dateLbl).align(Align.left);

@@ -28,6 +28,7 @@ public class SongListPanel extends Table {
     private Actor currentlyExpandedActor = null;
 
     private boolean isTransitioning = false;
+    private boolean forceSnapNextFrame = false;
     private Actor cameraTarget = null;
     private float cameraLerpTime = 0f;
     private String searchQuery = "";
@@ -42,12 +43,28 @@ public class SongListPanel extends Table {
     private static Array<SongData> GLOBAL_SONG_CACHE = null;
     private static String GLOBAL_LAST_PLAYED_PATH = null;
     private static String GLOBAL_LAST_PLAYED_DIFFICULTY = null;
-    private long lastSelectionTime = 0;
 
     // --- Dual 9-Patch Memory for Borders & Fills ---
     private static com.badlogic.gdx.graphics.g2d.NinePatch normalPatch;
     private static com.badlogic.gdx.graphics.g2d.NinePatch outlinePatch;
     private static com.badlogic.gdx.graphics.Texture roundedTexture;
+
+    private long lastSelectionTime = 0;
+    // --- GLOBAL SORT MEMORY ---
+    public static String GLOBAL_LAST_SORT_MODE = "title";
+    private String currentSortMode = GLOBAL_LAST_SORT_MODE;
+
+    private static class FlatDiff {
+        SongData song;
+        String diffName;
+        int level;
+        String path;
+        Color color;
+
+        public FlatDiff(SongData song, String diffName, int level, String path, Color color) {
+            this.song = song; this.diffName = diffName; this.level = level; this.path = path; this.color = color;
+        }
+    }
 
 
     private static class SongData {
@@ -153,12 +170,15 @@ public class SongListPanel extends Table {
     private void loadSongsFromDirectory() {
         if (GLOBAL_SONG_CACHE != null && GLOBAL_SONG_CACHE.size > 0) {
             allSongs.addAll(GLOBAL_SONG_CACHE);
-            refreshSongList(false);
 
+            // --- SELECT FIRST, THEN SORT ---
+            // This guarantees the sort algorithm knows where to point the camera!
             if (selectedSong == null) {
                 if (GLOBAL_LAST_PLAYED_PATH != null) selectSongByPath(GLOBAL_LAST_PLAYED_PATH);
                 else selectRandomSong();
             }
+
+            sortSongs(GLOBAL_LAST_SORT_MODE);
             return;
         }
 
@@ -242,12 +262,13 @@ public class SongListPanel extends Table {
                 GLOBAL_SONG_CACHE = new Array<>();
                 GLOBAL_SONG_CACHE.addAll(allSongs);
 
+                // --- SELECT FIRST, THEN SORT ---
                 if (allSongs.size > 0 && selectedSong == null) {
                     if (GLOBAL_LAST_PLAYED_PATH != null) selectSongByPath(GLOBAL_LAST_PLAYED_PATH);
                     else selectRandomSong();
-                } else {
-                    refreshSongList(false);
                 }
+
+                sortSongs(GLOBAL_LAST_SORT_MODE);
             });
 
         }).start();
@@ -260,28 +281,58 @@ public class SongListPanel extends Table {
         float fixedWidth = this.getWidth() - 100f;
         if (fixedWidth <= 0) fixedWidth = 800f;
 
-        for (SongData song : allSongs) {
-            if (!searchQuery.isEmpty()) {
-                if (!song.title.toLowerCase().contains(searchQuery) &&
-                    !song.artist.toLowerCase().contains(searchQuery) &&
-                    !song.mapper.toLowerCase().contains(searchQuery)) {
+        if ("level".equals(currentSortMode)) {
+            // --- FLATTENED LEVEL SORT ---
+            Array<FlatDiff> flatList = new Array<>();
+            for (SongData song : allSongs) {
+                // Apply Search Filter
+                if (!searchQuery.isEmpty() && !song.title.toLowerCase().contains(searchQuery) &&
+                    !song.artist.toLowerCase().contains(searchQuery) && !song.mapper.toLowerCase().contains(searchQuery)) {
                     continue;
                 }
+                // Extract individual diffs
+                if (song.novLv > 0) flatList.add(new FlatDiff(song, "NOV", song.novLv, song.novPath, getColorForLevel(song.novLv)));
+                if (song.advLv > 0) flatList.add(new FlatDiff(song, "ADV", song.advLv, song.advPath, getColorForLevel(song.advLv)));
+                if (song.exhLv > 0) flatList.add(new FlatDiff(song, "EXH", song.exhLv, song.exhPath, getColorForLevel(song.exhLv)));
+                if (song.mxmLv > 0) flatList.add(new FlatDiff(song, "MXM", song.mxmLv, song.mxmPath, getColorForLevel(song.mxmLv)));
             }
-            Table item;
-            if (song == selectedSong) {
-                item = buildExpandedItem(song, fixedWidth, animateCascade);
-                currentlyExpandedActor = item;
-            } else {
-                item = buildCollapsedItem(song);
+
+            // Sort flat list numerically by level
+            flatList.sort((a, b) -> Integer.compare(a.level, b.level));
+
+            for (FlatDiff flat : flatList) {
+                Table item = buildFlatItem(flat, fixedWidth);
+                if (selectedSong == flat.song && selectedDiffName.equals(flat.diffName)) {
+                    currentlyExpandedActor = item;
+                }
+                songListTable.add(item).width(fixedWidth).left().padBottom(5).row();
             }
-            songListTable.add(item).width(fixedWidth).left().padBottom(5).row();
+        } else {
+            // --- STANDARD GROUPED SORT ---
+            for (SongData song : allSongs) {
+                if (!searchQuery.isEmpty()) {
+                    if (!song.title.toLowerCase().contains(searchQuery) &&
+                        !song.artist.toLowerCase().contains(searchQuery) &&
+                        !song.mapper.toLowerCase().contains(searchQuery)) {
+                        continue;
+                    }
+                }
+                Table item;
+                if (song == selectedSong) {
+                    item = buildExpandedItem(song, fixedWidth, animateCascade);
+                    currentlyExpandedActor = item;
+                } else {
+                    item = buildCollapsedItem(song);
+                }
+                songListTable.add(item).width(fixedWidth).left().padBottom(5).row();
+            }
         }
 
         songListTable.validate();
 
         if (currentlyExpandedActor != null && animateCascade) {
-            cameraTarget = (Actor) currentlyExpandedActor.getUserObject();
+            // Safely target the camera regardless of mode
+            cameraTarget = currentlyExpandedActor.getUserObject() instanceof Actor ? (Actor) currentlyExpandedActor.getUserObject() : currentlyExpandedActor;
         } else {
             cameraTarget = null;
         }
@@ -332,6 +383,83 @@ public class SongListPanel extends Table {
             @Override
             public boolean act(float delta) {
                 if (listener.isOver() && !isTransitioning) item.setBackground(hoverBg);
+                else item.setBackground(normalBg);
+                return false;
+            }
+        });
+
+        return item;
+    }
+
+    private Table buildFlatItem(final FlatDiff flat, float fixedWidth) {
+        final Table item = new Table();
+        item.setName("slantHeader"); // Ensures the parallelogram math applies to it
+        item.setUserObject(item);    // Safely sets itself as the camera target
+
+        // --- Background colors derived entirely from the map's level color ---
+        // slightly dim the normal/hover states so the active state really pops
+        Color dimCol = new Color(flat.color.r * 0.7f, flat.color.g * 0.7f, flat.color.b * 0.7f, 0.6f);
+        Color hoverCol = new Color(flat.color.r * 0.85f, flat.color.g * 0.85f, flat.color.b * 0.85f, 0.7f);
+        Color activeCol = new Color(flat.color.r, flat.color.g, flat.color.b, 1.0f);
+
+        final com.badlogic.gdx.scenes.scene2d.utils.Drawable normalBg = createRoundedBackground(dimCol);
+        final com.badlogic.gdx.scenes.scene2d.utils.Drawable hoverBg = createRoundedBackground(hoverCol);
+        final com.badlogic.gdx.scenes.scene2d.utils.Drawable activeBg = createRoundedBackground(activeCol);
+
+        boolean initialActive = (selectedSong == flat.song && selectedDiffName.equals(flat.diffName));
+        item.setBackground(initialActive ? activeBg : normalBg);
+
+        // --- Dynamic text colors for readability based on the background ---
+        // Matches the diff box logic exactly: 1-12 gets dark text, 13+ gets light text.
+        Color mainTextColor = (flat.level >= 1 && flat.level <= 14) ? Color.BLACK : Color.WHITE;
+        Color subTextColor = (flat.level >= 1 && flat.level <= 16) ? Color.DARK_GRAY : Color.LIGHT_GRAY;
+
+        // --- UI Layout ---
+        Label diffLabel = new Label(flat.diffName + " " + flat.level, skin);
+        diffLabel.setColor(mainTextColor);
+        item.add(diffLabel).width(75).align(Align.center).padLeft(15);
+
+        Table textTable = new Table();
+        textTable.left();
+
+        Label titleLabel = new Label(flat.song.title, skin);
+        titleLabel.setColor(mainTextColor);
+        textTable.add(titleLabel).align(Align.left).padBottom(2).row();
+
+        Label artistLabel = new Label(flat.song.artist, skin);
+        artistLabel.setColor(subTextColor);
+        textTable.add(artistLabel).align(Align.left);
+
+        item.add(textTable).expandX().fillX().left().pad(10).padLeft(15).row();
+
+        // --- Interaction ---
+        item.setTouchable(Touchable.enabled);
+        final ClickListener listener = new ClickListener() {
+            @Override public void clicked(InputEvent event, float x, float y) {
+                // If it's already selected, double-clicking plays the map
+                if (selectedSong == flat.song && selectedDiffName.equals(flat.diffName)) {
+                    stopAudio();
+                    if (flat.path != null) {
+                        if (game.getScreen() instanceof SongSelectScreen) {
+                            ((SongSelectScreen) game.getScreen()).animateOutToPlayScreen(flat.path);
+                        } else {
+                            game.setScreen(new PlayScreen(game, flat.path));
+                        }
+                    }
+                } else {
+                    // Otherwise, just select it and play audio
+                    handleSongSelection(flat.song, flat.diffName);
+                }
+            }
+        };
+        item.addListener(listener);
+
+        item.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
+            @Override
+            public boolean act(float delta) {
+                boolean isActive = (selectedSong == flat.song && selectedDiffName.equals(flat.diffName));
+                if (isActive) item.setBackground(activeBg);
+                else if (listener.isOver() && !isTransitioning) item.setBackground(hoverBg);
                 else item.setBackground(normalBg);
                 return false;
             }
@@ -705,6 +833,9 @@ public class SongListPanel extends Table {
     }
 
     public void sortSongs(String criteria) {
+        this.currentSortMode = criteria;
+        GLOBAL_LAST_SORT_MODE = criteria;
+
         if (criteria.equals("title")) {
             allSongs.sort((a, b) -> a.title.compareToIgnoreCase(b.title));
         } else if (criteria.equals("artist")) {
@@ -712,9 +843,17 @@ public class SongListPanel extends Table {
         } else if (criteria.equals("mapper")) {
             allSongs.sort((a, b) -> a.mapper.compareToIgnoreCase(b.mapper));
         }
+
         refreshSongList(false);
 
-        Gdx.app.postRunnable(() -> scrollPane.setScrollY(0));
+        // THE FIX: Set the target and let the act() loop handle the math safely!
+        if (currentlyExpandedActor != null) {
+            cameraTarget = currentlyExpandedActor.getUserObject() instanceof Actor ?
+                (Actor) currentlyExpandedActor.getUserObject() : currentlyExpandedActor;
+            forceSnapNextFrame = true;
+        } else {
+            Gdx.app.postRunnable(() -> scrollPane.setScrollY(0));
+        }
     }
 
     public void requestScrollFocus(com.badlogic.gdx.scenes.scene2d.Stage stage) {
@@ -781,24 +920,35 @@ public class SongListPanel extends Table {
         super.act(delta);
 
         if (cameraTarget != null) {
-            float safeDelta = Math.min(delta, 0.03f);
-
+            // Force LibGDX to calculate the maximum scroll limits
             songListTable.validate();
+            scrollPane.validate();
+
             tempPos1.set(0, cameraTarget.getHeight() / 2f);
             cameraTarget.localToAscendantCoordinates(songListTable, tempPos1);
 
             float distanceToTop = songListTable.getHeight() - tempPos1.y;
             float targetScroll = distanceToTop - (scrollPane.getHeight() / 2f);
 
-            float currentScroll = scrollPane.getScrollY();
-            float distance = targetScroll - currentScroll;
-
-            if (Math.abs(distance) < 2f) {
+            if (forceSnapNextFrame) {
+                // Instant Snap (Used when returning from menus or changing tabs)
                 scrollPane.setScrollY(targetScroll);
+                scrollPane.updateVisualScroll();
+                forceSnapNextFrame = false;
                 cameraTarget = null;
             } else {
-                float newScroll = currentScroll + (distance * (safeDelta * 12f));
-                scrollPane.setScrollY(newScroll);
+                // Smooth Lerp (Used when clicking a song manually)
+                float currentScroll = scrollPane.getScrollY();
+                float distance = targetScroll - currentScroll;
+                float safeDelta = Math.min(delta, 0.03f);
+
+                if (Math.abs(distance) < 2f) {
+                    scrollPane.setScrollY(targetScroll);
+                    cameraTarget = null;
+                } else {
+                    float newScroll = currentScroll + (distance * (safeDelta * 12f));
+                    scrollPane.setScrollY(newScroll);
+                }
             }
         }
 
@@ -849,9 +999,9 @@ public class SongListPanel extends Table {
 
     private Color getColorForLevel(int level) {
         if (level >= 1 && level <= 6) return Color.valueOf("#c1ff72");
-        if (level >= 7 && level <= 12) return Color.valueOf("#599f00");
-        if (level >= 13 && level <= 14) return Color.valueOf("#ff751f");
-        if (level >= 15 && level <= 16) return Color.valueOf("#da142b");
+        if (level >= 7 && level <= 12) return Color.valueOf("#c1ff72");
+        if (level >= 13 && level <= 14) return Color.valueOf("#7cdd00");
+        if (level >= 15 && level <= 16) return Color.valueOf("#a0d3e8");
         if (level == 17) return Color.valueOf("#003794");
         if (level == 18) return Color.valueOf("#120484");
         if (level == 19) return Color.valueOf("#2c0640");

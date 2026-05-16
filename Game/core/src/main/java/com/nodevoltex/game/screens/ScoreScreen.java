@@ -240,17 +240,17 @@ public class ScoreScreen implements Screen {
         // 40 (global pad) + 15 (statsTable pad) + 25 (safe gap from line) = 80f deduction.
         float statsRowWidth = topWidth - 80f;
 
-        currentLeftShift = addSlantedStat(statsTable, "S-Critical", totalSCrit, Color.LIGHT_GRAY, statsRowWidth, currentLeftShift, 30f, tan3);
-        currentLeftShift = addSlantedStat(statsTable, "Critical", totalCrit, Color.LIGHT_GRAY, statsRowWidth, currentLeftShift, 30f, tan3);
-        currentLeftShift = addSlantedStat(statsTable, "Near", totalNear, Color.LIGHT_GRAY, statsRowWidth, currentLeftShift, 30f, tan3);
-        currentLeftShift = addSlantedStat(statsTable, "Mid", totalMid, Color.LIGHT_GRAY, statsRowWidth, currentLeftShift, 30f, tan3);
-        currentLeftShift = addSlantedStat(statsTable, "Far", totalFar, Color.LIGHT_GRAY, statsRowWidth, currentLeftShift, 30f, tan3);
-        currentLeftShift = addSlantedStat(statsTable, "Miss", totalMiss, Color.LIGHT_GRAY, statsRowWidth, currentLeftShift, 45f, tan3);
-        currentLeftShift = addSlantedStat(statsTable, "Laser Tick", totalLaserTicks, Color.valueOf("#FFD700"), statsRowWidth, currentLeftShift, 30f, tan3);
-        currentLeftShift = addSlantedStat(statsTable, "Laser Miss", totalLaserMisses, Color.valueOf("#FF6347"), statsRowWidth, currentLeftShift, 45f, tan3);
-        currentLeftShift = addSlantedStat(statsTable, "Early", totalEarly, Color.valueOf("#80DFFF"), statsRowWidth, currentLeftShift, 30f, tan3);
-        currentLeftShift = addSlantedStat(statsTable, "Late", totalLate, Color.valueOf("#FF80BF"), statsRowWidth, currentLeftShift, 45f, tan3);
-        addSlantedStat(statsTable, "Max Combo", maxCombo, Color.LIGHT_GRAY, statsRowWidth, currentLeftShift, 30f, tan3);
+        currentLeftShift = addSlantedStat(statsTable, "S-Critical", totalSCrit, Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
+        currentLeftShift = addSlantedStat(statsTable, "Critical", totalCrit, Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
+        currentLeftShift = addSlantedStat(statsTable, "Near", totalNear, Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
+        currentLeftShift = addSlantedStat(statsTable, "Mid", totalMid, Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
+        currentLeftShift = addSlantedStat(statsTable, "Far", totalFar, Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
+        currentLeftShift = addSlantedStat(statsTable, "Miss", totalMiss, Color.WHITE, statsRowWidth, currentLeftShift, 45f, tan3);
+        currentLeftShift = addSlantedStat(statsTable, "Laser Tick", totalLaserTicks, Color.YELLOW, statsRowWidth, currentLeftShift, 30f, tan3);
+        currentLeftShift = addSlantedStat(statsTable, "Laser Miss", totalLaserMisses, Color.ORANGE, statsRowWidth, currentLeftShift, 45f, tan3);
+        currentLeftShift = addSlantedStat(statsTable, "Early", totalEarly, Color.CYAN, statsRowWidth, currentLeftShift, 30f, tan3);
+        currentLeftShift = addSlantedStat(statsTable, "Late", totalLate, Color.PINK, statsRowWidth, currentLeftShift, 45f, tan3);
+        addSlantedStat(statsTable, "Max Combo", maxCombo, Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
 
         leftCol.add(statsTable).expandX().left().padLeft(15).row();
 

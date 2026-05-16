@@ -17,9 +17,9 @@ public class TopSearchBar extends Table {
     private final ShapeRenderer shapeRenderer;
     private final Skin skin;
     private boolean isSearchFocused = false;
-    private String activeSort = "title";
+    // Read from the global memory so the correct underline appears
+    private String activeSort = SongListPanel.GLOBAL_LAST_SORT_MODE;
 
-    // --- Promoted to Class Variable for Focus Control ---
     private TextField searchField;
 
     public TopSearchBar(Skin skin, final SongListPanel songListPanel) {
@@ -83,10 +83,16 @@ public class TopSearchBar extends Table {
         Table artistTab = createSortTab("artist", songListPanel);
         Table mapperTab = createSortTab("mapper", songListPanel);
 
+        // --- New Level Tab ---
+        Table levelTab = createSortTab("level", songListPanel);
+
         sortTable.add(sortLbl).padLeft(25).padRight(15);
         sortTable.add(titleTab).padRight(15);
         sortTable.add(artistTab).padRight(15);
-        sortTable.add(mapperTab);
+        sortTable.add(mapperTab).padRight(15);
+
+        // --- Add Level Tab to the layout ---
+        sortTable.add(levelTab);
 
         this.add(sortTable).expandX().fillX().height(35);
     }

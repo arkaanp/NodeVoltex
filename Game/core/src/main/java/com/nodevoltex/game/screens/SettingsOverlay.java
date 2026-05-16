@@ -1,7 +1,9 @@
 package com.nodevoltex.game.screens;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.math.Interpolation;
+import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.actions.Actions;
@@ -22,6 +24,11 @@ public class SettingsOverlay {
     private Table settingsPanel;
     private boolean isSettingsOpen = false;
     private ScrollPane settingsScrollPane;
+
+    // Track the headers for the camera
+    private Label gameplayHeader;
+    private Label inputHeader;
+    private Label audioHeader;
 
     public SettingsOverlay(Stage stage, Skin skin) {
         this.stage = stage;
@@ -50,19 +57,21 @@ public class SettingsOverlay {
             @Override public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) { return true; }
         });
 
-        Table contentSplit = new Table();
+            Table contentSplit = new Table();
 
-        Table navBar = new Table();
-        navBar.top();
-        navBar.background(skin.newDrawable("white", new Color(0.10f, 0.10f, 0.12f, 1f)));
+            // --- Build the content FIRST so the headers exist ---
+            Table settingsContainer = new Table();
+            settingsContainer.top().left().pad(30);
+            buildSettingsContent(settingsContainer);
 
-        navBar.add(createNavButton("Gameplay")).expandX().fillX().height(50).row();
-        navBar.add(createNavButton("Input")).expandX().fillX().height(50).row();
-        navBar.add(createNavButton("Audio")).expandX().fillX().height(50).row();
+            Table navBar = new Table();
+            navBar.top();
+            navBar.background(skin.newDrawable("white", new Color(0.10f, 0.10f, 0.12f, 1f)));
 
-        Table settingsContainer = new Table();
-        settingsContainer.top().left().pad(30);
-        buildSettingsContent(settingsContainer);
+            // Pass the headers directly into the nav buttons
+            navBar.add(createNavButton("Gameplay", gameplayHeader)).expandX().fillX().height(50).row();
+            navBar.add(createNavButton("Input", inputHeader)).expandX().fillX().height(50).row();
+            navBar.add(createNavButton("Audio", audioHeader)).expandX().fillX().height(50).row();
 
         settingsScrollPane = new ScrollPane(settingsContainer, skin);
         settingsScrollPane.setFadeScrollBars(false);
@@ -83,7 +92,7 @@ public class SettingsOverlay {
 
         settingsPanel.add(contentSplit).expand().fill().row();
 
-        TextButton exitSettingsBtn = new TextButton("<<<", skin);
+        TextButton exitSettingsBtn = new TextButton("Exit", skin);
         exitSettingsBtn.setColor(Color.valueOf("#da142b"));
         exitSettingsBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) { if (isSettingsOpen) close(); }
@@ -129,10 +138,40 @@ public class SettingsOverlay {
     }
 
     private void buildSettingsContent(Table container) {
-        Label gameplayHeader = new Label("Gameplay", skin);
-        gameplayHeader.setFontScale(1f);
+        gameplayHeader = new Label("Gameplay", skin);
+        gameplayHeader.setFontScale(1.2f);
         gameplayHeader.setColor(Color.WHITE);
         container.add(gameplayHeader).left().padBottom(20).row();
+
+        // --- DISPLAY MODE TOGGLE ---
+        Table displayTable = new Table();
+        displayTable.left();
+
+        Label displayLbl = new Label("Display Mode", skin);
+        displayLbl.setFontScale(0.85f);
+
+        TextButton.TextButtonStyle toggleStyle = new TextButton.TextButtonStyle(skin.get(TextButton.TextButtonStyle.class));
+        toggleStyle.up = skin.newDrawable("white", new Color(0.18f, 0.18f, 0.22f, 1f));
+        toggleStyle.fontColor = Color.CYAN;
+
+        final String[] modeNames = {"Windowed", "Fullscreen", "Borderless"};
+        final TextButton displayBtn = new TextButton(modeNames[com.nodevoltex.game.managers.SettingsManager.getDisplayMode()], toggleStyle);
+
+        displayBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                // Cycle through 0 -> 1 -> 2 -> 0
+                int nextMode = (com.nodevoltex.game.managers.SettingsManager.getDisplayMode() + 1) % 3;
+                com.nodevoltex.game.managers.SettingsManager.setDisplayMode(nextMode);
+                displayBtn.setText(modeNames[nextMode]);
+
+                applyDisplayMode(nextMode);
+            }
+        });
+
+        displayTable.add(displayLbl).padRight(15);
+        displayTable.add(displayBtn).width(120).height(35);
+        container.add(displayTable).left().padBottom(15).row();
 
         // 1. Pull the actual saved numbers from the Manager
         container.add(createSliderRow("Scroll speed", 0.01f, 3.0f, 0.01f, com.nodevoltex.game.managers.SettingsManager.getScrollSpeed(), "", "speed")).expandX().fillX().padBottom(15).row();
@@ -142,7 +181,7 @@ public class SettingsOverlay {
         container.add(createSliderRow("Hit Position Y", 50f, 300f, 1f, com.nodevoltex.game.managers.SettingsManager.getPlayfieldHitPosY(), "px", "hitpos")).expandX().fillX().padBottom(15).row();
         container.add(createSliderRow("Playfield Width", 200f, 500f, 1f, com.nodevoltex.game.managers.SettingsManager.getPlayfieldWidth(), "px", "width")).expandX().fillX().padBottom(30).row();
         container.add(createSliderRow("BG Brightness", 0.1f, 1.0f, 0.05f, com.nodevoltex.game.managers.SettingsManager.getBackgroundBrightness(), "", "bgbright")).expandX().fillX().padBottom(15).row();
-        container.add(createSliderRow("Judgment Offset Y", 50f, 600f, 5f, com.nodevoltex.game.managers.SettingsManager.getJudgmentComboTopOffset(), "px", "judg")).expandX().fillX().padBottom(30).row();
+        container.add(createSliderRow("Combo Offset Y", 50f, 600f, 5f, com.nodevoltex.game.managers.SettingsManager.getJudgmentComboTopOffset(), "px", "judg")).expandX().fillX().padBottom(30).row();
 
         // --- UR Bar Toggle Button ---
         Table urToggleTable = new Table();
@@ -151,7 +190,7 @@ public class SettingsOverlay {
         Label urLbl = new Label("Show Unstable Rate Bar", skin);
         urLbl.setFontScale(0.85f);
 
-        TextButton.TextButtonStyle toggleStyle = new TextButton.TextButtonStyle(skin.get(TextButton.TextButtonStyle.class));
+        //TextButton.TextButtonStyle toggleStyle = new TextButton.TextButtonStyle(skin.get(TextButton.TextButtonStyle.class));
         toggleStyle.up = skin.newDrawable("white", new Color(0.18f, 0.18f, 0.22f, 1f));
         // Default color based on current setting
         toggleStyle.fontColor = com.nodevoltex.game.managers.SettingsManager.isShowURBar() ? Color.CYAN : Color.GRAY;
@@ -176,8 +215,8 @@ public class SettingsOverlay {
         container.add(urToggleTable).left().padBottom(30).row();
         // ----------------------------------------
 
-        Label inputHeader = new Label("Input", skin);
-        inputHeader.setFontScale(1f);
+        inputHeader = new Label("Input", skin);
+        inputHeader.setFontScale(1.2f);
         inputHeader.setColor(Color.WHITE);
         container.add(inputHeader).left().padBottom(20).row();
 
@@ -261,12 +300,12 @@ public class SettingsOverlay {
         // --- Retry Hold Time Slider ---
         container.add(createSliderRow("Hold to Retry Time", 0.1f, 2.0f, 0.01f, com.nodevoltex.game.managers.SettingsManager.getRetryHoldTime(), "s", "retryhold")).expandX().fillX().padBottom(30).row();
 
-        Label audioHeader = new Label("Audio", skin);
-        audioHeader.setFontScale(1f);
+        audioHeader = new Label("Audio", skin);
+        audioHeader.setFontScale(1.2f);
         audioHeader.setColor(Color.WHITE);
         container.add(audioHeader).left().padBottom(20).row();
 
-        Label volSubheader = new Label("Volume", skin);
+        Label volSubheader = new Label("Volume (takes effect after a new song is played)", skin);
         volSubheader.setFontScale(0.85f);
         volSubheader.setColor(Color.GRAY);
         container.add(volSubheader).left().padBottom(10).row();
@@ -291,13 +330,55 @@ public class SettingsOverlay {
         else if (type.equals("retryhold")) com.nodevoltex.game.managers.SettingsManager.setRetryHoldTime(val);
     }
 
-    private TextButton createNavButton(String text) {
-        TextButton btn = new TextButton(text, skin);
-        btn.getLabel().setAlignment(com.badlogic.gdx.utils.Align.left);
-        btn.getLabelCell().padLeft(20);
-        btn.getLabel().setColor(Color.WHITE);
-        return btn;
-    }
+        private TextButton createNavButton(String text, final Actor targetHeader) {
+            TextButton btn = new TextButton(text, skin);
+            btn.getLabel().setAlignment(com.badlogic.gdx.utils.Align.left);
+            btn.getLabelCell().padLeft(20);
+            btn.getLabel().setColor(Color.WHITE);
+
+            // --- Smooth Scrolling Logic ---
+            btn.addListener(new ClickListener() {
+                @Override
+                public void clicked(InputEvent event, float x, float y) {
+                    if (settingsScrollPane != null && targetHeader != null) {
+                        Gdx.app.postRunnable(() -> {
+                            settingsScrollPane.validate(); // Force height calculation
+
+                            // 1. Apply exact song list centering math
+                            com.badlogic.gdx.math.Vector2 tempPos = new com.badlogic.gdx.math.Vector2(0, targetHeader.getHeight() / 2f);
+                            targetHeader.localToAscendantCoordinates(settingsScrollPane.getActor(), tempPos);
+
+                            float distanceToTop = settingsScrollPane.getActor().getHeight() - tempPos.y;
+                            float targetScroll = distanceToTop - (settingsScrollPane.getHeight() / 2f);
+
+                            // 2. Kill any ongoing scrolls so it doesn't glitch if players spam click
+                            settingsScrollPane.clearActions();
+
+                            // 3. Smoothly animate the ScrollPane's Y position
+                            float startScroll = settingsScrollPane.getScrollY();
+                            settingsScrollPane.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
+                                float time = 0;
+                                float duration = 0.35f; // Duration of the smooth slide
+                                @Override
+                                public boolean act(float delta) {
+                                    float safeDelta = Math.min(delta, 0.03f);
+                                    time += safeDelta;
+                                    float progress = Math.min(time / duration, 1f);
+
+                                    // Pow3Out matches the slick UI transition speed
+                                    float eased = Interpolation.pow3Out.apply(progress);
+                                    settingsScrollPane.setScrollY(startScroll + (targetScroll - startScroll) * eased);
+
+                                    return time >= duration;
+                                }
+                            });
+                        });
+                    }
+                }
+            });
+
+            return btn;
+        }
 
     private Table createSliderRow(String titleText, float min, float max, float step, float defaultVal, String suffix, final String settingType) {
         Table row = new Table();
@@ -648,6 +729,21 @@ public class SettingsOverlay {
 
             tabPri.setColor(Color.valueOf(isPrimary ? "#5e42a6" : "#333333"));
             tabAlt.setColor(Color.valueOf(!isPrimary ? "#5e42a6" : "#333333"));
+        }
+    }
+
+    public static void applyDisplayMode(int mode) {
+        if (mode == 0) {
+            // Windowed (Standard 720p default)
+            Gdx.graphics.setUndecorated(false);
+            Gdx.graphics.setWindowedMode(1280, 720);
+        } else if (mode == 1) {
+            // Exclusive Fullscreen (Takes absolute control of the monitor)
+            Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode());
+        } else if (mode == 2) {
+            // Borderless Fullscreen (Windowed mode stretched to monitor size without borders)
+            Gdx.graphics.setUndecorated(true);
+            Gdx.graphics.setWindowedMode(Gdx.graphics.getDisplayMode().width, Gdx.graphics.getDisplayMode().height);
         }
     }
 }

@@ -56,31 +56,39 @@ public class ModOverlay {
 
         Table btnRow = new Table();
         btnRow.pad(20);
-        TextButton autoBtn = new TextButton("Autoplay", skin);
-        TextButton noLaserBtn = new TextButton("No Laser", skin);
 
-        Runnable updateBtnColors = () -> {
-            // Color the text label directly so it glows bright, regardless of the button texture
-            if (SettingsManager.getModAutoPlay()) {
-                autoBtn.getLabel().setColor(Color.CYAN);
-            } else {
-                autoBtn.getLabel().setColor(Color.DARK_GRAY);
-            }
+        // --- Custom Toggle Style ---
+        TextButton.TextButtonStyle modStyle = new TextButton.TextButtonStyle();
+        modStyle.font = skin.getFont("default");
 
-            if (SettingsManager.getModNoLaser()) {
-                noLaserBtn.getLabel().setColor(Color.CYAN);
-            } else {
-                noLaserBtn.getLabel().setColor(Color.DARK_GRAY);
-            }
+        // Unselected states (Dark/Dim box)
+        modStyle.up = skin.newDrawable("white", new Color(0.15f, 0.15f, 0.2f, 1f));
+        modStyle.over = skin.newDrawable("white", new Color(0.25f, 0.25f, 0.3f, 1f));
+        modStyle.down = skin.newDrawable("white", new Color(0.3f, 0.3f, 0.35f, 1f));
+
+        // Selected state (Bright White box)
+        modStyle.checked = skin.newDrawable("white", Color.WHITE);
+
+        // Text colors: White when dim, Black when the box is bright white
+        modStyle.fontColor = Color.WHITE;
+        modStyle.checkedFontColor = Color.BLACK;
+
+        TextButton autoBtn = new TextButton("Autoplay", modStyle);
+        TextButton noLaserBtn = new TextButton("No Laser", modStyle);
+
+        // Now we just tell the button to check or uncheck itself
+        Runnable updateBtnStates = () -> {
+            autoBtn.setChecked(SettingsManager.getModAutoPlay());
+            noLaserBtn.setChecked(SettingsManager.getModNoLaser());
         };
-        updateBtnColors.run();
+        updateBtnStates.run();
 
         autoBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
                 boolean newState = !SettingsManager.getModAutoPlay();
                 SettingsManager.setModAutoPlay(newState);
                 if (newState) SettingsManager.setModNoLaser(false);
-                updateBtnColors.run();
+                updateBtnStates.run();
             }
         });
 
@@ -89,7 +97,7 @@ public class ModOverlay {
                 boolean newState = !SettingsManager.getModNoLaser();
                 SettingsManager.setModNoLaser(newState);
                 if (newState) SettingsManager.setModAutoPlay(false);
-                updateBtnColors.run();
+                updateBtnStates.run();
             }
         });
 

@@ -125,4 +125,8 @@ public class SettingsManager {
         if (keyName.equals("`")) return Input.Keys.GRAVE;
         return Input.Keys.valueOf(keyName);
     }
+
+    // --- Display Settings (0 = Windowed, 1 = Fullscreen, 2 = Borderless) ---
+    public static int getDisplayMode() { return getPrefs().getInteger("displayMode", 0); } // Default to Borderless
+    public static void setDisplayMode(int val) { getPrefs().putInteger("displayMode", val); getPrefs().flush(); }
 }

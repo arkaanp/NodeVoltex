@@ -303,27 +303,35 @@ public class SongSelectScreen implements Screen {
     private void animateOutDownwards() {
         float h = Gdx.graphics.getHeight();
 
-        bgImage.addAction(Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In));
-        prevBgImage.addAction(Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In));
+        // Backgrounds slide down seamlessly alongside the UI
+        bgImage.addAction(Actions.moveBy(0, -h, 1.1f, Interpolation.pow3In));
+        prevBgImage.addAction(Actions.moveBy(0, -h, 1.1f, Interpolation.pow3In));
 
-        leftLayer.addAction(Actions.parallel(
-            Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In),
-            Actions.sequence(Actions.delay(0.5f), Actions.alpha(1.0f, 0.5f, Interpolation.linear))
-        ));
-
-        rightLayer.addAction(Actions.parallel(
-            Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In),
-            Actions.sequence(Actions.delay(0.5f), Actions.alpha(1.0f, 0.5f, Interpolation.linear))
-        ));
-
+        // 1. Back Table drops FIRST (Since it came in last)
         backTable.addAction(Actions.sequence(
-            Actions.parallel(
-                Actions.moveBy(0, -h, 1.0f, Interpolation.pow2In),
-                Actions.sequence(Actions.delay(0.5f), Actions.alpha(1.0f, 0.5f, Interpolation.linear))
-            ),
+            Actions.delay(0.0f),
+            Actions.parallel(Actions.moveBy(0, -h, 0.8f, Interpolation.pow3In), Actions.fadeOut(0.5f, Interpolation.pow2In))
+        ));
+
+        // 2. Right Layer drops SECOND
+        rightLayer.addAction(Actions.sequence(
+            Actions.delay(0.05f),
+            Actions.parallel(Actions.moveBy(0, -h, 0.9f, Interpolation.pow3In), Actions.fadeOut(0.8f, Interpolation.pow2In))
+        ));
+
+        // 3. Left Layer drops LAST
+        leftLayer.addAction(Actions.sequence(
+            Actions.delay(0.10f),
+            Actions.parallel(Actions.moveBy(0, -h, 0.9f, Interpolation.pow3In), Actions.fadeOut(0.7f, Interpolation.pow2In))
+        ));
+
+        // 4. Detach the screen switch and tie it to the exact maximum duration
+        stage.addAction(Actions.sequence(
+            Actions.delay(1.1f), // Matches the background's 1.1f exactly
             Actions.run(() -> game.setScreen(new MainMenuScreen(game)))
         ));
     }
+
 
     // --- Slide left to enter PlayScreen ---
     public void animateOutToPlayScreen(final String mapPath) {
