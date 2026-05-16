@@ -135,7 +135,7 @@ public class SettingsOverlay {
         container.add(gameplayHeader).left().padBottom(20).row();
 
         // 1. Pull the actual saved numbers from the Manager
-        container.add(createSliderRow("Scroll speed", 0.01f, 2.0f, 0.01f, com.nodevoltex.game.managers.SettingsManager.getScrollSpeed(), "", "speed")).expandX().fillX().padBottom(15).row();
+        container.add(createSliderRow("Scroll speed", 0.01f, 3.0f, 0.01f, com.nodevoltex.game.managers.SettingsManager.getScrollSpeed(), "", "speed")).expandX().fillX().padBottom(15).row();
         container.add(createSliderRow("Global offset", -200f, 200f, 1f, com.nodevoltex.game.managers.SettingsManager.getGlobalOffset(), "ms", "offset")).expandX().fillX().padBottom(30).row();
 
         // --- Playfield Sliders ---
@@ -259,7 +259,7 @@ public class SettingsOverlay {
         container.add(retryKeyTable).left().padBottom(15).row();
 
         // --- Retry Hold Time Slider ---
-        container.add(createSliderRow("Hold to Retry Time", 0.5f, 3.0f, 0.1f, com.nodevoltex.game.managers.SettingsManager.getRetryHoldTime(), "s", "retryhold")).expandX().fillX().padBottom(30).row();
+        container.add(createSliderRow("Hold to Retry Time", 0.1f, 2.0f, 0.01f, com.nodevoltex.game.managers.SettingsManager.getRetryHoldTime(), "s", "retryhold")).expandX().fillX().padBottom(30).row();
 
         Label audioHeader = new Label("Audio", skin);
         audioHeader.setFontScale(1f);
@@ -326,7 +326,7 @@ public class SettingsOverlay {
         Table textTable = new Table();
         textTable.left();
         Label titleLabel = new Label(titleText, skin);
-        titleLabel.setFontScale(0.85f);
+        titleLabel.setFontScale(1f);
         textTable.add(titleLabel).left().row();
 
         com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle fieldStyle = new com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle();

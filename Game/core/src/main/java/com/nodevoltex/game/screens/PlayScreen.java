@@ -70,9 +70,9 @@ public class PlayScreen implements Screen {
     private final float BASE_SCROLL_SPEED = SettingsManager.getScrollSpeed();
     private float hiSpeedMult = 1.0f;
     private boolean isRetry = false;
-    private float introCenterWaitTime = 1.0f;
+    private float introCenterWaitTime = 0.7f;
     private float prerollMs = -2000f;
-    private float introTotalDuration = 3.6f;
+    private float introTotalDuration = 2.0f;
 
     // --- True Map End & Retry Variables ---
     private float finalObjectTimeMs = 0f;
@@ -135,8 +135,8 @@ public class PlayScreen implements Screen {
         this.isRetry = isRetry;
 
         // --- FAST RETRY MATH ---
-        this.introCenterWaitTime = isRetry ? 0.15f : 1.0f;
-        this.prerollMs = isRetry ? -1000f : -2000f;
+        this.introCenterWaitTime = isRetry ? 0.15f : 0.7f;
+        this.prerollMs = isRetry ? -500f : -2000f;
         this.currentAudioTimeMs = this.prerollMs;
 
         // 0.7s slide in + wait time + 0.6s slide out + 0.8s playfield slide up
@@ -500,6 +500,19 @@ public class PlayScreen implements Screen {
             }
         }
 
+        // --- GLOBAL HOLD-TO-RETRY LOGIC ---
+        if (Gdx.input.isKeyPressed(SettingsManager.getRetryKey())) {
+            retryHoldTimer += delta;
+            if (retryHoldTimer >= SettingsManager.getRetryHoldTime() && !isRetryingViaHold) {
+                isRetryingViaHold = true;
+                if (music != null) music.stop();
+                game.setScreen(new PlayScreen(game, mapFilePath, 0L, true)); // Trigger Fast Retry
+                return;
+            }
+        } else {
+            retryHoldTimer = 0f; // Reset if they let go early
+        }
+
         // --- MATH & LOGIC UPDATES ---
         if (!isPaused) {
             uiStage.act(delta);
@@ -507,7 +520,6 @@ public class PlayScreen implements Screen {
             // --- TIMELINE & AUDIO SYNC ENGINE ---
             if (!isIntroDone) {
                 introTimer += delta;
-                // Use the calculated duration and dynamic preroll values
                 if (introTimer >= introTotalDuration) {
                     isIntroDone = true;
                     currentAudioTimeMs = prerollMs;
@@ -515,8 +527,20 @@ public class PlayScreen implements Screen {
             } else if (!hasAudioStarted) {
                 currentAudioTimeMs += delta * 1000f;
 
-                if (currentAudioTimeMs >= beatmap.general.audioOffset + SettingsManager.getGlobalOffset()) {
+                // Combine the map offset and global user offset
+                float targetAudioStartTime = beatmap.general.audioOffset + SettingsManager.getGlobalOffset();
+
+                // If the chart time has passed the exact moment the audio should start
+                if (currentAudioTimeMs >= targetAudioStartTime) {
                     if (music != null) {
+                        // Calculate exactly how many seconds into the song we should be
+                        // This handles massive negative offsets (skipping intro silence) AND fixes frame-rate desync.
+                        float skipAmountSeconds = (currentAudioTimeMs - targetAudioStartTime) / 1000f;
+
+                        if (skipAmountSeconds > 0) {
+                            music.setPosition(skipAmountSeconds);
+                        }
+
                         music.play();
                         music.setVolume(SettingsManager.getMasterVolume() * SettingsManager.getMusicVolume());
                     }
@@ -524,17 +548,6 @@ public class PlayScreen implements Screen {
                 }
             } else {
                 // --- Hold to Retry Logic ---
-                if (Gdx.input.isKeyPressed(SettingsManager.getRetryKey())) {
-                    retryHoldTimer += delta;
-                    if (retryHoldTimer >= SettingsManager.getRetryHoldTime() && !isRetryingViaHold) {
-                        isRetryingViaHold = true;
-                        if (music != null) music.stop();
-                        game.setScreen(new PlayScreen(game, mapFilePath, 0L, true)); // Trigger Fast Retry
-                        return;
-                    }
-                } else {
-                    retryHoldTimer = 0f; // Reset if they let go early
-                }
 
                 // --- End the map 2 seconds after the final note, ignoring music length ---
                 if (currentAudioTimeMs >= finalObjectTimeMs + 2000f) {
@@ -560,6 +573,43 @@ public class PlayScreen implements Screen {
             }
 
             camera.update();
+
+            // --- PAUSE MENU ---
+            if (isPaused) {
+                // --- Gradually fade to 0.8f instead of instantly snapping ---
+                pauseDimAlpha = Math.min(0.8f, pauseDimAlpha + (delta * 5f));
+
+                Gdx.gl.glEnable(GL20.GL_BLEND);
+                Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+                game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
+
+                game.shapeRenderer.setColor(0f, 0f, 0f, pauseDimAlpha);
+                game.shapeRenderer.rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
+                game.shapeRenderer.end();
+                Gdx.gl.glDisable(GL20.GL_BLEND);
+
+                pauseStage.act(delta);
+                pauseStage.draw();
+            }
+
+            // --- DRAW PROGRESS VISUAL LAST ---
+            // Drawing this at the very end ensures it renders cleanly OVER the dark pause menu
+            if (retryHoldTimer > 0f) {
+                Gdx.gl.glEnable(GL20.GL_BLEND);
+                Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+                float progress = retryHoldTimer / SettingsManager.getRetryHoldTime();
+                float arcDegrees = progress * 360f;
+
+                game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
+                game.shapeRenderer.setColor(1f, 1f, 1f, 0.6f);
+                // Draw a pie chart in the top left corner
+                game.shapeRenderer.arc(40f, WORLD_HEIGHT - 40f, 20f, 90f, -arcDegrees, 30);
+                game.shapeRenderer.end();
+
+                Gdx.gl.glDisable(GL20.GL_BLEND);
+            }
         }
 
         // --- CLEAR SCREEN & DRAW BACKGROUND ---
