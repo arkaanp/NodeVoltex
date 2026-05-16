@@ -42,7 +42,7 @@ public class Lwjgl3Launcher {
 
         configuration.setForegroundFPS(Lwjgl3ApplicationConfiguration.getDisplayMode().refreshRate);
         configuration.setWindowedMode(1280, 720); // Fallback size if it gets un-maximized
-        configuration.setWindowIcon("libgdx128.png", "libgdx64.png", "libgdx32.png", "libgdx16.png");
+        configuration.setWindowIcon("NodeVoltex128.png", "NodeVoltex64.png", "NodeVoltex32.png", "NodeVoltex16.png");
 
         return configuration;
     }
