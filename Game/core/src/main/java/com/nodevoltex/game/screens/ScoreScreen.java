@@ -234,11 +234,37 @@ public class ScoreScreen implements Screen {
 
         // C. The Slanting Stats Engine
         Table statsTable = new Table();
-        float currentLeftShift = 0f; // Pushes both text and numbers rightwards
+        float currentLeftShift = 0f;
 
-        // Calculate exact row width to reach the parallelogram
-        // 40 (global pad) + 15 (statsTable pad) + 25 (safe gap from line) = 80f deduction.
         float statsRowWidth = topWidth - 80f;
+
+        // --- SAFE METRIC CALCULATIONS ---
+        int totalNotes = totalSCrit + totalCrit + totalNear + totalMid + totalFar + totalMiss;
+        int totalLasers = totalLaserTicks + totalLaserMisses;
+
+        float noteAccuracy = 0f;
+        if (totalNotes > 0) {
+            noteAccuracy = ((((totalSCrit + totalCrit) * 3.0f) + (totalNear * 2.0f) + (totalMid * 1.0f) + (totalFar * 0.5f))
+                / (totalNotes * 3.0f)) * 100f;
+        }
+
+        float laserAccuracy = 0f;
+        if (totalLasers > 0) {
+            laserAccuracy = ((float) totalLaserTicks / totalLasers) * 100f;
+        }
+
+        // --- Normalized Float Ratio ---
+        String ratioStr;
+        if (totalLasers > 0) {
+            // Calculates how many notes exist per 1 laser tick
+            float normalizedNotes = (float) totalNotes / totalLasers;
+            ratioStr = String.format(java.util.Locale.US, "%.2f : 1.00", normalizedNotes);
+        } else if (totalNotes > 0) {
+            // Fallback if the map has literally 0 lasers
+            ratioStr = "1.00 : 0.00";
+        } else {
+            ratioStr = "0.00 : 0.00";
+        }
 
         currentLeftShift = addSlantedStat(statsTable, "S-Critical", totalSCrit, Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
         currentLeftShift = addSlantedStat(statsTable, "Critical", totalCrit, Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
@@ -250,7 +276,12 @@ public class ScoreScreen implements Screen {
         currentLeftShift = addSlantedStat(statsTable, "Laser Miss", totalLaserMisses, Color.ORANGE, statsRowWidth, currentLeftShift, 45f, tan3);
         currentLeftShift = addSlantedStat(statsTable, "Early", totalEarly, Color.CYAN, statsRowWidth, currentLeftShift, 30f, tan3);
         currentLeftShift = addSlantedStat(statsTable, "Late", totalLate, Color.PINK, statsRowWidth, currentLeftShift, 45f, tan3);
-        addSlantedStat(statsTable, "Max Combo", maxCombo, Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
+        currentLeftShift = addSlantedStat(statsTable, "Max Combo", maxCombo, Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
+
+        // --- METRICS ---
+        currentLeftShift = addSlantedStat(statsTable, "Note Accuracy", String.format(java.util.Locale.US, "%.1f%%", noteAccuracy), Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
+        addSlantedStat(statsTable, "Laser Accuracy", String.format(java.util.Locale.US, "%.1f%%", laserAccuracy), Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
+        //addSlantedStat(statsTable, "Note/Laser Ratio", ratioStr, Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
 
         leftCol.add(statsTable).expandX().left().padLeft(15).row();
 
@@ -382,16 +413,26 @@ public class ScoreScreen implements Screen {
         }
     }
 
+    // --- INT TO STRING BRIDGE ---
     // Add padLeft dynamically to push the row rightwards, tracing the `\` slant
     private float addSlantedStat(Table table, String label, int value, Color labelColor, float rowWidth, float currentShift, float deltaY, float tan3) {
+        // Don't draw the UI here, Convert the int to a String and hand it off
+        return addSlantedStat(table, label, String.valueOf(value), labelColor, rowWidth, currentShift, deltaY, tan3);
+    }
+
+    // --- THE MASTER STRING METHOD ---
+    private float addSlantedStat(Table table, String label, String valueText, Color labelColor, float rowWidth, float currentShift, float deltaY, float tan3) {
         Table row = new Table();
         Label lbl = new Label(label, skin);
         lbl.setColor(labelColor);
-        Label val = new Label(String.valueOf(value), skin);
+
+        // safely accepts strings like "98.5%" or "1200 : 400"
+        Label val = new Label(valueText, skin);
         val.setColor(Color.WHITE);
 
         row.add(lbl).expandX().left();
-        row.add(val).width(60).align(Align.right);
+        // Slightly widened the value column to 80 to ensure the ratio string doesn't get clipped
+        row.add(val).width(80).align(Align.right);
 
         // padLeft pushes the entire row rightwards, creating the visual slant
         table.add(row).width(rowWidth).left().padLeft(currentShift).padBottom(deltaY - 28f).row();

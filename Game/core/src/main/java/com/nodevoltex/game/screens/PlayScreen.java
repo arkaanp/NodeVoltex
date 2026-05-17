@@ -87,6 +87,11 @@ public class PlayScreen implements Screen {
     private float TRACK_WIDTH;
     private float TRACK_START_X;
 
+    // --- ZOOM LOGIC FIELDS ---
+    private float BASE_TRACK_WIDTH;
+    private float currentZoom = 1.0f;
+    private float targetZoom = 1.0f;
+
     // Data & Parsing
     private Beatmap beatmap;
     private int nextNoteIndex = 0;
@@ -106,6 +111,11 @@ public class PlayScreen implements Screen {
     private Stage pauseStage;
     private float pauseDimAlpha = 0f;
 
+    // --- CAMERA ROLL VARIABLES ---
+    private float currentCameraRoll = 0f;
+    private float targetCameraRoll = 0f;
+    private final float MAX_ROLL_DEGREES = 15f; // How extreme the tilt gets
+
     // Object Pool for Notes
     private Array<Note> activeNotes = new Array<>();
     private final Pool<Note> notePool = new Pool<Note>() {
@@ -118,31 +128,24 @@ public class PlayScreen implements Screen {
         return note;
     }
 
-    // Wrapper for normal gameplay
     public PlayScreen(NodeVoltex game, String mapFilePath) {
         this(game, mapFilePath, 0L, false);
     }
 
-    // Wrapper for Replay viewing
     public PlayScreen(NodeVoltex game, String mapFilePath, long replayTimestampToLoad) {
         this(game, mapFilePath, replayTimestampToLoad, false);
     }
 
-    // Master Constructor that applies the Fast Retry math
     public PlayScreen(NodeVoltex game, String mapFilePath, long replayTimestampToLoad, boolean isRetry) {
         this.game = game;
         this.mapFilePath = mapFilePath;
         this.isRetry = isRetry;
 
-        // --- FAST RETRY MATH ---
         this.introCenterWaitTime = isRetry ? 0.15f : 0.7f;
         this.prerollMs = isRetry ? -500f : -2000f;
         this.currentAudioTimeMs = this.prerollMs;
-
-        // 0.7s slide in + wait time + 0.6s slide out + 0.8s playfield slide up
         this.introTotalDuration = 0.7f + introCenterWaitTime + 0.6f + 0.8f;
 
-        // --- 1. SETUP GRAPHICS & CAMERA ---
         camera = new OrthographicCamera();
         viewport = new com.badlogic.gdx.utils.viewport.ScreenViewport(camera);
         viewport.update(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), true);
@@ -150,30 +153,25 @@ public class PlayScreen implements Screen {
         WORLD_WIDTH = viewport.getWorldWidth();
         WORLD_HEIGHT = viewport.getWorldHeight();
         HIT_LINE_Y = SettingsManager.getPlayfieldHitPosY();
-        TRACK_WIDTH = SettingsManager.getPlayfieldWidth();
+
+        BASE_TRACK_WIDTH = SettingsManager.getPlayfieldWidth();
+        TRACK_WIDTH = BASE_TRACK_WIDTH;
         LANE_WIDTH = TRACK_WIDTH / 4f;
         TRACK_START_X = (WORLD_WIDTH - TRACK_WIDTH) / 2f;
 
-        // Ensures the transition from SongSelect is seamless
         bgTexture = new Texture(Gdx.files.internal("Back.png"));
 
-        // --- 2. PARSE THE DYNAMIC JSON ---
         BeatmapParser parser = new BeatmapParser();
         this.beatmap = parser.parse(mapFilePath);
 
-        // --- Bulletproof loop to find the true final object timestamp ---
         finalObjectTimeMs = 0f;
         if (this.beatmap != null) {
-
-            // 1. Scan all Tap and Hold notes
             if (this.beatmap.hitObjects != null) {
                 for (Beatmap.HitObject obj : this.beatmap.hitObjects) {
                     if (obj.endTime > finalObjectTimeMs) finalObjectTimeMs = obj.endTime;
                     if (obj.startTime > finalObjectTimeMs) finalObjectTimeMs = obj.startTime;
                 }
             }
-
-            // 2. Scan all Laser Nodes
             if (this.beatmap.lasers != null) {
                 if (this.beatmap.lasers.left != null) {
                     for (Beatmap.LaserSequence seq : this.beatmap.lasers.left) {
@@ -196,7 +194,6 @@ public class PlayScreen implements Screen {
             }
         }
 
-        // --- 3. LOAD THE DYNAMIC AUDIO & JACKET ---
         com.badlogic.gdx.files.FileHandle jsonFile = Gdx.files.internal(mapFilePath);
         com.badlogic.gdx.files.FileHandle audioFile = jsonFile.parent().child(this.beatmap.general.audioFilename);
         slamSound = Gdx.audio.newSound(Gdx.files.internal("audio/laser_slam1.wav"));
@@ -220,11 +217,9 @@ public class PlayScreen implements Screen {
         font = com.nodevoltex.game.NodeVoltex.skin.getFont("default");
         font.getData().setScale(2f);
 
-        // --- 4. INITIALIZE MANAGERS ---
         inputController = new InputController();
         laserManager = new LaserManager();
 
-        // --- Pass the mod flags to the gameplay managers ---
         inputController.isAutoPlay = SettingsManager.getModAutoPlay();
         laserManager.isAutoPlay = SettingsManager.getModAutoPlay();
         laserManager.isNoLaser = SettingsManager.getModNoLaser();
@@ -247,22 +242,16 @@ public class PlayScreen implements Screen {
         leftCursor = new LaserCursor(true, SettingsManager.getKey("LL", true), SettingsManager.getKey("LR", true), SettingsManager.getKey("LL", false), SettingsManager.getKey("LR", false));
         rightCursor = new LaserCursor(false, SettingsManager.getKey("RL", true), SettingsManager.getKey("RR", true), SettingsManager.getKey("RL", false), SettingsManager.getKey("RR", false));
 
-        // --- THE REPLAY LOADER ---
         if (replayTimestampToLoad > 0) {
             try {
-                // --- Load from the safe 'local' directory ---
                 com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("replays/replay_" + replayTimestampToLoad + ".json");
-
                 if (replayFile.exists()) {
                     com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
                     com.nodevoltex.game.data.ReplayData savedReplay = json.fromJson(com.nodevoltex.game.data.ReplayData.class, replayFile);
-
                     if (savedReplay != null) {
                         inputController.currentReplay = savedReplay;
-
                         inputController.isReplayPlayback = true;
                         inputController.isRecording = false;
-
                         inputController.isAutoPlay = false;
                         laserManager.isAutoPlay = false;
                         laserManager.isNoLaser = false;
@@ -273,10 +262,8 @@ public class PlayScreen implements Screen {
             }
         }
 
-        // --- 5. BUILD INTRO & SCORE UI ---
         buildIntroAndUI();
 
-        // --- 6. PAUSE MENU SETUP ---
         pauseStage = new Stage(viewport, game.batch);
         Table pauseTable = new Table();
         pauseTable.setFillParent(true);
@@ -302,13 +289,9 @@ public class PlayScreen implements Screen {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 if (music != null) music.stop();
-
-                // --- Destroy the old, off-screen SongSelect menu ---
                 if (game.songSelectScreen != null) {
                     game.songSelectScreen.dispose();
                 }
-
-                // --- Create a fresh one that automatically slides back in from the right ---
                 game.songSelectScreen = new SongSelectScreen(game, null, mapFilePath, true);
                 game.setScreen(game.songSelectScreen);
             }
@@ -321,17 +304,14 @@ public class PlayScreen implements Screen {
         uiStage = new Stage(viewport, game.batch);
         Skin skin = NodeVoltex.skin;
 
-        // 1. Background Dim Overlay
         dimOverlay = new Image(skin.newDrawable("white", new Color(0, 0, 0, 1)));
         dimOverlay.setFillParent(true);
         dimOverlay.getColor().a = 0f;
-        dimOverlay.setVisible(false); // Hides it from drawing over the UI
+        dimOverlay.setVisible(false);
         uiStage.addActor(dimOverlay);
 
-        // 2. The Intro Card (Matches ScoreScreen styling perfectly)
         introCard = new Table();
 
-        // --- Generate a guaranteed solid background texture so the box never goes invisible ---
         com.badlogic.gdx.graphics.Pixmap bgPix = new com.badlogic.gdx.graphics.Pixmap(1, 1, com.badlogic.gdx.graphics.Pixmap.Format.RGBA8888);
         bgPix.setColor(new Color(0.1f, 0.1f, 0.15f, 0.9f));
         bgPix.fill();
@@ -349,7 +329,6 @@ public class PlayScreen implements Screen {
         Label artistLbl = new Label(beatmap.general.artist, skin); artistLbl.setFontScale(1.0f);
         Label mapperLbl = new Label("mapped by " + beatmap.general.mapper, skin); mapperLbl.setFontScale(1.0f);
 
-        // Dynamically get difficulty from the file path
         String diffName = "UNKNOWN";
         if (mapFilePath.contains("nov.json")) diffName = "NOV";
         else if (mapFilePath.contains("adv.json")) diffName = "ADV";
@@ -366,17 +345,11 @@ public class PlayScreen implements Screen {
         metaText.add(diffLbl).left().padTop(5).row();
 
         introCard.add(metaText).left();
-
-        // Pack calculates the exact width/height of the generated box
         introCard.pack();
-
-        // Start completely off-screen to the RIGHT
         introCard.setPosition(WORLD_WIDTH + 100f, WORLD_HEIGHT / 2f - introCard.getHeight() / 2f);
 
-        // Transition Sequence
         introCard.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
             com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(WORLD_WIDTH / 2f - introCard.getWidth() / 2f, introCard.getY(), 0.7f, Interpolation.pow3Out),
-            // Use the dynamic wait time
             com.badlogic.gdx.scenes.scene2d.actions.Actions.delay(introCenterWaitTime),
             com.badlogic.gdx.scenes.scene2d.actions.Actions.parallel(
                 com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(25f, WORLD_HEIGHT - introCard.getHeight() - 25f, 0.6f, Interpolation.pow3),
@@ -387,22 +360,18 @@ public class PlayScreen implements Screen {
             )
         ));
 
-        // Calculate exactly when the playfield should slide up based on the wait time
         float playfieldDelay = 0.7f + introCenterWaitTime;
 
-        // 3. The Score HUD (Top Right)
         scoreHud = new Table();
         scoreHud.top().right();
         scoreHud.setFillParent(true);
         scoreHud.padTop(20).padRight(30);
 
         Table scoreTable = new Table();
-        // Use "large" and "medium" skins from ScoreScreen to fix font scale
         bigScoreLabel = new Label("0000", skin, "large");
         smallScoreLabel = new Label("0000", skin, "medium");
 
         scoreTable.add(bigScoreLabel).align(Align.bottom);
-        // padLeft(12) to widen the gap between the numbers by ~1%
         scoreTable.add(smallScoreLabel).align(Align.bottom).padBottom(5).padLeft(12);
         scoreHud.add(scoreTable).right().row();
 
@@ -412,7 +381,6 @@ public class PlayScreen implements Screen {
             com.badlogic.gdx.scenes.scene2d.actions.Actions.fadeIn(0.5f)
         ));
 
-        // 4. Playfield Anchor
         playfieldAnchor = new Actor();
         playfieldAnchor.setY(-WORLD_HEIGHT);
         playfieldAnchor.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
@@ -425,20 +393,11 @@ public class PlayScreen implements Screen {
         uiStage.addActor(playfieldAnchor);
     }
 
-    // --- THE OUTRO TRANSITION ENGINE ---
     private void animateOutToScoreScreen() {
         isTransitioningToScore = true;
-
-        // 1. Fade out the background dim darkness
         dimOverlay.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.alpha(0f, 0.8f, Interpolation.pow3In));
-
-        // 2. Move Song Box UP and off-screen
         introCard.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.moveBy(0f, 250f, 0.8f, Interpolation.pow3In));
-
-        // 3. Move Score HUD UP and off-screen
         scoreHud.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.moveBy(0f, 250f, 0.8f, Interpolation.pow3In));
-
-        // 4. Move Playfield DOWN (This natively fades the 4 track lines & combo text to 0 opacity)
         playfieldAnchor.addAction(com.badlogic.gdx.scenes.scene2d.actions.Actions.sequence(
             com.badlogic.gdx.scenes.scene2d.actions.Actions.moveTo(0f, -WORLD_HEIGHT, 0.8f, Interpolation.pow3In),
             com.badlogic.gdx.scenes.scene2d.actions.Actions.run(() -> {
@@ -449,29 +408,23 @@ public class PlayScreen implements Screen {
                 else if (mapFilePath.contains("mxm.json")) diffName = "MXM";
 
                 boolean isModded = SettingsManager.getModAutoPlay() || SettingsManager.getModNoLaser();
-
-                // --- Generate exactly ONE timestamp for both the Replay and the Score ---
                 long runTimestamp = System.currentTimeMillis();
 
-                // Don't record if we are modded OR if we are currently watching a replay
                 if (inputController.isRecording && !isModded && !inputController.isReplayPlayback) {
                     inputController.currentReplay.songTitle = beatmap.general.title;
                     inputController.currentReplay.difficulty = diffName;
                     inputController.currentReplay.finalScore = scoreManager.getFinalScore();
                     inputController.currentReplay.timestamp = runTimestamp;
 
-                    // --- Save as a real .json file in the safe 'local' directory ---
                     com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("replays/replay_" + runTimestamp + ".json");
                     com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
                     replayFile.writeString(json.prettyPrint(inputController.currentReplay), false);
                 }
 
-                // --- Stop the music exactly as the new screen loads ---
                 if (music != null) {
                     music.stop();
                 }
 
-                // --- Pass the exact runTimestamp to the ScoreScreen ---
                 game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, null, diffName, mapFilePath, false, runTimestamp));
             })
         ));
@@ -479,19 +432,14 @@ public class PlayScreen implements Screen {
 
     @Override
     public void render(float delta) {
-        // --- Immediate Abort to prevent the 800p/Resize glitch ---
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             if (!isIntroDone) {
                 if (music != null) music.stop();
-
                 if (game.songSelectScreen != null) {
                     game.songSelectScreen.dispose();
                 }
-
                 game.songSelectScreen = new SongSelectScreen(game, null, mapFilePath, true);
                 game.setScreen(game.songSelectScreen);
-
-                // Manually force the viewport to capture the true screen size
                 game.songSelectScreen.resize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
                 return;
             } else {
@@ -500,24 +448,21 @@ public class PlayScreen implements Screen {
             }
         }
 
-        // --- GLOBAL HOLD-TO-RETRY LOGIC ---
         if (Gdx.input.isKeyPressed(SettingsManager.getRetryKey())) {
             retryHoldTimer += delta;
             if (retryHoldTimer >= SettingsManager.getRetryHoldTime() && !isRetryingViaHold) {
                 isRetryingViaHold = true;
                 if (music != null) music.stop();
-                game.setScreen(new PlayScreen(game, mapFilePath, 0L, true)); // Trigger Fast Retry
+                game.setScreen(new PlayScreen(game, mapFilePath, 0L, true));
                 return;
             }
         } else {
-            retryHoldTimer = 0f; // Reset if they let go early
+            retryHoldTimer = 0f;
         }
 
-        // --- MATH & LOGIC UPDATES ---
         if (!isPaused) {
             uiStage.act(delta);
 
-            // --- TIMELINE & AUDIO SYNC ENGINE ---
             if (!isIntroDone) {
                 introTimer += delta;
                 if (introTimer >= introTotalDuration) {
@@ -526,45 +471,43 @@ public class PlayScreen implements Screen {
                 }
             } else if (!hasAudioStarted) {
                 currentAudioTimeMs += delta * 1000f;
-
-                // Combine the map offset and global user offset
                 float targetAudioStartTime = beatmap.general.audioOffset + SettingsManager.getGlobalOffset();
 
-                // If the chart time has passed the exact moment the audio should start
                 if (currentAudioTimeMs >= targetAudioStartTime) {
                     if (music != null) {
-                        // Calculate exactly how many seconds into the song we should be
-                        // This handles massive negative offsets (skipping intro silence) AND fixes frame-rate desync.
                         float skipAmountSeconds = (currentAudioTimeMs - targetAudioStartTime) / 1000f;
-
                         if (skipAmountSeconds > 0) {
                             music.setPosition(skipAmountSeconds);
                         }
-
                         music.play();
                         music.setVolume(SettingsManager.getMasterVolume() * SettingsManager.getMusicVolume());
                     }
                     hasAudioStarted = true;
                 }
             } else {
-                // --- Hold to Retry Logic ---
-
-                // --- End the map 2 seconds after the final note, ignoring music length ---
                 if (currentAudioTimeMs >= finalObjectTimeMs + 2000f) {
                     if (!isTransitioningToScore && !isPaused) {
                         animateOutToScoreScreen();
                     }
                 }
-
-                // --- Let the timer decouple from the audio if the track naturally ends early ---
                 if (music != null && music.isPlaying()) {
                     currentAudioTimeMs = (music.getPosition() * 1000f) + beatmap.general.audioOffset + SettingsManager.getGlobalOffset();
                 } else {
-                    currentAudioTimeMs += delta * 1000f; // Ticks forward normally to finish the 2-second buffer
+                    currentAudioTimeMs += delta * 1000f;
                 }
             }
 
-            // Logic Updates
+            if (beatmap != null && beatmap.lasers != null) {
+                targetZoom = laserManager.getTargetZoom(beatmap.lasers.left, beatmap.lasers.right, currentAudioTimeMs);
+            }
+
+            // --- Ultra slow shrink/expand animation ---
+            currentZoom += (targetZoom - currentZoom) * (delta * 0.6f);
+
+            TRACK_WIDTH = BASE_TRACK_WIDTH * currentZoom;
+            LANE_WIDTH = TRACK_WIDTH / 4f;
+            TRACK_START_X = (WORLD_WIDTH - TRACK_WIDTH) / 2f;
+
             inputController.processNoteInputs(activeNotes, currentAudioTimeMs, scoreManager);
 
             if (beatmap.lasers != null) {
@@ -574,18 +517,13 @@ public class PlayScreen implements Screen {
 
             camera.update();
 
-            // --- PAUSE MENU ---
             if (isPaused) {
-                // --- Gradually fade to 0.8f instead of instantly snapping ---
                 pauseDimAlpha = Math.min(0.8f, pauseDimAlpha + (delta * 5f));
-
                 Gdx.gl.glEnable(GL20.GL_BLEND);
                 Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
                 game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
-
                 game.shapeRenderer.setColor(0f, 0f, 0f, pauseDimAlpha);
                 game.shapeRenderer.rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-
                 game.shapeRenderer.end();
                 Gdx.gl.glDisable(GL20.GL_BLEND);
 
@@ -593,38 +531,30 @@ public class PlayScreen implements Screen {
                 pauseStage.draw();
             }
 
-            // --- DRAW PROGRESS VISUAL LAST ---
-            // Drawing this at the very end ensures it renders cleanly OVER the dark pause menu
             if (retryHoldTimer > 0f) {
                 Gdx.gl.glEnable(GL20.GL_BLEND);
                 Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
                 float progress = retryHoldTimer / SettingsManager.getRetryHoldTime();
                 float arcDegrees = progress * 360f;
 
                 game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
                 game.shapeRenderer.setColor(1f, 1f, 1f, 0.6f);
-                // Draw a pie chart in the top left corner
                 game.shapeRenderer.arc(40f, WORLD_HEIGHT - 40f, 20f, 90f, -arcDegrees, 30);
                 game.shapeRenderer.end();
-
                 Gdx.gl.glDisable(GL20.GL_BLEND);
             }
         }
 
-        // --- CLEAR SCREEN & DRAW BACKGROUND ---
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.15f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         game.batch.setProjectionMatrix(camera.combined);
         game.shapeRenderer.setProjectionMatrix(camera.combined);
 
-        // Draw seamless background
         game.batch.begin();
         if (bgTexture != null) game.batch.draw(bgTexture, 0, 0, WORLD_WIDTH, WORLD_HEIGHT);
         game.batch.end();
 
-        // --- Draw the Background Dim HERE, behind the notes ---
         if (dimOverlay.getColor().a > 0f) {
             Gdx.gl.glEnable(GL20.GL_BLEND);
             Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
@@ -635,7 +565,6 @@ public class PlayScreen implements Screen {
             Gdx.gl.glDisable(GL20.GL_BLEND);
         }
 
-        // --- SPAWNER WINDOW ---
         while (nextNoteIndex < beatmap.hitObjects.size) {
             Beatmap.HitObject data = beatmap.hitObjects.get(nextNoteIndex);
             if (data.startTime - currentAudioTimeMs <= 2000f) {
@@ -646,10 +575,7 @@ public class PlayScreen implements Screen {
             }
         }
 
-        // --- RENDER PLAYFIELD ---
         float drawHitY = HIT_LINE_Y + playfieldAnchor.getY();
-
-        // Calculate fade-in alpha (0f when off-screen, 1f when fully up)
         float trackAlpha = Math.max(0f, 1f - (Math.abs(playfieldAnchor.getY()) / WORLD_HEIGHT));
 
         Gdx.gl.glEnable(GL20.GL_BLEND);
@@ -657,26 +583,20 @@ public class PlayScreen implements Screen {
 
         game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
 
-        // Pass trackAlpha into the draw method
         drawTrack(drawHitY, trackAlpha);
 
-        // --- KEY PRESS INDICATORS ---
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
-        // --- Bulletproof Autoplay scanner ---
         boolean[] autoLanePressed = new boolean[7];
         if (inputController.isAutoPlay && beatmap != null && beatmap.hitObjects != null) {
-            // Simply check all notes that have spawned so far
             for (int i = 0; i < nextNoteIndex; i++) {
                 Beatmap.HitObject obj = beatmap.hitObjects.get(i);
-
                 if ("HOLD".equals(obj.type)) {
                     if (currentAudioTimeMs >= obj.startTime && currentAudioTimeMs <= obj.endTime) {
                         autoLanePressed[obj.lane] = true;
                     }
-                } else { // It's a TAP note
-                    // Flashes exactly 80ms for a visual tap
+                } else {
                     if (currentAudioTimeMs >= obj.startTime && currentAudioTimeMs <= obj.startTime + 40f) {
                         autoLanePressed[obj.lane] = true;
                     }
@@ -689,10 +609,10 @@ public class PlayScreen implements Screen {
 
         for(int lane = 1; lane <= 6; lane++) {
             if(inputController.isLanePressed(lane) || autoLanePressed[lane]) {
-                if(lane <= 4) { // BT Keys (White)
+                if(lane <= 4) {
                     game.shapeRenderer.setColor(1f, 1f, 1f, 0.4f);
                     game.shapeRenderer.rect(TRACK_START_X + (lane-1)*LANE_WIDTH + 5f, btY, LANE_WIDTH - 10f, 10f);
-                } else { // FX Keys (Orange/Red)
+                } else {
                     game.shapeRenderer.setColor(1f, 0.3f, 0f, 0.5f);
                     float fxX = (lane == 5) ? TRACK_START_X : TRACK_START_X + LANE_WIDTH*2;
                     game.shapeRenderer.rect(fxX + 5f, fxY, LANE_WIDTH*2 - 10f, 10f);
@@ -701,27 +621,21 @@ public class PlayScreen implements Screen {
         }
         Gdx.gl.glDisable(GL20.GL_BLEND);
 
-        // ---  4 Distinct Laser Input Indicators ---
-        // (NO game.shapeRenderer.begin())
+        float baseStartX = (WORLD_WIDTH - BASE_TRACK_WIDTH) / 2f;
 
         float indicatorY = drawHitY - 5f;
-        float radius = 8f; // Slightly larger so the halves are visible
-        float leftLaserX = TRACK_START_X - 45f;
-        float rightLaserX = TRACK_START_X + TRACK_WIDTH + 45f;
+        float radius = 8f;
+        float leftLaserX = baseStartX - 45f;
+        float rightLaserX = baseStartX + BASE_TRACK_WIDTH + 45f;
 
-        // Left Laser (Cyan)
         if (leftCursor.isMovingLeft) {
             game.shapeRenderer.setColor(0f, 1f, 1f, 1f);
-            // Start at 90 (top), sweep 180 degrees (left half)
             game.shapeRenderer.arc(leftLaserX, indicatorY, radius, 90f, 180f, 20);
         }
         if (leftCursor.isMovingRight) {
             game.shapeRenderer.setColor(0f, 1f, 1f, 1f);
-            // Start at 270 (bottom), sweep 180 degrees (right half)
             game.shapeRenderer.arc(leftLaserX, indicatorY, radius, 270f, 180f, 20);
         }
-
-        // Right Laser (Magenta)
         if (rightCursor.isMovingLeft) {
             game.shapeRenderer.setColor(1f, 0f, 1f, 1f);
             game.shapeRenderer.arc(rightLaserX, indicatorY, radius, 90f, 180f, 20);
@@ -730,9 +644,6 @@ public class PlayScreen implements Screen {
             game.shapeRenderer.setColor(1f, 0f, 1f, 1f);
             game.shapeRenderer.arc(rightLaserX, indicatorY, radius, 270f, 180f, 20);
         }
-
-        // (NO game.shapeRenderer.end())
-        // ----------------------------------------------------------
 
         Gdx.gl.glEnable(GL20.GL_BLEND);
         Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
@@ -744,28 +655,22 @@ public class PlayScreen implements Screen {
 
         float leftWarningAlpha = laserManager.getWarningAlpha(beatmap.lasers.left, currentAudioTimeMs);
         float rightWarningAlpha = laserManager.getWarningAlpha(beatmap.lasers.right, currentAudioTimeMs);
-
-        // Fade out warnings if the playfield is still hidden to prevent ugly clipping
         float visibilityRatio = 1f - (Math.abs(playfieldAnchor.getY()) / WORLD_HEIGHT);
 
-        // --- Increased the distance from the playfield so it doesn't overlap lasers ---
         float warningWidth = 5f;
-        float warningMargin = 25f; // Pushes the warning 25px away from the track
+        float warningMargin = 25f;
 
         if (leftWarningAlpha > 0f) {
             game.shapeRenderer.setColor(0f, 1f, 1f, leftWarningAlpha * 0.5f * visibilityRatio);
-            // Draws safely to the left
-            game.shapeRenderer.rect(TRACK_START_X - warningWidth - warningMargin, drawHitY, warningWidth, WORLD_HEIGHT);
+            game.shapeRenderer.rect(baseStartX - warningWidth - warningMargin, drawHitY, warningWidth, WORLD_HEIGHT);
         }
         if (rightWarningAlpha > 0f) {
             game.shapeRenderer.setColor(1f, 0f, 1f, rightWarningAlpha * 0.5f * visibilityRatio);
-            // Draws safely to the right
-            game.shapeRenderer.rect(TRACK_START_X + TRACK_WIDTH + warningMargin, drawHitY, warningWidth, WORLD_HEIGHT);
+            game.shapeRenderer.rect(baseStartX + BASE_TRACK_WIDTH + warningMargin, drawHitY, warningWidth, WORLD_HEIGHT);
         }
 
         Gdx.gl.glDisable(GL20.GL_BLEND);
 
-        // Update and Draw Notes
         for (int i = activeNotes.size - 1; i >= 0; i--) {
             Note note = activeNotes.get(i);
             if (!note.wasHeadHit && !note.isMissed && currentAudioTimeMs - note.startTime > 150.0f) {
@@ -793,35 +698,26 @@ public class PlayScreen implements Screen {
 
         game.shapeRenderer.end();
 
-        // --- RENDER UI ---
         String liveScore = String.format("%08d", scoreManager.getFinalScore());
         bigScoreLabel.setText(liveScore.substring(0, 4));
         smallScoreLabel.setText(liveScore.substring(4, 8));
 
-        uiStage.draw(); // Draws dim overlay, intro card, and score hud
+        uiStage.draw();
 
-        // --- Hold to Retry Progress Visual ---
         if (retryHoldTimer > 0f) {
             Gdx.gl.glEnable(GL20.GL_BLEND);
             Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
             float progress = retryHoldTimer / SettingsManager.getRetryHoldTime();
             float arcDegrees = progress * 360f;
 
             game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
             game.shapeRenderer.setColor(1f, 1f, 1f, 0.6f);
-            // Draw a pie chart in the top left corner
             game.shapeRenderer.arc(40f, WORLD_HEIGHT - 40f, 20f, 90f, -arcDegrees, 30);
             game.shapeRenderer.end();
-
             Gdx.gl.glDisable(GL20.GL_BLEND);
         }
 
-        // --- UNSTABLE RATE (UR) BAR ---
-        // Only draw if the playfield is visible AND the setting is enabled
         if (visibilityRatio > 0f && com.nodevoltex.game.managers.SettingsManager.isShowURBar()) {
-
-            // 1. Update timers and delete old hits (Fade out after 3 seconds)
             for (int i = scoreManager.recentHits.size - 1; i >= 0; i--) {
                 com.nodevoltex.game.managers.ScoreManager.HitMarker marker = scoreManager.recentHits.get(i);
                 marker.timer += delta;
@@ -834,29 +730,20 @@ public class PlayScreen implements Screen {
             Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
             game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
 
-            // 2. Mathematically bind the UR Bar 80 pixels below Judgment text
             float urAlpha = visibilityRatio;
             float urCenterY = WORLD_HEIGHT - SettingsManager.getJudgmentComboTopOffset() + 20f;
             float urCenterX = TRACK_START_X + (TRACK_WIDTH / 2f);
             float urWidth = 240f;
             float halfWidth = urWidth / 2f;
-            float maxMs = 180f; // The visual edge of the bar (e.g. +/- 90ms)
+            float maxMs = 180f;
 
-            // Base Background Bar (Dark Gray)
-            //game.shapeRenderer.setColor(0.15f, 0.15f, 0.2f, 0.8f * urAlpha);
-            //game.shapeRenderer.rect(urCenterX - halfWidth, urCenterY - 2f, urWidth, 4f);
-
-            // Exact Center Target Tick (White)
             game.shapeRenderer.setColor(1f, 1f, 1f, 0.9f * urAlpha);
             game.shapeRenderer.rect(urCenterX - 1f, urCenterY - 6f, 3f, 14f);
 
-            // 3. Draw the individual Hit Markers
             for (com.nodevoltex.game.managers.ScoreManager.HitMarker marker : scoreManager.recentHits) {
-                // Calculate fading alpha
                 float markerAlpha = Math.max(0f, 1f - (marker.timer / 3.0f)) * urAlpha;
                 if (markerAlpha <= 0f) continue;
 
-                // Assign the Arcade-accurate Tier Colors
                 Color c = Color.WHITE;
                 switch (marker.tier) {
                     case "S-CRITICAL": c = Color.GOLD; break;
@@ -867,13 +754,8 @@ public class PlayScreen implements Screen {
                 }
 
                 game.shapeRenderer.setColor(c.r, c.g, c.b, markerAlpha);
-
-                // Calculate physical position based on millisecond offset
-                // Negative = Left (Early), Positive = Right (Late)
                 float clampedMs = Math.max(-maxMs, Math.min(maxMs, marker.offsetMs));
                 float xOffset = (clampedMs / maxMs) * halfWidth;
-
-                // Draw the hit tick
                 game.shapeRenderer.rect(urCenterX + xOffset - 1f, urCenterY - 7f, 2f, 14f);
             }
             game.shapeRenderer.end();
@@ -881,9 +763,6 @@ public class PlayScreen implements Screen {
         }
 
         game.batch.begin();
-        //float visibilityRatio = 1f - (Math.abs(playfieldAnchor.getY()) / WORLD_HEIGHT);
-
-        // --- Fades the text fully to 0 instead of snapping at 0.5 ---
         if (visibilityRatio > 0f) {
             float centerX = TRACK_START_X + (TRACK_WIDTH / 2f);
             float comboY = WORLD_HEIGHT - SettingsManager.getJudgmentComboTopOffset();
@@ -891,30 +770,24 @@ public class PlayScreen implements Screen {
             float timingY = judY - 30f;
 
             com.badlogic.gdx.graphics.g2d.GlyphLayout layout = new com.badlogic.gdx.graphics.g2d.GlyphLayout();
-
-            // Mathematically binds the text opacity to the sliding playfield
             float textAlpha = scoreHud.getColor().a * visibilityRatio;
 
-            // Draw Combo
             font.getData().setScale(1.0f);
             font.setColor(1f, 1f, 1f, textAlpha);
             layout.setText(font, "Combo " + scoreManager.combo);
             font.draw(game.batch, layout, centerX - layout.width/2f, comboY);
 
-            // Parse Timing
             String jud = scoreManager.latestJudgment;
             String timing = "";
             if (jud.endsWith(" EARLY")) { timing = "EARLY"; jud = jud.replace(" EARLY", ""); }
             else if (jud.endsWith(" LATE")) { timing = "LATE"; jud = jud.replace(" LATE", ""); }
 
-            // Draw Judgment
             if (jud.contains("CRITICAL")) font.setColor(Color.GOLD.r, Color.GOLD.g, Color.GOLD.b, textAlpha);
             else if (jud.equals("NEAR")) font.setColor(Color.GREEN.r, Color.GREEN.g, Color.GREEN.b, textAlpha);
             else font.setColor(Color.RED.r, Color.RED.g, Color.RED.b, textAlpha);
             layout.setText(font, jud);
             font.draw(game.batch, layout, centerX - layout.width/2f, judY);
 
-            // Draw Early/Late
             if (!timing.isEmpty()) {
                 if (timing.equals("EARLY")) font.setColor(Color.SKY.r, Color.SKY.g, Color.SKY.b, textAlpha);
                 else font.setColor(Color.PINK.r, Color.PINK.g, Color.PINK.b, textAlpha);
@@ -923,34 +796,27 @@ public class PlayScreen implements Screen {
                 font.draw(game.batch, layout, centerX - layout.width/2f, timingY);
             }
 
-            // --- AUTOPLAY & AUTO LASER INDICATORS ---
             font.getData().setScale(1.0f);
-
             if (inputController.isAutoPlay) {
-                font.setColor(Color.YELLOW.r, Color.YELLOW.g, Color.YELLOW.b, textAlpha); // Yellow for full Autoplay
+                font.setColor(Color.YELLOW.r, Color.YELLOW.g, Color.YELLOW.b, textAlpha);
                 layout.setText(font, "- AUTOPLAY -");
                 font.draw(game.batch, layout, WORLD_WIDTH / 2f - layout.width / 2f, WORLD_HEIGHT - 15f);
             }
             else if (laserManager.isNoLaser) {
-                font.setColor(Color.CYAN.r, Color.CYAN.g, Color.CYAN.b, textAlpha); // Cyan fits the laser theme perfectly
+                font.setColor(Color.CYAN.r, Color.CYAN.g, Color.CYAN.b, textAlpha);
                 layout.setText(font, "- AUTO LASER -");
                 font.draw(game.batch, layout, WORLD_WIDTH / 2f - layout.width / 2f, WORLD_HEIGHT - 15f);
             }
         }
         game.batch.end();
 
-        // --- PAUSE MENU ---
         if (isPaused) {
-            // --- Gradually fade to 0.8f instead of instantly snapping ---
             pauseDimAlpha = Math.min(0.8f, pauseDimAlpha + (delta * 5f));
-
             Gdx.gl.glEnable(GL20.GL_BLEND);
             Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
             game.shapeRenderer.begin(com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType.Filled);
-
             game.shapeRenderer.setColor(0f, 0f, 0f, pauseDimAlpha);
             game.shapeRenderer.rect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-
             game.shapeRenderer.end();
             Gdx.gl.glDisable(GL20.GL_BLEND);
 
@@ -960,10 +826,11 @@ public class PlayScreen implements Screen {
     }
 
     private void drawTrack(float drawHitY, float alpha) {
-        game.shapeRenderer.setColor(1f, 0f, 0f, alpha); // Red hit line fades in
-        game.shapeRenderer.rect(TRACK_START_X - 20, drawHitY, TRACK_WIDTH + 40, 5);
+        float baseStartX = (WORLD_WIDTH - BASE_TRACK_WIDTH) / 2f;
+        game.shapeRenderer.setColor(1f, 0f, 0f, alpha);
+        game.shapeRenderer.rect(baseStartX - 20, drawHitY, BASE_TRACK_WIDTH + 40, 5);
 
-        game.shapeRenderer.setColor(0.3f, 0.3f, 0.3f, alpha); // Dark gray lanes fade in
+        game.shapeRenderer.setColor(0.3f, 0.3f, 0.3f, alpha);
         for(int i = 0; i <= 4; i++) {
             game.shapeRenderer.rect(TRACK_START_X + (i * LANE_WIDTH), 0, 2, WORLD_HEIGHT);
         }
@@ -1009,7 +876,10 @@ public class PlayScreen implements Screen {
         for (Beatmap.LaserSequence seq : sequences) {
             seq.tickTimes = new Array<>();
             if (seq.nodes == null || seq.nodes.size == 0) continue;
-            seq.tickTimes.add(seq.nodes.first().offset);
+
+            // Safe index getter to prevent LibGDX .first() crash
+            seq.tickTimes.add(seq.nodes.get(0).offset);
+
             for (int i = 1; i < seq.nodes.size; i++) {
                 Beatmap.LaserNode prev = seq.nodes.get(i - 1);
                 Beatmap.LaserNode curr = seq.nodes.get(i);
@@ -1031,6 +901,4 @@ public class PlayScreen implements Screen {
         }
         return ticks;
     }
-
-
 }

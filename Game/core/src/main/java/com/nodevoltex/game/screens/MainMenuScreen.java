@@ -114,18 +114,28 @@ public class MainMenuScreen implements Screen {
     private void animateOutUpwards() {
         float h = Gdx.graphics.getHeight();
 
+        // Backgrounds take exactly 0.9s
         bgImage.addAction(Actions.moveBy(0, h, 0.9f, Interpolation.pow4In));
         nextBgImage.addAction(Actions.moveBy(0, h, 0.9f, Interpolation.pow4In));
 
+        // 1. Title launches immediately
         titleImage.addAction(Actions.moveBy(0, h, 0.7f, Interpolation.pow4In));
-        playBtn.addAction(Actions.sequence(Actions.delay(0.1f), Actions.moveBy(0, h, 0.7f, Interpolation.pow4In)));
 
+        // 2. Play Button launches just 2 frames later (Tightened from 0.10f -> 0.03f)
+        playBtn.addAction(Actions.sequence(
+            Actions.delay(0.03f),
+            Actions.moveBy(0, h, 0.7f, Interpolation.pow4In)
+        ));
+
+        // 3. Exit Button launches 2 frames after Play (Tightened from 0.15f -> 0.06f)
         exitBtn.addAction(Actions.sequence(
-            Actions.delay(0.15f),
+            Actions.delay(0.06f),
             Actions.moveBy(0, h, 0.7f, Interpolation.pow4In),
-            Actions.delay(0.05f),
+
+            // MATH SYNC: 0.06s delay + 0.70s move = 0.76s total.
+            // We wait exactly 0.14s more so the switch happens at exactly 0.90s to match the backgrounds
+            Actions.delay(0.14f),
             Actions.run(() -> {
-                // Create a NEW screen every time
                 game.setScreen(new SongSelectScreen(game, music, null, false));
             })
         ));
