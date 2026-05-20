@@ -4,6 +4,8 @@ public class SaveData {
     public int score = 0;
     public String grade = "-";
     public long timestamp = 0;
+    public String username = "GUEST";
+    public String profilePictureUrl = "";
 
     // --- Arcade Statistics ---
     public int maxCombo = 0;
@@ -23,4 +25,7 @@ public class SaveData {
     // Timing Stats
     public int early = 0;
     public int late = 0;
+
+    // --- Network Replay Cache ---
+    public String rawReplayData;
 }

@@ -50,9 +50,10 @@ public class ScoreScreen implements Screen {
     private String currentDifficulty;
     private String currentMapPath;
     private long currentReplayTimestamp;
+    private String currentReplayJson;
 
     public ScoreScreen(NodeVoltex game, Beatmap.General metadata, ScoreManager scoreManager,
-                       SaveData historyData, String difficultyName, String mapFilePath, boolean fromHistory, long playTimestamp) {
+                       SaveData historyData, String difficultyName, String mapFilePath, boolean fromHistory, long playTimestamp, String replayJson) {
         this.game = game;
         this.stage = new Stage(new ScreenViewport());
         this.skin = NodeVoltex.skin;
@@ -62,6 +63,7 @@ public class ScoreScreen implements Screen {
         // --- Store difficulty and map path for exit transition ---
         this.currentDifficulty = difficultyName;
         this.currentMapPath = mapFilePath;
+        this.currentReplayJson = replayJson;
 
         bgTexture = new Texture(Gdx.files.internal("Back.png"));
         bgImage = new Image(bgTexture);
@@ -98,8 +100,8 @@ public class ScoreScreen implements Screen {
             // --- Block score history saving if a mod was used ---
             boolean isModded = SettingsManager.getModAutoPlay() || SettingsManager.getModNoLaser();
             if (!isModded) {
-                // --- Pass 'playTimestamp' to the save method ---
-                saveScoreData(mapFilePath, finalScore, grade, scoreManager, totalSCrit, totalCrit, totalNear, totalMid, totalFar, totalMiss, totalEarly, totalLate, playTimestamp);
+                // --- Pass 'playTimestamp' and 'metadata' to the save method ---
+                saveScoreData(metadata, mapFilePath, finalScore, grade, scoreManager, totalSCrit, totalCrit, totalNear, totalMid, totalFar, totalMiss, totalEarly, totalLate, playTimestamp);
             }
         }
 
@@ -130,7 +132,6 @@ public class ScoreScreen implements Screen {
         Table leftCol = new Table();
         leftCol.top().left();
 
-        // A. Metadata Box & Exact Jacket Loader
         Table metaBox = new Table();
         metaBox.setBackground(skin.newDrawable("white", Color.valueOf("#0f007080")));
         metaBox.pad(15);
@@ -290,8 +291,15 @@ public class ScoreScreen implements Screen {
         rightCol.top().right();
 
         Image pfp = new Image(skin.newDrawable("white", Color.DARK_GRAY));
+        // Use history data if viewing replay, otherwise current session
+        String currentPfpUrl = fromHistory && historyData != null ? historyData.profilePictureUrl : SettingsManager.getProfilePictureUrl();
+        com.nodevoltex.game.utils.TextureLoader.loadIntoImage(currentPfpUrl, pfp, (Texture)null);
+        
         rightCol.add(pfp).width(140).height(140).center().row();
-        Label userLbl = new Label("GUEST", skin); userLbl.setColor(Color.BLACK);
+        
+        String displayName = fromHistory && historyData != null ? historyData.username : SettingsManager.getUserName();
+        Label userLbl = new Label(displayName, skin); 
+        userLbl.setColor(Color.BLACK);
         rightCol.add(userLbl).center().padTop(5);
 
         // Inject Columns into a topRow which will be placed inside a scrollable content area
@@ -355,10 +363,20 @@ public class ScoreScreen implements Screen {
         TextButton replayBtn = new TextButton("Watch Replay", skin);
         replayBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
-                // --- Check if the .json file exists on the hard drive ---
+                SongListPanel.stopAudio();
+
+                // 1. Check if the .json file exists on the hard drive
                 com.badlogic.gdx.files.FileHandle checkFile = Gdx.files.local("replays/replay_" + currentReplayTimestamp + ".json");
 
-                SongListPanel.stopAudio();
+                // 2. If it doesn't exist, check if we have the raw data from the server (Global Replay)
+                if (!checkFile.exists() && historyData != null && historyData.rawReplayData != null) {
+                    try {
+                        checkFile.writeString(historyData.rawReplayData, false);
+                        Gdx.app.log("Network", "Restored global replay data to disk: " + currentReplayTimestamp);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
 
                 if (checkFile.exists()) {
                     animateOut(() -> game.setScreen(new PlayScreen(game, mapFilePath, currentReplayTimestamp)));
@@ -440,7 +458,7 @@ public class ScoreScreen implements Screen {
         return currentShift + (deltaY * tan3);
     }
 
-    private void saveScoreData(String mapFilePath, int finalScore, String grade, ScoreManager scoreManager,
+    private void saveScoreData(com.nodevoltex.game.data.Beatmap.General metadata, String mapFilePath, int finalScore, String grade, ScoreManager scoreManager,
                               int sc, int c, int n, int m, int f, int miss, int early, int late, long playTimestamp) {
         String safeFileName = mapFilePath.replace("/", "_").replace("\\", "_") + "_save.json";
         com.badlogic.gdx.files.FileHandle saveFile = Gdx.files.local("scores/" + safeFileName);
@@ -454,6 +472,8 @@ public class ScoreScreen implements Screen {
 
         com.nodevoltex.game.data.SaveData newData = new com.nodevoltex.game.data.SaveData();
         newData.score = finalScore; newData.grade = grade;
+        newData.username = com.nodevoltex.game.managers.SettingsManager.getUserName();
+        newData.profilePictureUrl = com.nodevoltex.game.managers.SettingsManager.getProfilePictureUrl();
 
         // --- Use the synchronized timestamp! ---
         newData.timestamp = playTimestamp;
@@ -463,6 +483,43 @@ public class ScoreScreen implements Screen {
 
         history.plays.add(newData);
         saveFile.writeString(json.prettyPrint(history), false);
+
+        // --- Network Upload if Logged In ---
+        if (!com.nodevoltex.game.managers.SettingsManager.getAuthToken().isEmpty()) {
+            com.nodevoltex.game.networking.NetworkManager.ScoreRequest scoreReq = new com.nodevoltex.game.networking.NetworkManager.ScoreRequest();
+            // Use ID format matching StatsPanel: Title_Difficulty
+            scoreReq.mapId = (metadata != null ? metadata.title : "Unknown") + "_" + currentDifficulty;
+            scoreReq.title = metadata != null ? metadata.title : "Unknown";
+            scoreReq.artist = metadata != null ? metadata.artist : "Unknown";
+            scoreReq.difficulty = currentDifficulty;
+            scoreReq.level = metadata != null ? metadata.level : 0;
+            scoreReq.score = finalScore;
+            scoreReq.grade = grade;
+            scoreReq.maxCombo = scoreManager.maxCombo;
+            scoreReq.sCriticals = sc;
+            scoreReq.criticals = c;
+            scoreReq.nears = n;
+            scoreReq.mids = m;
+            scoreReq.fars = f;
+            scoreReq.misses = miss;
+            scoreReq.laserTicks = scoreManager.laserTicks;
+            scoreReq.laserMisses = scoreManager.getLaserMisses();
+            scoreReq.early = early;
+            scoreReq.late = late;
+            scoreReq.replayDataJson = currentReplayJson != null ? currentReplayJson : json.toJson(newData);
+
+            com.nodevoltex.game.networking.NetworkManager.submitScore(scoreReq, new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<String>() {
+                @Override
+                public void onSuccess(String result) {
+                    Gdx.app.log("Network", "Score uploaded!");
+                }
+
+                @Override
+                public void onError(String message) {
+                    Gdx.app.error("Network", "Upload failed: " + message);
+                }
+            });
+        }
     }
 
     private class ParallelogramActor extends Actor {

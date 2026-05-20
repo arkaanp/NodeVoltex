@@ -40,9 +40,9 @@ public class SongListPanel extends Table {
     private static Music previewMusic;
     private static String currentPreviewPath = "";
 
-    private static Array<SongData> GLOBAL_SONG_CACHE = null;
-    private static String GLOBAL_LAST_PLAYED_PATH = null;
-    private static String GLOBAL_LAST_PLAYED_DIFFICULTY = null;
+    public static Array<SongData> GLOBAL_SONG_CACHE = null;
+    public static String GLOBAL_LAST_PLAYED_PATH = null;
+    public static String GLOBAL_LAST_PLAYED_DIFFICULTY = null;
 
     // --- Dual 9-Patch Memory for Borders & Fills ---
     private static com.badlogic.gdx.graphics.g2d.NinePatch normalPatch;
@@ -622,10 +622,11 @@ public class SongListPanel extends Table {
 
         if (forceDiff != null) {
             targetDiff = forceDiff;
-            if (forceDiff.equals("MXM")) { defaultLv = song.mxmLv; defaultPath = song.mxmPath; }
-            else if (forceDiff.equals("EXH")) { defaultLv = song.exhLv; defaultPath = song.exhPath; }
-            else if (forceDiff.equals("ADV")) { defaultLv = song.advLv; defaultPath = song.advPath; }
-            else if (forceDiff.equals("NOV")) { defaultLv = song.novLv; defaultPath = song.novPath; }
+            // Robust check: matches shorthand (EXH) or full string (EXH 17)
+            if (forceDiff.startsWith("MXM")) { defaultLv = song.mxmLv; defaultPath = song.mxmPath; targetDiff = "MXM"; }
+            else if (forceDiff.startsWith("EXH")) { defaultLv = song.exhLv; defaultPath = song.exhPath; targetDiff = "EXH"; }
+            else if (forceDiff.startsWith("ADV")) { defaultLv = song.advLv; defaultPath = song.advPath; targetDiff = "ADV"; }
+            else if (forceDiff.startsWith("NOV")) { defaultLv = song.novLv; defaultPath = song.novPath; targetDiff = "NOV"; }
         } else {
             if (song.mxmLv > 0) { targetDiff = "MXM"; defaultLv = song.mxmLv; defaultPath = song.mxmPath; }
             else if (song.exhLv > 0) { targetDiff = "EXH"; defaultLv = song.exhLv; defaultPath = song.exhPath; }
@@ -767,7 +768,9 @@ public class SongListPanel extends Table {
 
                 Gdx.app.postRunnable(() -> {
                     if (selectedSong == song && selectedDiffName.equals(diffName)) {
-                        statsPanel.injectScoresAsync(loadedScores, animateScores);
+                        if (statsPanel.getActiveScopeTab().equals("local")) {
+                            statsPanel.injectScoresAsync(loadedScores, animateScores);
+                        }
                     }
                 });
             });

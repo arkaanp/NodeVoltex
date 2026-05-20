@@ -129,4 +129,21 @@ public class SettingsManager {
     // --- Display Settings (0 = Windowed, 1 = Fullscreen, 2 = Borderless) ---
     public static int getDisplayMode() { return getPrefs().getInteger("displayMode", 0); } // Default to Borderless
     public static void setDisplayMode(int val) { getPrefs().putInteger("displayMode", val); getPrefs().flush(); }
+
+    // --- Auth Settings ---
+    public static String getAuthToken() { return getPrefs().getString("authToken", ""); }
+    public static void setAuthToken(String token) { getPrefs().putString("authToken", token); getPrefs().flush(); }
+
+    public static String getUserName() { return getPrefs().getString("userName", "GUEST"); }
+    public static void setUserName(String name) { getPrefs().putString("userName", name); getPrefs().flush(); }
+
+    public static String getProfilePictureUrl() { return getPrefs().getString("profilePictureUrl", ""); }
+    public static void setProfilePictureUrl(String url) { getPrefs().putString("profilePictureUrl", url); getPrefs().flush(); }
+
+    public static void logout() {
+        getPrefs().remove("authToken");
+        getPrefs().remove("userName");
+        getPrefs().remove("profilePictureUrl");
+        getPrefs().flush();
+    }
 }

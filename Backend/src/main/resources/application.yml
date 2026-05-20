@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/nodevoltex_db
+    username: postgres
+    password: 123
+  jpa:
+    hibernate:
+      ddl-auto: update # Keep data between restarts
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    show-sql: true # Prints SQL to the console so we can see what it's doing
+
+server:
+  port: 8082
+
+# Where we will save the profile pictures locally for now
+file:
+  upload-dir: uploads/profiles/
+
+servlet:
+  multipart:
+    max-file-size: 5MB
+    max-request-size: 5MB
+
+jwt:
+  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+  expiration: 86400000 # 24 hours in milliseconds

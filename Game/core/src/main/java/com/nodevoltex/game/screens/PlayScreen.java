@@ -407,25 +407,32 @@ public class PlayScreen implements Screen {
                 else if (mapFilePath.contains("exh.json")) diffName = "EXH";
                 else if (mapFilePath.contains("mxm.json")) diffName = "MXM";
 
+                String fullDiffName = diffName;
+                if (beatmap.general != null) {
+                    fullDiffName = diffName + " " + beatmap.general.level;
+                }
+
                 boolean isModded = SettingsManager.getModAutoPlay() || SettingsManager.getModNoLaser();
                 long runTimestamp = System.currentTimeMillis();
+                String replayJsonStr = null;
 
                 if (inputController.isRecording && !isModded && !inputController.isReplayPlayback) {
                     inputController.currentReplay.songTitle = beatmap.general.title;
-                    inputController.currentReplay.difficulty = diffName;
+                    inputController.currentReplay.difficulty = fullDiffName;
                     inputController.currentReplay.finalScore = scoreManager.getFinalScore();
                     inputController.currentReplay.timestamp = runTimestamp;
 
                     com.badlogic.gdx.files.FileHandle replayFile = Gdx.files.local("replays/replay_" + runTimestamp + ".json");
                     com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
-                    replayFile.writeString(json.prettyPrint(inputController.currentReplay), false);
+                    replayJsonStr = json.prettyPrint(inputController.currentReplay);
+                    replayFile.writeString(replayJsonStr, false);
                 }
 
                 if (music != null) {
                     music.stop();
                 }
 
-                game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, null, diffName, mapFilePath, false, runTimestamp));
+                game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, null, fullDiffName, mapFilePath, false, runTimestamp, replayJsonStr));
             })
         ));
     }
@@ -884,13 +891,13 @@ public class PlayScreen implements Screen {
                 Beatmap.LaserNode prev = seq.nodes.get(i - 1);
                 Beatmap.LaserNode curr = seq.nodes.get(i);
                 float duration = curr.offset - prev.offset;
-                if (duration <= 100.0f) {
+                if (duration <= 200.0f) {
                     if (!seq.tickTimes.contains(curr.offset, false)) seq.tickTimes.add(curr.offset);
                 } else {
-                    float tickTime = prev.offset + 100.0f;
+                    float tickTime = prev.offset + 200.0f;
                     while (tickTime < curr.offset) {
                         if (!seq.tickTimes.contains(tickTime, false)) seq.tickTimes.add(tickTime);
-                        tickTime += 100.0f;
+                        tickTime += 200.0f;
                     }
                 }
             }

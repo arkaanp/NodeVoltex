@@ -16,9 +16,47 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 
+import com.nodevoltex.game.utils.TextureLoader;
+
 public class SettingsOverlay {
     private final Stage stage;
     private final Skin skin;
+
+    private void pickAndUploadPfp() {
+        new Thread(() -> {
+            try {
+                // Use Swing FileChooser for a standard desktop picker
+                javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
+                javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
+                fileChooser.setDialogTitle("Select Profile Picture");
+                fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Image files", "png", "jpg", "jpeg", "gif"));
+                
+                int result = fileChooser.showOpenDialog(null);
+                if (result == javax.swing.JFileChooser.APPROVE_OPTION) {
+                    java.io.File selectedFile = fileChooser.getSelectedFile();
+                    final com.badlogic.gdx.files.FileHandle fileHandle = Gdx.files.absolute(selectedFile.getAbsolutePath());
+                    
+                    Gdx.app.postRunnable(() -> {
+                        statusLabel.setText("Uploading...");
+                        com.nodevoltex.game.networking.NetworkManager.uploadProfilePicture(fileHandle, new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<String>() {
+                            @Override
+                            public void onSuccess(String result) {
+                                statusLabel.setText("Upload Success!");
+                                rebuildSettings();
+                            }
+
+                            @Override
+                            public void onError(String message) {
+                                statusLabel.setText("Upload Failed: " + message);
+                            }
+                        });
+                    });
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
 
     private Image darkOverlay;
     private Table settingsPanel;
@@ -29,6 +67,12 @@ public class SettingsOverlay {
     private Label gameplayHeader;
     private Label inputHeader;
     private Label audioHeader;
+    private Label accountHeader;
+
+    private Label statusLabel;
+    private com.badlogic.gdx.scenes.scene2d.ui.TextField userField;
+    private com.badlogic.gdx.scenes.scene2d.ui.TextField passField;
+    private Image pfpImage;
 
     public SettingsOverlay(Stage stage, Skin skin) {
         this.stage = stage;
@@ -69,6 +113,7 @@ public class SettingsOverlay {
             navBar.background(skin.newDrawable("white", new Color(0.10f, 0.10f, 0.12f, 1f)));
 
             // Pass the headers directly into the nav buttons
+            navBar.add(createNavButton("Account", accountHeader)).expandX().fillX().height(50).row();
             navBar.add(createNavButton("Gameplay", gameplayHeader)).expandX().fillX().height(50).row();
             navBar.add(createNavButton("Input", inputHeader)).expandX().fillX().height(50).row();
             navBar.add(createNavButton("Audio", audioHeader)).expandX().fillX().height(50).row();
@@ -138,6 +183,56 @@ public class SettingsOverlay {
     }
 
     private void buildSettingsContent(Table container) {
+        accountHeader = new Label("Account", skin);
+        accountHeader.setFontScale(1.2f);
+        accountHeader.setColor(Color.WHITE);
+        container.add(accountHeader).left().padBottom(20).row();
+
+        String currentPfpUrl = com.nodevoltex.game.managers.SettingsManager.getProfilePictureUrl();
+        pfpImage = new Image();
+        // Load PFP with placeholder
+        com.nodevoltex.game.utils.TextureLoader.loadIntoImage(currentPfpUrl, pfpImage, null);
+        
+        Table accountInfo = new Table();
+        accountInfo.left();
+        accountInfo.add(pfpImage).size(64, 64).padRight(15);
+        
+        Table nameTable = new Table();
+        nameTable.left();
+        statusLabel = new Label("Logged in as: " + com.nodevoltex.game.managers.SettingsManager.getUserName(), skin);
+        statusLabel.setFontScale(0.85f);
+        nameTable.add(statusLabel).left().row();
+        
+        if (!com.nodevoltex.game.managers.SettingsManager.getAuthToken().isEmpty()) {
+            TextButton uploadBtn = new TextButton("Change PFP", skin);
+            uploadBtn.addListener(new ClickListener() {
+                @Override
+                public void clicked(InputEvent event, float x, float y) {
+                    pickAndUploadPfp();
+                }
+            });
+            nameTable.add(uploadBtn).width(120).height(30).left().padTop(5);
+        }
+        
+        accountInfo.add(nameTable).left();
+        container.add(accountInfo).left().padBottom(20).row();
+
+        if (com.nodevoltex.game.managers.SettingsManager.getAuthToken().isEmpty()) {
+            buildLoginForm(container);
+        } else {
+            TextButton logoutBtn = new TextButton("Logout", skin);
+            logoutBtn.addListener(new ClickListener() {
+                @Override
+                public void clicked(InputEvent event, float x, float y) {
+                    com.nodevoltex.game.managers.SettingsManager.logout();
+                    rebuildSettings();
+                }
+            });
+            container.add(logoutBtn).width(120).height(40).left().padBottom(30).row();
+        }
+
+        container.add(new Image(skin.newDrawable("white", new Color(1, 1, 1, 0.1f)))).fillX().height(1).padBottom(30).row();
+
         gameplayHeader = new Label("Gameplay", skin);
         gameplayHeader.setFontScale(1.2f);
         gameplayHeader.setColor(Color.WHITE);
@@ -164,7 +259,6 @@ public class SettingsOverlay {
                 int nextMode = (com.nodevoltex.game.managers.SettingsManager.getDisplayMode() + 1) % 3;
                 com.nodevoltex.game.managers.SettingsManager.setDisplayMode(nextMode);
                 displayBtn.setText(modeNames[nextMode]);
-
                 applyDisplayMode(nextMode);
             }
         });
@@ -173,45 +267,37 @@ public class SettingsOverlay {
         displayTable.add(displayBtn).width(120).height(35);
         container.add(displayTable).left().padBottom(15).row();
 
-        // 1. Pull the actual saved numbers from the Manager
+        // 1. Sliders
         container.add(createSliderRow("Scroll speed", 0.01f, 3.0f, 0.01f, com.nodevoltex.game.managers.SettingsManager.getScrollSpeed(), "", "speed")).expandX().fillX().padBottom(15).row();
         container.add(createSliderRow("Global offset", -200f, 200f, 1f, com.nodevoltex.game.managers.SettingsManager.getGlobalOffset(), "ms", "offset")).expandX().fillX().padBottom(30).row();
-
-        // --- Playfield Sliders ---
         container.add(createSliderRow("Hit Position Y", 50f, 300f, 1f, com.nodevoltex.game.managers.SettingsManager.getPlayfieldHitPosY(), "px", "hitpos")).expandX().fillX().padBottom(15).row();
         container.add(createSliderRow("Playfield Width", 200f, 500f, 1f, com.nodevoltex.game.managers.SettingsManager.getPlayfieldWidth(), "px", "width")).expandX().fillX().padBottom(30).row();
         container.add(createSliderRow("BG Brightness", 0.1f, 1.0f, 0.05f, com.nodevoltex.game.managers.SettingsManager.getBackgroundBrightness(), "", "bgbright")).expandX().fillX().padBottom(15).row();
         container.add(createSliderRow("Combo Offset Y", 50f, 600f, 5f, com.nodevoltex.game.managers.SettingsManager.getJudgmentComboTopOffset(), "px", "judg")).expandX().fillX().padBottom(30).row();
 
-        // --- UR Bar Toggle Button ---
+        // --- UR Bar Toggle ---
         Table urToggleTable = new Table();
         urToggleTable.left();
-
         Label urLbl = new Label("Show Unstable Rate Bar", skin);
         urLbl.setFontScale(0.85f);
+        
+        TextButton.TextButtonStyle urToggleStyle = new TextButton.TextButtonStyle(skin.get(TextButton.TextButtonStyle.class));
+        urToggleStyle.up = skin.newDrawable("white", new Color(0.18f, 0.18f, 0.22f, 1f));
+        urToggleStyle.fontColor = com.nodevoltex.game.managers.SettingsManager.isShowURBar() ? Color.CYAN : Color.GRAY;
 
-        //TextButton.TextButtonStyle toggleStyle = new TextButton.TextButtonStyle(skin.get(TextButton.TextButtonStyle.class));
-        toggleStyle.up = skin.newDrawable("white", new Color(0.18f, 0.18f, 0.22f, 1f));
-        // Default color based on current setting
-        toggleStyle.fontColor = com.nodevoltex.game.managers.SettingsManager.isShowURBar() ? Color.CYAN : Color.GRAY;
-
-        final TextButton urBtn = new TextButton(com.nodevoltex.game.managers.SettingsManager.isShowURBar() ? "ON" : "OFF", toggleStyle);
-
+        final TextButton urBtn = new TextButton(com.nodevoltex.game.managers.SettingsManager.isShowURBar() ? "ON" : "OFF", urToggleStyle);
         urBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 boolean newState = !com.nodevoltex.game.managers.SettingsManager.isShowURBar();
                 com.nodevoltex.game.managers.SettingsManager.setShowURBar(newState);
-
                 urBtn.setText(newState ? "ON" : "OFF");
-                // Visually dim the button when disabled
                 urBtn.getStyle().fontColor = newState ? Color.CYAN : Color.GRAY;
             }
         });
 
         urToggleTable.add(urLbl).padRight(15);
         urToggleTable.add(urBtn).width(60).height(35);
-
         container.add(urToggleTable).left().padBottom(30).row();
         // ----------------------------------------
 
@@ -314,6 +400,88 @@ public class SettingsOverlay {
         container.add(createSliderRow("Master", 0f, 100f, 1f, com.nodevoltex.game.managers.SettingsManager.getMasterVolume() * 100f, "%", "master")).expandX().fillX().padBottom(10).row();
         container.add(createSliderRow("Effect", 0f, 100f, 1f, com.nodevoltex.game.managers.SettingsManager.getEffectVolume() * 100f, "%", "effect")).expandX().fillX().padBottom(10).row();
         container.add(createSliderRow("Music", 0f, 100f, 1f, com.nodevoltex.game.managers.SettingsManager.getMusicVolume() * 100f, "%", "music")).expandX().fillX().padBottom(30).row();
+    }
+
+    private void buildLoginForm(final Table container) {
+        container.add(new Label("Username", skin)).left().padBottom(5).row();
+        userField = new com.badlogic.gdx.scenes.scene2d.ui.TextField("", skin);
+        container.add(userField).expandX().fillX().padBottom(10).row();
+
+        container.add(new Label("Password", skin)).left().padBottom(5).row();
+        passField = new com.badlogic.gdx.scenes.scene2d.ui.TextField("", skin);
+        passField.setPasswordMode(true);
+        passField.setPasswordCharacter('*');
+        container.add(passField).expandX().fillX().padBottom(20).row();
+
+        Table btnTable = new Table();
+        TextButton loginBtn = new TextButton("Login", skin);
+        loginBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                statusLabel.setText("Logging in...");
+                com.nodevoltex.game.networking.NetworkManager.login(userField.getText(), passField.getText(), new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<String>() {
+                    @Override public void onSuccess(String t) { 
+                        statusLabel.setText("Login Success!"); 
+                        
+                        // Fetch user profile to get PFP immediately after login
+                        com.nodevoltex.game.networking.NetworkManager.fetchUserProfile(new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<Void>() {
+                            @Override public void onSuccess(Void result) { rebuildSettings(); }
+                            @Override public void onError(String message) { rebuildSettings(); }
+                        });
+                    }
+                    @Override public void onError(String m) { statusLabel.setText("Login Failed: " + m); }
+                });
+            }
+        });
+
+        TextButton regBtn = new TextButton("Register", skin);
+        regBtn.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                statusLabel.setText("Registering...");
+                com.nodevoltex.game.networking.NetworkManager.register(userField.getText(), passField.getText(), new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<String>() {
+                    @Override public void onSuccess(String t) { statusLabel.setText("Reg Success! Please Login."); }
+                    @Override public void onError(String m) { statusLabel.setText("Reg Failed: " + m); }
+                });
+            }
+        });
+
+        btnTable.add(loginBtn).width(100).height(40).padRight(10);
+        btnTable.add(regBtn).width(100).height(40);
+        container.add(btnTable).left().row();
+    }
+
+    private void rebuildSettings() {
+        // Redraw only the UI components inside the settings container
+        settingsPanel.clearChildren();
+        
+        Table contentSplit = new Table();
+        Table settingsContainer = new Table();
+        settingsContainer.top().left().pad(30);
+        buildSettingsContent(settingsContainer);
+
+        Table navBar = new Table();
+        navBar.top();
+        navBar.background(skin.newDrawable("white", new Color(0.10f, 0.10f, 0.12f, 1f)));
+        navBar.add(createNavButton("Account", accountHeader)).expandX().fillX().height(50).row();
+        navBar.add(createNavButton("Gameplay", gameplayHeader)).expandX().fillX().height(50).row();
+        navBar.add(createNavButton("Input", inputHeader)).expandX().fillX().height(50).row();
+        navBar.add(createNavButton("Audio", audioHeader)).expandX().fillX().height(50).row();
+
+        settingsScrollPane = new ScrollPane(settingsContainer, skin);
+        settingsScrollPane.setFadeScrollBars(false);
+        settingsScrollPane.setScrollingDisabled(true, false);
+        settingsScrollPane.setCancelTouchFocus(false);
+        settingsScrollPane.addListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
+            @Override
+            public void enter(InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor fromActor) {
+                if (stage != null) stage.setScrollFocus(settingsScrollPane);
+            }
+        });
+
+        contentSplit.add(navBar).width(com.badlogic.gdx.scenes.scene2d.ui.Value.percentWidth(0.22f, contentSplit)).expandY().fillY();
+        contentSplit.add(settingsScrollPane).expand().fill();
+        settingsPanel.add(contentSplit).expand().fill();
     }
 
     private void saveSetting(String type, float val) {

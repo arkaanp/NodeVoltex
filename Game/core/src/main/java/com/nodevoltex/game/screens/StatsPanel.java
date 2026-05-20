@@ -16,6 +16,8 @@ public class StatsPanel extends Table {
 
     private SongSelectScreen parentScreen;
     public String currentMapPath = "";
+    private String currentTitle = "";
+    private String currentDifficulty = "";
 
     private Label titleLabel;
     private Label artistLabel;
@@ -27,8 +29,8 @@ public class StatsPanel extends Table {
 
     private boolean sortScoreAscending = true;
 
-    private String activeSortTab = "score";
-    private String activeScopeTab = "local";
+    private static String activeSortTab = "score";
+    private static String activeScopeTab = "local";
 
     private Image jacketImage;
     private com.badlogic.gdx.graphics.Texture jacketTexture;
@@ -124,8 +126,12 @@ public class StatsPanel extends Table {
         scopeLabel.setColor(Color.WHITE);
         toggleTable.add(scopeLabel).padRight(10);
 
-        Table localBtn = createStatsTab("local", "scope", null);
-        Table globalBtn = createStatsTab("global", "scope", null);
+        Table localBtn = createStatsTab("local", "scope", () -> {
+            reloadLocalScores();
+        });
+        Table globalBtn = createStatsTab("global", "scope", () -> {
+            fetchGlobalLeaderboard();
+        });
 
         toggleTable.add(localBtn).padRight(10);
         toggleTable.add(globalBtn);
@@ -157,8 +163,17 @@ public class StatsPanel extends Table {
         final ClickListener listener = new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
-                if (group.equals("sort")) activeSortTab = text;
-                else if (group.equals("scope")) activeScopeTab = text;
+                if (group.equals("sort") && activeScopeTab.equals("global")) return;
+
+                if (group.equals("sort")) {
+                    activeSortTab = text;
+                    sortScoreAscending = text.equals("score");
+                    refreshLeaderboard(true);
+                } else if (group.equals("scope")) {
+                    activeScopeTab = text;
+                    if (text.equals("local")) reloadLocalScores();
+                    else fetchGlobalLeaderboard();
+                }
 
                 if (onClick != null) onClick.run();
             }
@@ -168,16 +183,23 @@ public class StatsPanel extends Table {
         tab.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
             @Override
             public boolean act(float delta) {
-                boolean isActive = group.equals("sort") ? activeSortTab.equals(text) : activeScopeTab.equals(text);
-                if (isActive) {
-                    underline.getColor().a = 1.0f;
+                boolean isGlobal = activeScopeTab.equals("global");
+                boolean isDateTab = group.equals("sort") && text.equals("date");
+                boolean isScoreTab = group.equals("sort") && text.equals("score");
+
+                if (isGlobal && isDateTab) {
+                    label.setColor(Color.GRAY);
+                    underline.getColor().a = 0f;
+                    tab.setTouchable(Touchable.disabled);
+                } else if (isGlobal && isScoreTab) {
                     label.setColor(Color.WHITE);
-                } else if (listener.isOver()) {
-                    underline.getColor().a = 0.4f;
-                    label.setColor(Color.WHITE);
+                    underline.getColor().a = 1.0f; // Force active underline for score
+                    tab.setTouchable(Touchable.disabled);
                 } else {
-                    underline.getColor().a = 0.0f;
+                    tab.setTouchable(Touchable.enabled);
                     label.setColor(Color.WHITE);
+                    boolean isActive = group.equals("sort") ? activeSortTab.equals(text) : activeScopeTab.equals(text);
+                    underline.getColor().a = isActive ? 1.0f : (listener.isOver() ? 0.4f : 0.0f);
                 }
                 return false;
             }
@@ -225,10 +247,104 @@ public class StatsPanel extends Table {
         this.add(scrollContainer).expand().fill().padTop(10);
     }
 
+    private void reloadLocalScores() {
+        if (currentMapPath == null || currentMapPath.isEmpty()) return;
+
+        com.badlogic.gdx.utils.Array<com.nodevoltex.game.data.SaveData> loadedScores = new com.badlogic.gdx.utils.Array<>();
+        String safeFileName = currentMapPath.replace("/", "_").replace("\\", "_") + "_save.json";
+        com.badlogic.gdx.files.FileHandle saveFile = Gdx.files.local("scores/" + safeFileName);
+
+        if (saveFile.exists()) {
+            try {
+                com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
+                com.nodevoltex.game.data.ScoreHistory history = json.fromJson(com.nodevoltex.game.data.ScoreHistory.class, saveFile);
+                if (history != null && history.plays != null) {
+                    loadedScores.addAll(history.plays);
+                }
+            } catch (Exception e) {}
+        }
+        injectScoresAsync(loadedScores, true);
+    }
+
+    private void fetchGlobalLeaderboard() {
+        if (currentTitle.isEmpty() || currentDifficulty.isEmpty()) return;
+
+        // Force sort to score when viewing global
+        activeSortTab = "score";
+        sortScoreAscending = true;
+
+        leaderboardTable.clear();
+        leaderboardTable.add(new Label("LOADING...", skin)).pad(20).center();
+
+        String mapId = currentTitle + "_" + currentDifficulty;
+        com.nodevoltex.game.networking.NetworkManager.getLeaderboard(mapId, new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<String>() {
+            @Override
+            public void onSuccess(String result) {
+                Gdx.app.postRunnable(() -> {
+                    if (!activeScopeTab.equals("global")) return;
+
+                    com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
+                    com.badlogic.gdx.utils.Array<com.nodevoltex.game.data.SaveData> globalScores = new com.badlogic.gdx.utils.Array<>();
+
+                    try {
+                        com.badlogic.gdx.utils.JsonValue root = new com.badlogic.gdx.utils.JsonReader().parse(result);
+                        for (com.badlogic.gdx.utils.JsonValue entry : root) {
+                            com.nodevoltex.game.data.SaveData data = new com.nodevoltex.game.data.SaveData();
+                            data.username = entry.getString("username", "???");
+                            data.profilePictureUrl = entry.getString("profilePictureUrl", "");
+                            data.score = entry.getInt("score", 0);
+                            data.grade = entry.getString("grade", "D");
+                            data.timestamp = entry.getLong("timestamp", 0);
+                            data.maxCombo = entry.getInt("maxCombo", 0);
+                            data.sCriticals = entry.getInt("sCriticals", 0);
+                            data.criticals = entry.getInt("criticals", 0);
+                            data.nears = entry.getInt("nears", 0);
+                            data.mids = entry.getInt("mids", 0);
+                            data.fars = entry.getInt("fars", 0);
+                            data.misses = entry.getInt("misses", 0);
+                            data.laserTicks = entry.getInt("laserTicks", 0);
+                            data.laserMisses = entry.getInt("laserMisses", 0);
+                            data.early = entry.getInt("early", 0);
+                            data.late = entry.getInt("late", 0);
+                            
+                            // Rehydrate replay data if available
+                            data.rawReplayData = entry.getString("replayDataJson", null);
+                            
+                            globalScores.add(data);
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    injectScoresAsync(globalScores, true);
+                });
+            }
+
+            @Override
+            public void onError(String message) {
+                Gdx.app.postRunnable(() -> {
+                    if (!activeScopeTab.equals("global")) return;
+                    leaderboardTable.clear();
+                    Label errLabel = new Label("FAILED TO LOAD: " + message, skin);
+                    errLabel.setColor(Color.RED);
+                    leaderboardTable.add(errLabel).pad(20).center();
+                });
+            }
+        });
+    }
+
     public void updateSong(String newTitle, String newArtist, String diffText, Color diffColor, String mapperText, String jacketPath, int noteCount, int holdCount, int totalLaserTicks) {
+        this.currentTitle = newTitle != null ? newTitle : "";
+        this.currentDifficulty = diffText != null ? diffText : "";
         titleLabel.setText(newTitle); artistLabel.setText(newArtist); mapperLabel.setText("mapped by " + mapperText);
         diffLabel.setText(diffText); diffLabel.setColor(diffColor);
         noteCountLabel.setText("NOTE: " + noteCount); holdCountLabel.setText("HOLD: " + holdCount); laserCountLabel.setText("LASER: " + totalLaserTicks);
+
+        // Ensure the correct leaderboard is loaded based on set activeScopeTab
+        if (activeScopeTab.equals("global")) {
+            fetchGlobalLeaderboard();
+        }
+
         String oldJacket = currentJacketPath;
         currentJacketPath = jacketPath != null ? jacketPath : "";
 
@@ -314,7 +430,7 @@ public class StatsPanel extends Table {
         for (com.nodevoltex.game.data.SaveData data : currentScores) {
             String dateStr = sdf.format(new java.util.Date(data.timestamp));
             String scoreStr = String.format("%08d", data.score);
-            leaderboardTable.add(createAnimatedScoreRow(data, "Guest", scoreStr, data.grade, data.maxCombo + "x", dateStr, index, animate, baseDelay))
+            leaderboardTable.add(createAnimatedScoreRow(data, data.username, scoreStr, data.grade, data.maxCombo + "x", dateStr, index, animate, baseDelay))
                 .expandX().left().padBottom(10).row();
             index++;
         }
@@ -325,6 +441,10 @@ public class StatsPanel extends Table {
             float newScroll = leaderboardScrollPane.getScrollY() + (amountY * 60f);
             leaderboardScrollPane.setScrollY(newScroll);
         }
+    }
+
+    public String getActiveScopeTab() {
+        return activeScopeTab;
     }
 
     private Table createAnimatedScoreRow(final com.nodevoltex.game.data.SaveData data, String name, String score, String grade, String combo, String date, int delayIndex, boolean animate, float baseDelay) {
@@ -426,6 +546,9 @@ public class StatsPanel extends Table {
 
         Table profileTable = new Table();
         Image pfp = new Image(skin.newDrawable("white", Color.GRAY));
+        if (data.profilePictureUrl != null && !data.profilePictureUrl.isEmpty()) {
+            com.nodevoltex.game.utils.TextureLoader.loadIntoImage(data.profilePictureUrl, pfp, (com.badlogic.gdx.graphics.Texture)null);
+        }
 
         // Increased padLeft to 30 to make sure it cleanly surpasses the newly sharpened 15-degree slant
         profileTable.add(pfp).width(80).height(80).padRight(18).padLeft(30);
