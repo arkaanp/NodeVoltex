@@ -103,7 +103,7 @@ public class NetworkManager {
             public void handleHttpResponse(final Net.HttpResponse httpResponse) {
                 final String responseText = httpResponse.getResultAsString();
                 final int statusCode = httpResponse.getStatus().getStatusCode();
-
+                
                 Gdx.app.postRunnable(() -> {
                     if (statusCode == 200) {
                         try {
@@ -111,7 +111,7 @@ public class NetworkManager {
                             String token = root.getString("token");
                             SettingsManager.setAuthToken(token);
                             SettingsManager.setUserName(username);
-
+                            
                             // Fetch profile after login to get PFP
                             fetchUserProfile(new NetworkCallback<Void>() {
                                 @Override public void onSuccess(Void result) { callback.onSuccess(token); }
@@ -189,25 +189,30 @@ public class NetworkManager {
         Net.HttpRequest request = new Net.HttpRequest(Net.HttpMethods.POST);
         request.setUrl(BASE_URL + "/users/profile-picture");
         request.setHeader("Authorization", "Bearer " + token);
-
+        
+        // LibGDX Net doesn't natively support easy multipart/form-data with binary files.
+        // We'll have to manually construct the body or use a different approach.
+        // For simplicity, let's try to use the raw bytes if the backend supports it, 
+        // but the backend is expecting MultipartFile.
+        
         // Manual multipart construction:
         String boundary = "---------------------------" + System.currentTimeMillis();
         request.setHeader("Content-Type", "multipart/form-data; boundary=" + boundary);
-
+        
         byte[] fileBytes = file.readBytes();
         String entryHeader = "--" + boundary + "\r\n" +
                              "Content-Disposition: form-data; name=\"file\"; filename=\"" + file.name() + "\"\r\n" +
                              "Content-Type: image/png\r\n\r\n";
         String footer = "\r\n--" + boundary + "--\r\n";
-
+        
         byte[] headerBytes = entryHeader.getBytes();
         byte[] footerBytes = footer.getBytes();
-
+        
         byte[] completeBody = new byte[headerBytes.length + fileBytes.length + footerBytes.length];
         System.arraycopy(headerBytes, 0, completeBody, 0, headerBytes.length);
         System.arraycopy(fileBytes, 0, completeBody, headerBytes.length, fileBytes.length);
         System.arraycopy(footerBytes, 0, completeBody, headerBytes.length + fileBytes.length, footerBytes.length);
-
+        
         request.setContent(new java.io.ByteArrayInputStream(completeBody), completeBody.length);
 
         Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
@@ -279,7 +284,7 @@ public class NetworkManager {
         if (!token.isEmpty()) {
             request.setHeader("Authorization", "Bearer " + token);
         }
-
+        
         // Ensure the ID is URL-encoded for songs with spaces (e.g., "Heat Abnormal")
         String encodedId = mapId.replace(" ", "%20");
         request.setUrl(BASE_URL + "/scores/leaderboard/" + encodedId);

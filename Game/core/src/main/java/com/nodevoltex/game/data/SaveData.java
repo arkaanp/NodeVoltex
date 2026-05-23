@@ -4,7 +4,7 @@ public class SaveData {
     public int score = 0;
     public String grade = "-";
     public long timestamp = 0;
-    public String username = "GUEST";
+    public String username = "LOCAL";
     public String profilePictureUrl = "";
 
     // --- Arcade Statistics ---

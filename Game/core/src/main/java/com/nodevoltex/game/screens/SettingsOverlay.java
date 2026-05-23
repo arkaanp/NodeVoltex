@@ -183,6 +183,17 @@ public class SettingsOverlay {
     }
 
     private void buildSettingsContent(Table container) {
+        // --- 1. Persistent Login Refresh ---
+        // If we have a token but haven't fetched the profile in this session, do it now.
+        // This fixes the issue where the leaderboard won't show even if logged in.
+        if (!com.nodevoltex.game.managers.SettingsManager.getAuthToken().isEmpty() && 
+            com.nodevoltex.game.managers.SettingsManager.getUserName().equals("GUEST")) {
+            com.nodevoltex.game.networking.NetworkManager.fetchUserProfile(new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<Void>() {
+                @Override public void onSuccess(Void result) { rebuildSettings(); }
+                @Override public void onError(String message) {}
+            });
+        }
+
         accountHeader = new Label("Account", skin);
         accountHeader.setFontScale(1.2f);
         accountHeader.setColor(Color.WHITE);

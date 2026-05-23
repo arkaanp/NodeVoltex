@@ -41,6 +41,19 @@ public class NodeVoltex extends Game {
         }
 
         this.setScreen(new MainMenuScreen(this));
+
+        // --- Persistent Login Check ---
+        if (!com.nodevoltex.game.managers.SettingsManager.getAuthToken().isEmpty()) {
+            com.nodevoltex.game.networking.NetworkManager.fetchUserProfile(new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<Void>() {
+                @Override public void onSuccess(Void result) {
+                    Gdx.app.log("Auth", "Auto-logged in as: " + com.nodevoltex.game.managers.SettingsManager.getUserName());
+                }
+                @Override public void onError(String message) {
+                    Gdx.app.log("Auth", "Session expired or offline. Logging out.");
+                    com.nodevoltex.game.managers.SettingsManager.logout();
+                }
+            });
+        }
     }
 
     private void createBasicSkin() {

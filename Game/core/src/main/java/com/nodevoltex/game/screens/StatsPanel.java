@@ -333,9 +333,10 @@ public class StatsPanel extends Table {
         });
     }
 
-    public void updateSong(String newTitle, String newArtist, String diffText, Color diffColor, String mapperText, String jacketPath, int noteCount, int holdCount, int totalLaserTicks) {
+    public void updateSong(String newTitle, String newArtist, String diffText, Color diffColor, String mapperText, String jacketPath, int noteCount, int holdCount, int totalLaserTicks, String mapPath) {
         this.currentTitle = newTitle != null ? newTitle : "";
         this.currentDifficulty = diffText != null ? diffText : "";
+        this.currentMapPath = mapPath != null ? mapPath : "";
         titleLabel.setText(newTitle); artistLabel.setText(newArtist); mapperLabel.setText("mapped by " + mapperText);
         diffLabel.setText(diffText); diffLabel.setColor(diffColor);
         noteCountLabel.setText("NOTE: " + noteCount); holdCountLabel.setText("HOLD: " + holdCount); laserCountLabel.setText("LASER: " + totalLaserTicks);
@@ -343,6 +344,8 @@ public class StatsPanel extends Table {
         // Ensure the correct leaderboard is loaded based on set activeScopeTab
         if (activeScopeTab.equals("global")) {
             fetchGlobalLeaderboard();
+        } else {
+            reloadLocalScores();
         }
 
         String oldJacket = currentJacketPath;

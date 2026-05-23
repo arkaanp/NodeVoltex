@@ -746,39 +746,7 @@ public class SongListPanel extends Table {
         else if (diffName.equals("MXM")) { displayNotes = song.mxmNotes; displayHolds = song.mxmHolds; totalLaserTicks = song.mxmLasers; }
 
         statsPanel.updateSong(song.title, song.artist, diffName + " " + level, getColorForLevel(level),
-            song.mapper, song.jacketPath, displayNotes, displayHolds, totalLaserTicks);
-
-        statsPanel.currentMapPath = mapPath;
-
-        if (mapPath != null) {
-            Thread jsonThread = new Thread(() -> {
-                try { Thread.sleep(90); } catch (Exception e) {}
-
-                com.badlogic.gdx.utils.Array<com.nodevoltex.game.data.SaveData> loadedScores = new com.badlogic.gdx.utils.Array<>();
-                String safeFileName = mapPath.replace("/", "_").replace("\\", "_") + "_save.json";
-                com.badlogic.gdx.files.FileHandle saveFile = Gdx.files.local("scores/" + safeFileName);
-
-                if (saveFile.exists()) {
-                    try {
-                        com.badlogic.gdx.utils.Json json = new com.badlogic.gdx.utils.Json();
-                        com.nodevoltex.game.data.ScoreHistory history = json.fromJson(com.nodevoltex.game.data.ScoreHistory.class, saveFile);
-                        if (history != null && history.plays != null) loadedScores.addAll(history.plays);
-                    } catch (Exception e) {}
-                }
-
-                Gdx.app.postRunnable(() -> {
-                    if (selectedSong == song && selectedDiffName.equals(diffName)) {
-                        if (statsPanel.getActiveScopeTab().equals("local")) {
-                            statsPanel.injectScoresAsync(loadedScores, animateScores);
-                        }
-                    }
-                });
-            });
-            jsonThread.setPriority(Thread.MIN_PRIORITY);
-            jsonThread.start();
-        } else {
-            statsPanel.injectScoresAsync(null, animateScores);
-        }
+            song.mapper, song.jacketPath, displayNotes, displayHolds, totalLaserTicks, mapPath);
     }
 
     private void playAudio(String audioPath, float offsetSeconds) {
