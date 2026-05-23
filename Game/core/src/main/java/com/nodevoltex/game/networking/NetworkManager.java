@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class NetworkManager {
-    private static final String BASE_URL = "https://nodevoltex.onrender.com";
+    private static final String BASE_URL = "https://nodevoltex.onrender.com/api";
     private static final Json json = new Json();
     static {
         json.setOutputType(JsonWriter.OutputType.json);
