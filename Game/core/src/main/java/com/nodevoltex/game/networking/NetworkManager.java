@@ -290,8 +290,13 @@ public class NetworkManager {
             request.setHeader("Authorization", "Bearer " + token);
         }
 
-        // Ensure the ID is URL-encoded for songs with spaces (e.g., "Heat Abnormal")
-        String encodedId = mapId.replace(" ", "%20");
+        // Ensure the ID is fully URL-encoded for songs with spaces and non-ASCII characters (e.g. Japanese characters)
+        String encodedId = mapId;
+        try {
+            encodedId = java.net.URLEncoder.encode(mapId, "UTF-8").replace("+", "%20");
+        } catch (Exception e) {
+            encodedId = mapId.replace(" ", "%20");
+        }
         request.setUrl(BASE_URL + "/scores/leaderboard/" + encodedId);
 
         Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
