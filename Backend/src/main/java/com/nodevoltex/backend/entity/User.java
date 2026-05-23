@@ -23,7 +23,6 @@ public class User {
 
     private String profilePictureUrl;
 
-    @Column(nullable = false)
     private Double volforce = 0.0;
 
     public User() {
@@ -78,7 +77,7 @@ public class User {
     }
 
     public Double getVolforce() {
-        return volforce;
+        return volforce != null ? volforce : 0.0;
     }
 
     public void setVolforce(Double volforce) {
