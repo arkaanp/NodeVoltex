@@ -140,10 +140,14 @@ public class SettingsManager {
     public static String getProfilePictureUrl() { return getPrefs().getString("profilePictureUrl", ""); }
     public static void setProfilePictureUrl(String url) { getPrefs().putString("profilePictureUrl", url); getPrefs().flush(); }
 
+    public static float getVolforce() { return getPrefs().getFloat("volforce", 0.0f); }
+    public static void setVolforce(float val) { getPrefs().putFloat("volforce", val); getPrefs().flush(); }
+
     public static void logout() {
         getPrefs().remove("authToken");
         getPrefs().remove("userName");
         getPrefs().remove("profilePictureUrl");
+        getPrefs().remove("volforce");
         getPrefs().flush();
     }
 }

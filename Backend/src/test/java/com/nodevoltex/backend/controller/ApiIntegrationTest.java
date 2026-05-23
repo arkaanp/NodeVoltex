@@ -41,12 +41,18 @@ public class ApiIntegrationTest {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @org.springframework.boot.test.mock.mockito.MockBean
+    private com.nodevoltex.backend.service.CloudinaryService cloudinaryService;
+
     private String jwtToken;
     private final String TEST_USER = "testUser_" + UUID.randomUUID().toString().substring(0, 8);
     private final String TEST_PASS = "password123";
 
     @BeforeEach
     void setUp() throws Exception {
+        org.mockito.Mockito.when(cloudinaryService.uploadFile(org.mockito.Mockito.any()))
+                .thenReturn("http://cloudinary.com/avatar.png");
+
         // 1. Register
         AuthRequest registerRequest = new AuthRequest(TEST_USER, TEST_PASS);
         MvcResult result = mockMvc.perform(post("/api/auth/register")
@@ -123,7 +129,9 @@ public class ApiIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(scoreRequest)))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Score submitted successfully"));
+                .andExpect(jsonPath("$.playVolforce").value(0.888))
+                .andExpect(jsonPath("$.newTotalVolforce").value(0.888))
+                .andExpect(jsonPath("$.volforceGained").value(0.888));
 
         // Get Leaderboard
         mockMvc.perform(get("/api/scores/leaderboard/" + mapId)
@@ -140,7 +148,17 @@ public class ApiIntegrationTest {
                 .header("Authorization", "Bearer " + currentToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(scoreRequest)))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.playVolforce").value(0.997))
+                .andExpect(jsonPath("$.newTotalVolforce").value(0.997))
+                .andExpect(jsonPath("$.volforceGained").value(0.109));
+
+        // Verify User Profile Volforce
+        mockMvc.perform(get("/api/users/me")
+                .header("Authorization", "Bearer " + currentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value(TEST_USER))
+                .andExpect(jsonPath("$.volforce").value(0.997));
 
         // Verify Update
         mockMvc.perform(get("/api/scores/leaderboard/" + mapId)

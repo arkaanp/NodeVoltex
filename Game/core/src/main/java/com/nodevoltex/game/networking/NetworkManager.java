@@ -164,6 +164,11 @@ public class NetworkManager {
                             } else {
                                 SettingsManager.setProfilePictureUrl("");
                             }
+                            if (root.has("volforce") && !root.get("volforce").isNull()) {
+                                SettingsManager.setVolforce((float) root.getDouble("volforce"));
+                            } else {
+                                SettingsManager.setVolforce(0.0f);
+                            }
                             callback.onSuccess(null);
                         } catch (Exception e) {
                             callback.onError("Failed to parse user profile: " + e.getMessage());
@@ -259,7 +264,7 @@ public class NetworkManager {
 
                 Gdx.app.postRunnable(() -> {
                     if (statusCode == 200 || statusCode == 201) {
-                        callback.onSuccess("Score submitted");
+                        callback.onSuccess(responseText);
                     } else {
                         callback.onError("Submission failed: " + statusCode + " - " + responseText);
                     }

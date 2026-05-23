@@ -41,6 +41,12 @@ public class ScoreScreen implements Screen {
     private final Skin skin;
     private ShapeRenderer shapeRenderer;
 
+    private float lastPlayVolforce = 0.0f;
+    private float lastTotalVolforce = 0.0f;
+    private float lastVolforceGained = 0.0f;
+    private boolean scoreUploaded = false;
+    private Label volforceValueLabel;
+
     private Texture bgTexture;
     private Image bgImage;
     private Texture jacketTexture;
@@ -281,8 +287,33 @@ public class ScoreScreen implements Screen {
 
         // --- METRICS ---
         currentLeftShift = addSlantedStat(statsTable, "Note Accuracy", String.format(java.util.Locale.US, "%.1f%%", noteAccuracy), Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
-        addSlantedStat(statsTable, "Laser Accuracy", String.format(java.util.Locale.US, "%.1f%%", laserAccuracy), Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
-        //addSlantedStat(statsTable, "Note/Laser Ratio", ratioStr, Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
+        currentLeftShift = addSlantedStat(statsTable, "Laser Accuracy", String.format(java.util.Locale.US, "%.1f%%", laserAccuracy), Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
+
+        // --- VOLFORCE ---
+        currentLeftShift = currentLeftShift + (20f * tan3);
+        
+        Table vfRow = new Table();
+        Label vfLbl = new Label("Volforce", skin);
+        vfLbl.setColor(Color.valueOf("#00E5FF")); // arcade cyan
+        
+        String initialVfText;
+        if (com.nodevoltex.game.managers.SettingsManager.getAuthToken().isEmpty()) {
+            initialVfText = "- (+0.000)";
+        } else if (fromHistory) {
+            float currentVf = com.nodevoltex.game.managers.SettingsManager.getVolforce();
+            initialVfText = String.format(java.util.Locale.US, "%.3f (+0.000)", currentVf);
+        } else {
+            float prevVf = com.nodevoltex.game.managers.SettingsManager.getVolforce();
+            initialVfText = String.format(java.util.Locale.US, "%.3f (+...)", prevVf);
+        }
+        
+        volforceValueLabel = new Label(initialVfText, skin);
+        volforceValueLabel.setColor(Color.WHITE);
+        
+        vfRow.add(vfLbl).expandX().left();
+        vfRow.add(volforceValueLabel).align(Align.right);
+        
+        statsTable.add(vfRow).width(statsRowWidth).left().padLeft(currentLeftShift).padTop(15f).padBottom(2f).row();
 
         leftCol.add(statsTable).expandX().left().padLeft(15).row();
 
@@ -511,7 +542,65 @@ public class ScoreScreen implements Screen {
             com.nodevoltex.game.networking.NetworkManager.submitScore(scoreReq, new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<String>() {
                 @Override
                 public void onSuccess(String result) {
-                    Gdx.app.log("Network", "Score uploaded!");
+                    Gdx.app.log("Network", "Score uploaded: " + result);
+                    try {
+                        com.badlogic.gdx.utils.JsonValue root = new com.badlogic.gdx.utils.JsonReader().parse(result);
+                        lastPlayVolforce = (float) root.getDouble("playVolforce");
+                        lastTotalVolforce = (float) root.getDouble("newTotalVolforce");
+                        lastVolforceGained = (float) root.getDouble("volforceGained");
+                        scoreUploaded = true;
+
+                        com.nodevoltex.game.managers.SettingsManager.setVolforce(lastTotalVolforce);
+
+                        Gdx.app.postRunnable(new Runnable() {
+                            @Override
+                            public void run() {
+                                updateVolforceLabels();
+                            }
+                        });
+                    } catch (Exception e) {
+                        Gdx.app.log("Network", "Response was not JSON (old backend fallback): " + e.getMessage());
+                        try {
+                            float levelVal = metadata != null ? metadata.level + 0.5f : 0.5f;
+                            float gradeCoeff = getGradeCoefficient(grade);
+                            int laserMissesVal = scoreManager != null ? scoreManager.getLaserMisses() : 0;
+                            float clearCoeff = getClearCoefficient(miss, laserMissesVal, n, f);
+                            lastPlayVolforce = (float) ((levelVal * (finalScore / 10000000.0) * gradeCoeff * clearCoeff * 20.0) * 5.0 * 0.001);
+                            lastPlayVolforce = (float) (Math.floor(lastPlayVolforce * 1000.0) / 1000.0);
+
+                            final float prevVf = com.nodevoltex.game.managers.SettingsManager.getVolforce();
+
+                            com.nodevoltex.game.networking.NetworkManager.fetchUserProfile(new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<Void>() {
+                                @Override
+                                public void onSuccess(Void profileResult) {
+                                    lastTotalVolforce = com.nodevoltex.game.managers.SettingsManager.getVolforce();
+                                    lastVolforceGained = Math.max(0.0f, lastTotalVolforce - prevVf);
+                                    scoreUploaded = true;
+                                    Gdx.app.postRunnable(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            updateVolforceLabels();
+                                        }
+                                    });
+                                }
+
+                                @Override
+                                public void onError(String message) {
+                                    lastTotalVolforce = prevVf;
+                                    lastVolforceGained = 0.0f;
+                                    scoreUploaded = true;
+                                    Gdx.app.postRunnable(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            updateVolforceLabels();
+                                        }
+                                    });
+                                }
+                            });
+                        } catch (Exception ex) {
+                            Gdx.app.error("Network", "Error during fallback Volforce calculation", ex);
+                        }
+                    }
                 }
 
                 @Override
@@ -520,6 +609,38 @@ public class ScoreScreen implements Screen {
                 }
             });
         }
+    }
+
+    private void updateVolforceLabels() {
+        if (volforceValueLabel != null && scoreUploaded) {
+            String vfText = String.format(java.util.Locale.US, "%.3f (%+.3f)", lastTotalVolforce, lastVolforceGained);
+            volforceValueLabel.setText(vfText);
+        }
+    }
+
+    private float getGradeCoefficient(String grade) {
+        if (grade == null) return 0.0f;
+        switch (grade.trim().toUpperCase()) {
+            case "S": return 1.05f;
+            case "AAA+": return 1.02f;
+            case "AAA": return 1.00f;
+            case "AA+": return 0.97f;
+            case "AA": return 0.94f;
+            case "A+": return 0.91f;
+            case "A": return 0.88f;
+            case "B": return 0.85f;
+            case "C": return 0.82f;
+            case "D": return 0.80f;
+            default: return 0.00f;
+        }
+    }
+
+    private float getClearCoefficient(int misses, int laserMisses, int nears, int fars) {
+        boolean isPuc = (misses == 0 && laserMisses == 0 && nears == 0 && fars == 0);
+        boolean isUc = (misses == 0 && laserMisses == 0);
+        if (isPuc) return 1.1f;
+        else if (isUc) return 1.06f;
+        else return 1.00f;
     }
 
     private class ParallelogramActor extends Actor {

@@ -21,7 +21,7 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getMe(@AuthenticationPrincipal UserDetails userDetails) {
         var user = userService.getUserByUsername(userDetails.getUsername());
-        return ResponseEntity.ok(new UserDTO(user.getUsername(), user.getProfilePictureUrl()));
+        return ResponseEntity.ok(new UserDTO(user.getUsername(), user.getProfilePictureUrl(), user.getVolforce()));
     }
 
     @PostMapping("/profile-picture")

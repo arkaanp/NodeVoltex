@@ -1,0 +1,597 @@
+{
+  "general": {
+    "title": "\u7a7a\u3078",
+    "artist": "Shohei Tsuchiya (ZUNTATA) feat. SATOMI",
+    "mapper": "\u5149\u3078",
+    "illustrator": "-",
+    "difficulty": "light",
+    "level": 2,
+    "baseBpm": "60",
+    "audioFilename": "sorae.ogg",
+    "audioVolume": 80,
+    "audioOffset": 0,
+    "jacketFilename": "sorae.jpg",
+    "background": "sky",
+    "layer": "arrow",
+    "previewOffset": 19960,
+    "previewLength": 15000,
+    "defaultFilterType": "peak",
+    "filterGain": 50,
+    "slamAutoVolume": 0,
+    "slamVolume": 50
+  },
+  "hitObjects": [
+    {
+      "lane": 4,
+      "startTime": 3980,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 5980,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 6980,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 7980,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 9980,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 10980,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 11980,
+      "type": "HOLD",
+      "endTime": 13480
+    },
+    {
+      "lane": 2,
+      "startTime": 13980,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 14980,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 15980,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 16980,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 17980,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 19980,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 21980,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 23980,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 27980,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 29980,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 31980,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 35980,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 37980,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 39980,
+      "type": "HOLD",
+      "endTime": 41980
+    },
+    {
+      "lane": 6,
+      "startTime": 41980,
+      "type": "HOLD",
+      "endTime": 42980
+    },
+    {
+      "lane": 2,
+      "startTime": 43980,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 45980,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 47980,
+      "type": "HOLD",
+      "endTime": 49980
+    },
+    {
+      "lane": 5,
+      "startTime": 49980,
+      "type": "HOLD",
+      "endTime": 50980
+    },
+    {
+      "lane": 4,
+      "startTime": 51980,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 53230,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 53980,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 55230,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 55980,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 57230,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 58230,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 58980,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 67980,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 69313,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 69980,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 71313,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 71980,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 73313,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 74313,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 74980,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 83980,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 85980,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 87980,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 91980,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 93980,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 95980,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 99980,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 101980,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 103980,
+      "type": "HOLD",
+      "endTime": 105980
+    },
+    {
+      "lane": 5,
+      "startTime": 105980,
+      "type": "HOLD",
+      "endTime": 106980
+    },
+    {
+      "lane": 3,
+      "startTime": 107980,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 109980,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 111980,
+      "type": "HOLD",
+      "endTime": 113980
+    },
+    {
+      "lane": 6,
+      "startTime": 113980,
+      "type": "HOLD",
+      "endTime": 114980
+    },
+    {
+      "lane": 3,
+      "startTime": 115980,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 116980,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 117980,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 118980,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 119980,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 120980,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 121980,
+      "type": "HOLD",
+      "endTime": 122980
+    },
+    {
+      "lane": 2,
+      "startTime": 123980,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 124980,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 125980,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 126980,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 127980,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 128980,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 129980,
+      "type": "HOLD",
+      "endTime": 130980
+    },
+    {
+      "lane": 3,
+      "startTime": 131980,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 131980,
+      "type": "TAP"
+    },
+    {
+      "lane": 3,
+      "startTime": 133980,
+      "type": "TAP"
+    },
+    {
+      "lane": 4,
+      "startTime": 133980,
+      "type": "TAP"
+    },
+    {
+      "lane": 5,
+      "startTime": 135980,
+      "type": "HOLD",
+      "endTime": 136980
+    },
+    {
+      "lane": 1,
+      "startTime": 139980,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 139980,
+      "type": "TAP"
+    },
+    {
+      "lane": 1,
+      "startTime": 141980,
+      "type": "TAP"
+    },
+    {
+      "lane": 2,
+      "startTime": 141980,
+      "type": "TAP"
+    },
+    {
+      "lane": 6,
+      "startTime": 143980,
+      "type": "HOLD",
+      "endTime": 144980
+    }
+  ],
+  "lasers": {
+    "left": [
+      {
+        "nodes": [
+          {
+            "offset": 33980.0,
+            "x": 0.0
+          },
+          {
+            "offset": 35480.0,
+            "x": 1.0
+          }
+        ],
+        "bpm": 60.0
+      },
+      {
+        "nodes": [
+          {
+            "offset": 75980.0,
+            "x": 0.0
+          },
+          {
+            "offset": 78980.0,
+            "x": 1.0
+          },
+          {
+            "offset": 79980.0,
+            "x": 1.0
+          },
+          {
+            "offset": 82480.0,
+            "x": 0.0
+          },
+          {
+            "offset": 82980.0,
+            "x": 0.0
+          },
+          {
+            "offset": 83015.0,
+            "x": 1.0
+          },
+          {
+            "offset": 83105.0,
+            "x": 1.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 89980.0,
+            "x": 0.0
+          },
+          {
+            "offset": 91480.0,
+            "x": 1.0
+          }
+        ],
+        "bpm": 60.0
+      },
+      {
+        "nodes": [
+          {
+            "offset": 145980.0,
+            "x": 0.0
+          },
+          {
+            "offset": 147480.0,
+            "x": 1.0
+          },
+          {
+            "offset": 147980.0,
+            "x": 1.0
+          },
+          {
+            "offset": 150980.0,
+            "x": 0.0
+          },
+          {
+            "offset": 151980.0,
+            "x": 0.0
+          }
+        ]
+      }
+    ],
+    "right": [
+      {
+        "nodes": [
+          {
+            "offset": 25980.0,
+            "x": 1.0
+          },
+          {
+            "offset": 27480.0,
+            "x": 0.0
+          }
+        ],
+        "bpm": 60.0
+      },
+      {
+        "nodes": [
+          {
+            "offset": 59980.0,
+            "x": 1.0
+          },
+          {
+            "offset": 61480.0,
+            "x": 0.0
+          },
+          {
+            "offset": 61980.0,
+            "x": 0.0
+          },
+          {
+            "offset": 63480.0,
+            "x": 1.0
+          },
+          {
+            "offset": 63980.0,
+            "x": 1.0
+          },
+          {
+            "offset": 65980.0,
+            "x": 0.0
+          },
+          {
+            "offset": 65980.0,
+            "x": 0.0
+          }
+        ]
+      },
+      {
+        "nodes": [
+          {
+            "offset": 97980.0,
+            "x": 1.0
+          },
+          {
+            "offset": 99480.0,
+            "x": 0.0
+          }
+        ],
+        "bpm": 60.0
+      },
+      {
+        "nodes": [
+          {
+            "offset": 137980.0,
+            "x": 1.0
+          },
+          {
+            "offset": 139480.0,
+            "x": 0.0
+          }
+        ],
+        "bpm": 60.0
+      }
+    ]
+  }
+}

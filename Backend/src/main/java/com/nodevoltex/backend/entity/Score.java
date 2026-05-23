@@ -46,6 +46,9 @@ public class Score {
     private Integer early;
     private Integer late;
 
+    @Column(nullable = false)
+    private Double volforce = 0.0;
+
     @Column(columnDefinition = "TEXT")
     private String replayDataJson;
 
@@ -73,6 +76,7 @@ public class Score {
         this.laserMisses = laserMisses;
         this.early = early;
         this.late = late;
+        this.volforce = 0.0;
         this.replayDataJson = replayDataJson;
         this.createdAt = createdAt;
     }
@@ -219,5 +223,13 @@ public class Score {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Double getVolforce() {
+        return volforce;
+    }
+
+    public void setVolforce(Double volforce) {
+        this.volforce = volforce;
     }
 }

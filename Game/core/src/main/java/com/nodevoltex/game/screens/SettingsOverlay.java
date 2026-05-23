@@ -237,7 +237,8 @@ public class SettingsOverlay {
         nameLbl.setColor(isGuest ? Color.GRAY : Color.WHITE);
         nameTable.add(nameLbl).left().padBottom(5).row();
 
-        statusLabel = new Label(isGuest ? "Please login to access online features." : "Status: Online", skin);
+        float vf = com.nodevoltex.game.managers.SettingsManager.getVolforce();
+        statusLabel = new Label(isGuest ? "Please login to access online features." : String.format(java.util.Locale.US, "VF %.3f", vf), skin);
         statusLabel.setFontScale(0.85f);
         statusLabel.setColor(Color.LIGHT_GRAY);
         nameTable.add(statusLabel).left().padBottom(15).row();
