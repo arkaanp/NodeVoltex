@@ -30,12 +30,12 @@ public class SettingsOverlay {
                 javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
                 fileChooser.setDialogTitle("Select Profile Picture");
                 fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Image files", "png", "jpg", "jpeg", "gif"));
-                
+
                 int result = fileChooser.showOpenDialog(null);
                 if (result == javax.swing.JFileChooser.APPROVE_OPTION) {
                     java.io.File selectedFile = fileChooser.getSelectedFile();
                     final com.badlogic.gdx.files.FileHandle fileHandle = Gdx.files.absolute(selectedFile.getAbsolutePath());
-                    
+
                     Gdx.app.postRunnable(() -> {
                         statusLabel.setText("Uploading...");
                         com.nodevoltex.game.networking.NetworkManager.uploadProfilePicture(fileHandle, new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<String>() {
@@ -145,6 +145,26 @@ public class SettingsOverlay {
         settingsPanel.add(exitSettingsBtn).expandX().fillX().height(70).pad(0);
 
         stage.addActor(settingsPanel);
+
+        stage.addCaptureListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
+            @Override
+            public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
+                com.badlogic.gdx.scenes.scene2d.Actor target = event.getTarget();
+                com.badlogic.gdx.scenes.scene2d.Actor keyboardFocus = stage.getKeyboardFocus();
+
+                // If a text field currently has focus, and we clicked on anything else
+                if (keyboardFocus instanceof com.badlogic.gdx.scenes.scene2d.ui.TextField) {
+                    if (target != keyboardFocus && (target == null || !target.isDescendantOf(keyboardFocus))) {
+                        // Rip focus away from the text box
+                        stage.setKeyboardFocus(null);
+                    }
+                }
+
+                // Return false so we don't accidentally swallow the click.
+                // We just wanted to peek at it
+                return false;
+            }
+        });
     }
 
     public void open() {
@@ -184,9 +204,7 @@ public class SettingsOverlay {
 
     private void buildSettingsContent(Table container) {
         // --- 1. Persistent Login Refresh ---
-        // If we have a token but haven't fetched the profile in this session, do it now.
-        // This fixes the issue where the leaderboard won't show even if logged in.
-        if (!com.nodevoltex.game.managers.SettingsManager.getAuthToken().isEmpty() && 
+        if (!com.nodevoltex.game.managers.SettingsManager.getAuthToken().isEmpty() &&
             com.nodevoltex.game.managers.SettingsManager.getUserName().equals("GUEST")) {
             com.nodevoltex.game.networking.NetworkManager.fetchUserProfile(new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<Void>() {
                 @Override public void onSuccess(Void result) { rebuildSettings(); }
@@ -201,37 +219,57 @@ public class SettingsOverlay {
 
         String currentPfpUrl = com.nodevoltex.game.managers.SettingsManager.getProfilePictureUrl();
         pfpImage = new Image();
-        // Load PFP with placeholder
         com.nodevoltex.game.utils.TextureLoader.loadIntoImage(currentPfpUrl, pfpImage, null);
-        
+
         Table accountInfo = new Table();
         accountInfo.left();
-        accountInfo.add(pfpImage).size(64, 64).padRight(15);
-        
+
+        accountInfo.add(pfpImage).size(110, 110).padRight(20);
+
         Table nameTable = new Table();
         nameTable.left();
-        statusLabel = new Label("Logged in as: " + com.nodevoltex.game.managers.SettingsManager.getUserName(), skin);
+
+        String rawName = com.nodevoltex.game.managers.SettingsManager.getUserName();
+        boolean isGuest = rawName.equals("GUEST");
+
+        Label nameLbl = new Label(isGuest ? "Not Logged In" : rawName, skin);
+        nameLbl.setFontScale(1.3f);
+        nameLbl.setColor(isGuest ? Color.GRAY : Color.WHITE);
+        nameTable.add(nameLbl).left().padBottom(5).row();
+
+        statusLabel = new Label(isGuest ? "Please login to access online features." : "Status: Online", skin);
         statusLabel.setFontScale(0.85f);
-        nameTable.add(statusLabel).left().row();
-        
-        if (!com.nodevoltex.game.managers.SettingsManager.getAuthToken().isEmpty()) {
-            TextButton uploadBtn = new TextButton("Change PFP", skin);
+        statusLabel.setColor(Color.LIGHT_GRAY);
+        nameTable.add(statusLabel).left().padBottom(15).row();
+
+        // responsive button style for interactables
+        TextButton.TextButtonStyle interactableStyle = new TextButton.TextButtonStyle(skin.get(TextButton.TextButtonStyle.class));
+        interactableStyle.up = skin.newDrawable("white", new Color(0.2f, 0.2f, 0.25f, 1f));
+        interactableStyle.over = skin.newDrawable("white", new Color(0.3f, 0.3f, 0.38f, 1f));
+        interactableStyle.down = skin.newDrawable("white", new Color(0.4f, 0.4f, 0.5f, 1f));
+        interactableStyle.fontColor = Color.WHITE;
+
+        if (!isGuest) {
+            TextButton uploadBtn = new TextButton("Change PFP", interactableStyle);
+            uploadBtn.getLabel().setFontScale(0.85f);
             uploadBtn.addListener(new ClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
                     pickAndUploadPfp();
                 }
             });
-            nameTable.add(uploadBtn).width(120).height(30).left().padTop(5);
+            nameTable.add(uploadBtn).width(120).height(35).left();
         }
-        
-        accountInfo.add(nameTable).left();
-        container.add(accountInfo).left().padBottom(20).row();
 
-        if (com.nodevoltex.game.managers.SettingsManager.getAuthToken().isEmpty()) {
-            buildLoginForm(container);
+        accountInfo.add(nameTable).left();
+        container.add(accountInfo).left().padBottom(25).row();
+
+        if (isGuest) {
+            buildLoginForm(container, interactableStyle);
         } else {
-            TextButton logoutBtn = new TextButton("Logout", skin);
+            TextButton logoutBtn = new TextButton("Logout", interactableStyle);
+            logoutBtn.getLabel().setFontScale(0.85f);
+            logoutBtn.getLabel().setColor(Color.valueOf("#ff5555"));
             logoutBtn.addListener(new ClickListener() {
                 @Override
                 public void clicked(InputEvent event, float x, float y) {
@@ -242,7 +280,7 @@ public class SettingsOverlay {
             container.add(logoutBtn).width(120).height(40).left().padBottom(30).row();
         }
 
-        container.add(new Image(skin.newDrawable("white", new Color(1, 1, 1, 0.1f)))).fillX().height(1).padBottom(30).row();
+        container.add(new Image(skin.newDrawable("white", new Color(1, 1, 1, 0.1f)))).expandX().fillX().height(2).padBottom(30).row();
 
         gameplayHeader = new Label("Gameplay", skin);
         gameplayHeader.setFontScale(1.2f);
@@ -291,7 +329,7 @@ public class SettingsOverlay {
         urToggleTable.left();
         Label urLbl = new Label("Show Unstable Rate Bar", skin);
         urLbl.setFontScale(0.85f);
-        
+
         TextButton.TextButtonStyle urToggleStyle = new TextButton.TextButtonStyle(skin.get(TextButton.TextButtonStyle.class));
         urToggleStyle.up = skin.newDrawable("white", new Color(0.18f, 0.18f, 0.22f, 1f));
         urToggleStyle.fontColor = com.nodevoltex.game.managers.SettingsManager.isShowURBar() ? Color.CYAN : Color.GRAY;
@@ -413,28 +451,33 @@ public class SettingsOverlay {
         container.add(createSliderRow("Music", 0f, 100f, 1f, com.nodevoltex.game.managers.SettingsManager.getMusicVolume() * 100f, "%", "music")).expandX().fillX().padBottom(30).row();
     }
 
-    private void buildLoginForm(final Table container) {
-        container.add(new Label("Username", skin)).left().padBottom(5).row();
-        userField = new com.badlogic.gdx.scenes.scene2d.ui.TextField("", skin);
-        container.add(userField).expandX().fillX().padBottom(10).row();
+    private void buildLoginForm(final Table container, TextButton.TextButtonStyle btnStyle) {
+        Label userLbl = new Label("Username", skin);
+        userLbl.setFontScale(0.85f);
+        userLbl.setColor(Color.LIGHT_GRAY);
+        container.add(userLbl).left().padBottom(5).row();
 
-        container.add(new Label("Password", skin)).left().padBottom(5).row();
-        passField = new com.badlogic.gdx.scenes.scene2d.ui.TextField("", skin);
-        passField.setPasswordMode(true);
-        passField.setPasswordCharacter('*');
-        container.add(passField).expandX().fillX().padBottom(20).row();
+        userField = createInteractiveTextField(false);
+        container.add(userField).expandX().fillX().height(35).padBottom(10).row();
+
+        Label passLbl = new Label("Password", skin);
+        passLbl.setFontScale(0.85f);
+        passLbl.setColor(Color.LIGHT_GRAY);
+        container.add(passLbl).left().padBottom(5).row();
+
+        passField = createInteractiveTextField(true);
+        container.add(passField).expandX().fillX().height(35).padBottom(20).row();
 
         Table btnTable = new Table();
-        TextButton loginBtn = new TextButton("Login", skin);
+        TextButton loginBtn = new TextButton("Login", btnStyle);
+        loginBtn.getLabel().setFontScale(0.85f);
         loginBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
                 statusLabel.setText("Logging in...");
                 com.nodevoltex.game.networking.NetworkManager.login(userField.getText(), passField.getText(), new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<String>() {
-                    @Override public void onSuccess(String t) { 
-                        statusLabel.setText("Login Success!"); 
-                        
-                        // Fetch user profile to get PFP immediately after login
+                    @Override public void onSuccess(String t) {
+                        statusLabel.setText("Login Success!");
                         com.nodevoltex.game.networking.NetworkManager.fetchUserProfile(new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<Void>() {
                             @Override public void onSuccess(Void result) { rebuildSettings(); }
                             @Override public void onError(String message) { rebuildSettings(); }
@@ -445,7 +488,8 @@ public class SettingsOverlay {
             }
         });
 
-        TextButton regBtn = new TextButton("Register", skin);
+        TextButton regBtn = new TextButton("Register", btnStyle);
+        regBtn.getLabel().setFontScale(0.85f);
         regBtn.addListener(new ClickListener() {
             @Override
             public void clicked(InputEvent event, float x, float y) {
@@ -465,7 +509,7 @@ public class SettingsOverlay {
     private void rebuildSettings() {
         // Redraw only the UI components inside the settings container
         settingsPanel.clearChildren();
-        
+
         Table contentSplit = new Table();
         Table settingsContainer = new Table();
         settingsContainer.top().left().pad(30);
@@ -492,7 +536,15 @@ public class SettingsOverlay {
 
         contentSplit.add(navBar).width(com.badlogic.gdx.scenes.scene2d.ui.Value.percentWidth(0.22f, contentSplit)).expandY().fillY();
         contentSplit.add(settingsScrollPane).expand().fill();
-        settingsPanel.add(contentSplit).expand().fill();
+
+        settingsPanel.add(contentSplit).expand().fill().row();
+
+        TextButton exitSettingsBtn = new TextButton("Exit", skin);
+        exitSettingsBtn.setColor(Color.valueOf("#da142b"));
+        exitSettingsBtn.addListener(new ClickListener() {
+            @Override public void clicked(InputEvent event, float x, float y) { if (isSettingsOpen) close(); }
+        });
+        settingsPanel.add(exitSettingsBtn).expandX().fillX().height(70).pad(0);
     }
 
     private void saveSetting(String type, float val) {
@@ -924,5 +976,44 @@ public class SettingsOverlay {
             Gdx.graphics.setUndecorated(true);
             Gdx.graphics.setWindowedMode(Gdx.graphics.getDisplayMode().width, Gdx.graphics.getDisplayMode().height);
         }
+    }
+
+    private com.badlogic.gdx.scenes.scene2d.ui.TextField createInteractiveTextField(boolean isPassword) {
+        com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle baseStyle = skin.get(com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle.class);
+        final com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle customStyle = new com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle(baseStyle);
+
+        // Define the 3 states
+        final com.badlogic.gdx.scenes.scene2d.utils.Drawable idleBg = skin.newDrawable("white", new Color(0.12f, 0.12f, 0.15f, 1f)); // Dark gray
+        final com.badlogic.gdx.scenes.scene2d.utils.Drawable hoverBg = skin.newDrawable("white", new Color(0.18f, 0.18f, 0.22f, 1f)); // Lighter gray
+        final com.badlogic.gdx.scenes.scene2d.utils.Drawable focusBg = skin.newDrawable("white", new Color(0.25f, 0.25f, 0.3f, 1f));  // Brightest outline
+
+        customStyle.background = idleBg;
+        customStyle.focusedBackground = focusBg;
+        customStyle.fontColor = Color.WHITE;
+
+        final com.badlogic.gdx.scenes.scene2d.ui.TextField field = new com.badlogic.gdx.scenes.scene2d.ui.TextField("", customStyle);
+        if (isPassword) {
+            field.setPasswordMode(true);
+            field.setPasswordCharacter('*');
+        }
+
+        final ClickListener hoverListener = new ClickListener();
+        field.addListener(hoverListener);
+
+        field.addAction(new com.badlogic.gdx.scenes.scene2d.Action() {
+            @Override
+            public boolean act(float delta) {
+                if (field.hasKeyboardFocus()) {
+                    // LibGDX handles focusedBackground natively
+                } else if (hoverListener.isOver()) {
+                    customStyle.background = hoverBg;
+                } else {
+                    customStyle.background = idleBg;
+                }
+                return false;
+            }
+        });
+
+        return field;
     }
 }
