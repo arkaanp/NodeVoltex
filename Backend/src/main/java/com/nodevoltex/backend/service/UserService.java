@@ -18,13 +18,15 @@ public class UserService {
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final FileStorageService fileStorageService;
+    private final CloudinaryService cloudinaryService;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, FileStorageService fileStorageService) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService, AuthenticationManager authenticationManager, FileStorageService fileStorageService, CloudinaryService cloudinaryService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.fileStorageService = fileStorageService;
+        this.cloudinaryService = cloudinaryService;
     }
 
     public AuthResponse register(AuthRequest request) {
@@ -71,8 +73,8 @@ public class UserService {
         var user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
         
-        String fileName = fileStorageService.storeFile(file);
-        String fileUrl = "/uploads/" + fileName;
+        // --- Cloudinary Upload ---
+        String fileUrl = cloudinaryService.uploadFile(file);
         
         user.setProfilePictureUrl(fileUrl);
         userRepository.save(user);

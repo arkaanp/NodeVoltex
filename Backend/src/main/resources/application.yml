@@ -7,18 +7,15 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
     show-sql: false
 
 server:
   port: ${PORT:8082}
 
-# Where we will save the profile pictures locally for now
-file:
-  upload-dir: uploads/profiles/
+cloudinary:
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
 
 servlet:
   multipart:
