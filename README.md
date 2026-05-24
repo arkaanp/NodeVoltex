@@ -4,7 +4,28 @@
 
 Welcome to **[NodeVoltex](https://node-voltex.vercel.app/)**, a premium, modern rhythm game ecosystem built to deliver an elegant, highly responsive competitive experience. 
 
-The project is structured into three main component layers:
+---
+
+## Getting Started
+
+### Chart Setup & Playing Beatmaps
+> [!IMPORTANT]
+> **Beatmap Installation Directory**:
+> To be able to load and play charts in NodeVoltex, you must place your extracted beatmap folders inside a folder named **`songs/`** located in the same directory as the executable file (`NodeVoltex.exe` or compiled `.jar` runner).
+> 
+> ```text
+> 📂 NodeVoltex/
+>  ├── 📄 Node.Voltex-1.x.x.exe (or Node.Voltex-1.x.x.jar)
+>  └── 📂 songs/
+>       ├── 📂 songtitle1/
+>       │    ├── 📄 mxm.json
+>       │    ├── 📄 jak.png
+>       │    └── 📄 audio.ogg
+>       └── 📂 songtitle2/
+>       │    ├── 📄 nov.json
+>       │    └── ..
+>       └── 📂 ..
+> ```
 
 ---
 
@@ -149,27 +170,7 @@ sequenceDiagram
     Note over Portal: Render score with Max Combo and fresh Play Date
 ```
 
----
 
-## Getting Started
-
-### Chart Setup & Playing Beatmaps
-> [!IMPORTANT]
-> **Beatmap Installation Directory**:
-> To be able to load and play charts in NodeVoltex, you must place your extracted beatmap folders inside a folder named **`songs/`** located in the same directory as the executable file (`NodeVoltex.exe` or compiled `.jar` runner).
-> 
-> ```text
-> 📂 NodeVoltex/
->  ├── 📄 Node.Voltex-1.x.x.exe (or Node.Voltex-1.x.x.jar)
->  └── 📂 songs/
->       ├── 📂 songtitle1/
->       │    ├── 📄 mxm.json
->       │    ├── 📄 jak.png
->       │    └── 📄 audio.ogg
->       └── 📂 songtitle2/
->            ├── 📄 nov.json
->            └── ..
-> ```
 
 ---
 
