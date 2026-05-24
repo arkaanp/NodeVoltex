@@ -56,6 +56,7 @@ public class NetworkManager {
         Net.HttpRequest request = new Net.HttpRequest(Net.HttpMethods.POST);
         request.setUrl(BASE_URL + "/auth/register");
         request.setHeader("Content-Type", "application/json");
+        request.setTimeOut(20000);
 
         AuthRequest data = new AuthRequest();
         data.username = username;
@@ -92,6 +93,7 @@ public class NetworkManager {
         Net.HttpRequest request = new Net.HttpRequest(Net.HttpMethods.POST);
         request.setUrl(BASE_URL + "/auth/login");
         request.setHeader("Content-Type", "application/json");
+        request.setTimeOut(20000);
 
         AuthRequest data = new AuthRequest();
         data.username = username;
@@ -148,6 +150,7 @@ public class NetworkManager {
         Net.HttpRequest request = new Net.HttpRequest(Net.HttpMethods.GET);
         request.setUrl(BASE_URL + "/users/me");
         request.setHeader("Authorization", "Bearer " + token);
+        request.setTimeOut(20000);
 
         Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
             @Override
@@ -194,6 +197,7 @@ public class NetworkManager {
         Net.HttpRequest request = new Net.HttpRequest(Net.HttpMethods.POST);
         request.setUrl(BASE_URL + "/users/profile-picture");
         request.setHeader("Authorization", "Bearer " + token);
+        request.setTimeOut(20000);
 
         // LibGDX Net doesn't natively support easy multipart/form-data with binary files.
         // We'll have to manually construct the body or use a different approach.
@@ -254,6 +258,7 @@ public class NetworkManager {
         request.setUrl(BASE_URL + "/scores/submit");
         request.setHeader("Content-Type", "application/json");
         request.setHeader("Authorization", "Bearer " + token);
+        request.setTimeOut(20000);
         request.setContent(json.toJson(scoreData));
 
         Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
@@ -285,6 +290,7 @@ public class NetworkManager {
 
     public static void getLeaderboard(String mapId, final NetworkCallback<String> callback) {
         Net.HttpRequest request = new Net.HttpRequest(Net.HttpMethods.GET);
+        request.setTimeOut(20000);
         String token = com.nodevoltex.game.managers.SettingsManager.getAuthToken();
         if (!token.isEmpty()) {
             request.setHeader("Authorization", "Bearer " + token);

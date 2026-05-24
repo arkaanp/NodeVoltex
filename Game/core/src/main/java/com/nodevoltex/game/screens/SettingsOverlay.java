@@ -47,7 +47,11 @@ public class SettingsOverlay {
 
                             @Override
                             public void onError(String message) {
-                                statusLabel.setText("Upload Failed: " + message);
+                                if (message != null && (message.contains("503") || message.contains("504") || message.toLowerCase().contains("timeout") || message.toLowerCase().contains("timed out"))) {
+                                    statusLabel.setText("Upload Failed: Server starting up. Please exit and run the game again.");
+                                } else {
+                                    statusLabel.setText("Upload Failed: " + message);
+                                }
                             }
                         });
                     });
@@ -484,7 +488,13 @@ public class SettingsOverlay {
                             @Override public void onError(String message) { rebuildSettings(); }
                         });
                     }
-                    @Override public void onError(String m) { statusLabel.setText("Login Failed: " + m); }
+                    @Override public void onError(String m) {
+                        if (m != null && (m.contains("503") || m.contains("504") || m.toLowerCase().contains("timeout") || m.toLowerCase().contains("timed out"))) {
+                            statusLabel.setText("Server starting up (503/504). Please exit and run the game again.");
+                        } else {
+                            statusLabel.setText("Login Failed: " + m);
+                        }
+                    }
                 });
             }
         });
@@ -497,7 +507,13 @@ public class SettingsOverlay {
                 statusLabel.setText("Registering...");
                 com.nodevoltex.game.networking.NetworkManager.register(userField.getText(), passField.getText(), new com.nodevoltex.game.networking.NetworkManager.NetworkCallback<String>() {
                     @Override public void onSuccess(String t) { statusLabel.setText("Reg Success! Please Login."); }
-                    @Override public void onError(String m) { statusLabel.setText("Reg Failed: " + m); }
+                    @Override public void onError(String m) {
+                        if (m != null && (m.contains("503") || m.contains("504") || m.toLowerCase().contains("timeout") || m.toLowerCase().contains("timed out"))) {
+                            statusLabel.setText("Server starting up (503/504). Please exit and run the game again.");
+                        } else {
+                            statusLabel.setText("Reg Failed: " + m);
+                        }
+                    }
                 });
             }
         });
