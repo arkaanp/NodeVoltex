@@ -159,7 +159,7 @@ public class PlayScreen implements Screen {
         LANE_WIDTH = TRACK_WIDTH / 4f;
         TRACK_START_X = (WORLD_WIDTH - TRACK_WIDTH) / 2f;
 
-        bgTexture = new Texture(Gdx.files.internal("Back.png"));
+        bgTexture = new Texture(Gdx.files.internal("background2.png"));
 
         BeatmapParser parser = new BeatmapParser();
         this.beatmap = parser.parse(mapFilePath);

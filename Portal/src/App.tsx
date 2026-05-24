@@ -50,7 +50,7 @@ export default function App() {
       </main>
 
       {/* FOOTER */}
-      <Footer setCurrentTab={setCurrentTab} />
+      <Footer />
     </div>
   );
 }

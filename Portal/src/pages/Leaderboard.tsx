@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Search, Trophy, Loader2 } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import backgroundImg from '../assets/background2.png';
 
 interface UserLeaderboardEntry {
   username: string;
@@ -17,6 +18,7 @@ export default function Leaderboard({ onSelectUser }: LeaderboardProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterQuery, setFilterQuery] = useState('');
+  const [failedAvatars, setFailedAvatars] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -43,19 +45,34 @@ export default function Leaderboard({ onSelectUser }: LeaderboardProps) {
   );
 
   return (
-    <div className="container" style={{ paddingBottom: '80px' }}>
-      
-      {/* HEADER SECTION */}
-      <div className="leaderboard-header">
-        <div>
-          <h1 className="leaderboard-title">
-            <Trophy className="text-[#ffb300]" size={28} />
-            Global Volforce Rankings
-          </h1>
-          <p className="leaderboard-subtitle">
-            Top simulator players ranked by their overall best 10 charts performance.
-          </p>
-        </div>
+    <div 
+      style={{ 
+        width: '100%', 
+        minHeight: 'calc(100vh - 64px - 72px)', 
+        backgroundImage: `linear-gradient(rgba(24, 18, 26, 0.88), rgba(24, 18, 26, 0.88)), url(${backgroundImg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        paddingTop: '48px',
+        paddingBottom: '80px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}
+    >
+      <div className="container" style={{ zIndex: 1 }}>
+        
+        {/* HEADER SECTION */}
+        <div className="leaderboard-header">
+          <div>
+            <h1 className="leaderboard-title">
+              <Trophy className="text-[#ffb300]" size={28} />
+              Global Volforce Rankings
+            </h1>
+            <p className="leaderboard-subtitle">
+              Top players ranked by their overall best 10 charts performance.
+            </p>
+          </div>
 
         {/* INLINE RANKING SEARCH */}
         <div className="filter-wrapper">
@@ -128,19 +145,20 @@ export default function Leaderboard({ onSelectUser }: LeaderboardProps) {
                         <div className="player-col">
                           {/* Avatar */}
                           <div className="avatar-wrapper">
-                            {user.profilePictureUrl ? (
+                            {user.profilePictureUrl && !failedAvatars[user.username] ? (
                               <img 
                                 src={user.profilePictureUrl} 
                                 alt="" 
                                 className="avatar-img"
-                                onError={(e) => {
-                                  (e.target as HTMLElement).style.display = 'none';
+                                onError={() => {
+                                  setFailedAvatars(prev => ({ ...prev, [user.username]: true }));
                                 }}
                               />
-                            ) : null}
-                            <span className="avatar-fallback">
-                              {user.username.substring(0, 2)}
-                            </span>
+                            ) : (
+                              <span className="avatar-fallback">
+                                {user.username.substring(0, 2)}
+                              </span>
+                            )}
                           </div>
                           
                           {/* Username Link */}
@@ -165,7 +183,7 @@ export default function Leaderboard({ onSelectUser }: LeaderboardProps) {
           </table>
         </div>
       )}
-
+      </div>
     </div>
   );
 }

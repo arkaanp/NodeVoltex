@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Search, Trophy, Music, Home, Menu, X } from 'lucide-react';
+import logoPng from '../assets/NodeVoltex128.png';
 
 interface NavbarProps {
   currentTab: string;
@@ -35,11 +36,14 @@ export default function Navbar({ currentTab, setCurrentTab, onSearchUser }: Navb
           onClick={() => setCurrentTab('home')} 
           className="logo-link"
         >
-          <div className="logo-icon">
-            ⚡
-          </div>
+          <img 
+            src={logoPng} 
+            alt="NodeVoltex" 
+            className="logo-img"
+            style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
+          />
           <span className="logo-text">
-            NodeVoltex <span>HUB</span>
+            NodeVoltex
           </span>
         </div>
 

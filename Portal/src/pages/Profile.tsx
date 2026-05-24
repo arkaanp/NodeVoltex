@@ -1,6 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Award, Activity, Loader2, User } from 'lucide-react';
 import { API_BASE_URL } from '../config';
+import backgroundImg from '../assets/background2.png';
+
+const formatDifficulty = (diff: string, lvl: number) => {
+  if (!diff) return '';
+  const trimmed = diff.trim();
+  const lvlStr = String(lvl);
+  if (trimmed.endsWith(lvlStr)) {
+    return trimmed;
+  }
+  return `${trimmed} ${lvl}`;
+};
 
 interface ScoreEntry {
   mapId: string;
@@ -36,6 +47,7 @@ export default function Profile({ username }: ProfileProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'best' | 'recent'>('best');
+  const [failedAvatar, setFailedAvatar] = useState(false);
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -116,7 +128,22 @@ export default function Profile({ username }: ProfileProps) {
   };
 
   return (
-    <div className="container profile-wrapper" style={{ paddingBottom: '80px' }}>
+    <div 
+      style={{ 
+        width: '100%', 
+        minHeight: 'calc(100vh - 64px - 72px)', 
+        backgroundImage: `linear-gradient(rgba(24, 18, 26, 0.88), rgba(24, 18, 26, 0.88)), url(${backgroundImg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+        paddingTop: '48px',
+        paddingBottom: '80px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}
+    >
+      <div className="container profile-wrapper" style={{ paddingBottom: '0px', zIndex: 1 }}>
       
       {loading && (
         <div style={{ padding: '80px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', color: '#a09eb5' }}>
@@ -140,17 +167,18 @@ export default function Profile({ username }: ProfileProps) {
             
             {/* Avatar */}
             <div className="profile-avatar">
-              {profile.profilePictureUrl ? (
+              {profile.profilePictureUrl && !failedAvatar ? (
                 <img 
                   src={profile.profilePictureUrl} 
                   alt="" 
                   className="avatar-img"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
+                  onError={() => {
+                    setFailedAvatar(true);
                   }}
                 />
-              ) : null}
-              <User size={40} className="text-[#5d5a75]" />
+              ) : (
+                <User size={40} className="text-[#5d5a75]" />
+              )}
             </div>
 
             {/* Details */}
@@ -235,7 +263,7 @@ export default function Profile({ username }: ProfileProps) {
                           
                           <div className="play-card-badges">
                             <span className={`difficulty-badge ${getDifficultyColor(score.difficulty)}`} style={{ fontSize: '0.65rem', fontWeight: 800 }}>
-                              {score.difficulty} {score.level}
+                              {formatDifficulty(score.difficulty, score.level)}
                             </span>
                             <span className={`clear-badge ${clearBadge.className}`}>
                               {clearBadge.text}
@@ -303,7 +331,7 @@ export default function Profile({ username }: ProfileProps) {
                           
                           <div className="play-card-badges">
                             <span className={`difficulty-badge ${getDifficultyColor(score.difficulty)}`} style={{ fontSize: '0.65rem', fontWeight: 800 }}>
-                              {score.difficulty} {score.level}
+                              {formatDifficulty(score.difficulty, score.level)}
                             </span>
                             <span className={`clear-badge ${clearBadge.className}`}>
                               {clearBadge.text}
@@ -351,7 +379,7 @@ export default function Profile({ username }: ProfileProps) {
 
         </div>
       )}
-
+      </div>
     </div>
   );
 }

@@ -71,7 +71,7 @@ public class ScoreScreen implements Screen {
         this.currentMapPath = mapFilePath;
         this.currentReplayJson = replayJson;
 
-        bgTexture = new Texture(Gdx.files.internal("Back.png"));
+        bgTexture = new Texture(Gdx.files.internal("background2.png"));
         bgImage = new Image(bgTexture);
         bgImage.setFillParent(true);
         stage.addActor(bgImage);
@@ -291,11 +291,11 @@ public class ScoreScreen implements Screen {
 
         // --- VOLFORCE ---
         currentLeftShift = currentLeftShift + (20f * tan3);
-        
+
         Table vfRow = new Table();
         Label vfLbl = new Label("Volforce", skin);
         vfLbl.setColor(Color.valueOf("#00E5FF")); // arcade cyan
-        
+
         String initialVfText;
         if (com.nodevoltex.game.managers.SettingsManager.getAuthToken().isEmpty()) {
             initialVfText = "- (+0.000)";
@@ -306,13 +306,13 @@ public class ScoreScreen implements Screen {
             float prevVf = com.nodevoltex.game.managers.SettingsManager.getVolforce();
             initialVfText = String.format(java.util.Locale.US, "%.3f (+...)", prevVf);
         }
-        
+
         volforceValueLabel = new Label(initialVfText, skin);
         volforceValueLabel.setColor(Color.WHITE);
-        
+
         vfRow.add(vfLbl).expandX().left();
         vfRow.add(volforceValueLabel).align(Align.right);
-        
+
         statsTable.add(vfRow).width(statsRowWidth).left().padLeft(currentLeftShift).padTop(15f).padBottom(2f).row();
 
         leftCol.add(statsTable).expandX().left().padLeft(15).row();
@@ -325,11 +325,11 @@ public class ScoreScreen implements Screen {
         // Use history data if viewing replay, otherwise current session
         String currentPfpUrl = fromHistory && historyData != null ? historyData.profilePictureUrl : SettingsManager.getProfilePictureUrl();
         com.nodevoltex.game.utils.TextureLoader.loadIntoImage(currentPfpUrl, pfp, (Texture)null);
-        
+
         rightCol.add(pfp).width(140).height(140).center().row();
-        
+
         String displayName = fromHistory && historyData != null ? historyData.username : SettingsManager.getUserName();
-        Label userLbl = new Label(displayName, skin); 
+        Label userLbl = new Label(displayName, skin);
         userLbl.setColor(Color.BLACK);
         rightCol.add(userLbl).center().padTop(5);
 
