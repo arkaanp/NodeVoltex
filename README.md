@@ -183,6 +183,52 @@ sequenceDiagram
 
 
 
+### 4. Interactive Gameplay Loop & Telemetry Engine
+Illustrates the inner mechanics of the game client render loop, note judgment calculations, laser steering tracker, and the telemetry logging system that generates replay data.
+
+```mermaid
+flowchart TD
+    classDef init fill:#221729,stroke:#8b73af,stroke-width:2px,color:#fff;
+    classDef process fill:#110b14,stroke:#e2a3cd,stroke-width:2px,color:#fff;
+    classDef check fill:#16101c,stroke:#00e5ff,stroke-width:2px,color:#fff;
+
+    Start["Start Beatmap Playback"]:::init --> Load["Load Audio & JSON Chart Data"]:::process
+    Load --> GameLoop["Active Gameplay Loop (LibGDX Render)"]:::process
+
+    subgraph Inputs ["Input & Modifiers Processing"]
+        GameLoop --> GetInput["Capture Real-time Player Inputs"]:::process
+        GetInput --> CheckMods{{"Check Active Modifiers?"}}:::check
+        CheckMods -->|Autoplay| AutoInput["Execute Perfect Inputs Automatically"]:::process
+        CheckMods -->|No Laser| AutoLaser["Autopilot Laser Knobs / Nodes"]:::process
+        CheckMods -->|None| NormalInput["Process Primary/Alternate Rebound Keymaps"]:::process
+    end
+
+    subgraph Judgments ["Judgment & Telemetry Logging"]
+        AutoInput & AutoLaser & NormalInput --> JudgmentEngine["Hit-Line Alignment Engine"]:::process
+        
+        JudgmentEngine --> BT_FX["BT/FX Button Checks"]:::check
+        BT_FX -->|"Timing Window Check"| JudgResults["S-Critical / Critical / Near / Miss"]:::process
+        
+        JudgmentEngine --> LaserTracks["Laser Path Steering"]:::check
+        LaserTracks -->|"Cursor Alignment Check"| LaserResults["Score Laser Ticks / Misses"]:::process
+
+        JudgResults & LaserResults --> RecordTelemetry["Record Event to Replay Buffer"]:::process
+    end
+
+    RecordTelemetry --> LiveStats["Update Lifebar, Score, Combo, & Volforce"]:::process
+    
+    LiveStats --> SongEnd{{"Beatmap Finished?"}}:::check
+    SongEnd -->|No| GameLoop
+    SongEnd -->|Yes| SerializeReplay["Serialize Teleplay Stream to Replay JSON"]:::process
+    SerializeReplay --> SubmitScore["HTTP POST Score & Replay to Cloud Backend"]:::process
+```
+
+#### Detailed Mechanical Analysis
+*   **The Hit-Line Judgment System**: The client tracks individual note vectors (short BT, long FX, and Laser nodes) advancing down the 3D-perspective lane. When an input matches the target column at the precise timestamp window relative to the song clock, judgments are registered (`S-Critical` for sub-millisecond precision, `Critical`, `Near`, or `Miss`/`Error`).
+*   **Steered Laser Path Tracking**: Laser tracks are composed of linear vector coordinates. As long as a laser segment remains active on the lane, the gameplay engine checks if the player is actively steering the mapped analog knob/cursor key within a safe margin of the target coordinate. Success increments the `laser_ticks` tally; failure breaks the chain and registers `laser_misses`.
+*   **The Replay Serialization Engine**: Every keyboard/laser knob action, judgment offset, and score state update is pushed to a real-time event telemetry buffer. When the chart finishes, this buffer is packed and serialized into a lightweight, high-performance compressed JSON string (`replay_data_json`). Uploaded to the backend REST API, this allows other users to watch high-fidelity replays rendered directly in-game by fetching and decoding the recorded telemetry inputs.
+*   **Autoplay & Practice Modifiers**: Modifiers intercept the input processor. **Autoplay** routes perfect hit signals directly to the alignment engine, bypassing manual keystrokes entirely, while **No Laser** isolates the knob components, granting laser alignment ticks automatically so that players can isolate and learn complex button patterns.
+
 ---
 
 ## Tech Stack
