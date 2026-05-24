@@ -110,6 +110,7 @@ public class ScoreService {
             if (request.getScore() > existingScore.get().getScore()) {
                 updateScoreDetails(existingScore.get(), request);
                 existingScore.get().setVolforce(playVolforce);
+                existingScore.get().setCreatedAt(java.time.LocalDateTime.now());
                 scoreRepository.save(existingScore.get());
                 isNewHighScore = true;
             }
@@ -119,6 +120,7 @@ public class ScoreService {
             newScore.setBeatmap(beatmap);
             updateScoreDetails(newScore, request);
             newScore.setVolforce(playVolforce);
+            newScore.setCreatedAt(java.time.LocalDateTime.now());
             scoreRepository.save(newScore);
             isNewHighScore = true;
         }

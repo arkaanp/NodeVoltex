@@ -282,6 +282,9 @@ export default function Profile({ username }: ProfileProps) {
                           <p className="play-card-combo">
                             Max Combo {score.maxCombo || 0}
                           </p>
+                          <p className="play-card-combo" style={{ textTransform: 'none', color: '#5d5a75', fontSize: '0.55rem', marginTop: '1px' }}>
+                            {formatTimestamp(score.timestamp)}
+                          </p>
                         </div>
                         
                         {/* Grade Badge */}
@@ -347,7 +350,10 @@ export default function Profile({ username }: ProfileProps) {
                           <span className="play-card-score">
                             {score.score.toLocaleString()}
                           </span>
-                          <p className="play-card-combo" style={{ textTransform: 'none' }}>
+                          <p className="play-card-combo">
+                            Max Combo {score.maxCombo || 0}
+                          </p>
+                          <p className="play-card-combo" style={{ textTransform: 'none', color: '#5d5a75', fontSize: '0.55rem', marginTop: '1px' }}>
                             {formatTimestamp(score.timestamp)}
                           </p>
                         </div>

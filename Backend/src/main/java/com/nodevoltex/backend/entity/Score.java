@@ -52,7 +52,7 @@ public class Score {
     private String replayDataJson;
 
     @CreatedDate
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     public Score() {
