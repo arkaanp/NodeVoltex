@@ -32,4 +32,15 @@ public class UserController {
         userService.updateProfilePicture(userDetails.getUsername(), file);
         return ResponseEntity.ok("Profile picture updated successfully");
     }
+
+    @GetMapping("/leaderboard")
+    public ResponseEntity<java.util.List<UserDTO>> getLeaderboard() {
+        return ResponseEntity.ok(userService.getLeaderboard());
+    }
+
+    @GetMapping("/profile/{username}")
+    public ResponseEntity<UserDTO> getProfile(@PathVariable String username) {
+        var user = userService.getUserByUsername(username);
+        return ResponseEntity.ok(new UserDTO(user.getUsername(), user.getProfilePictureUrl(), user.getVolforce()));
+    }
 }

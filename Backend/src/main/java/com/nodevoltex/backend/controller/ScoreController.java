@@ -34,4 +34,14 @@ public class ScoreController {
     public ResponseEntity<List<LeaderboardEntry>> getLeaderboard(@PathVariable String mapId) {
         return ResponseEntity.ok(scoreService.getLeaderboard(mapId));
     }
+
+    @GetMapping("/user/{username}/best")
+    public ResponseEntity<List<com.nodevoltex.backend.dto.UserScoreDTO>> getUserBestScores(@PathVariable String username) {
+        return ResponseEntity.ok(scoreService.getUserBestScores(username));
+    }
+
+    @GetMapping("/user/{username}/recent")
+    public ResponseEntity<List<com.nodevoltex.backend.dto.UserScoreDTO>> getUserRecentScores(@PathVariable String username) {
+        return ResponseEntity.ok(scoreService.getUserRecentScores(username));
+    }
 }

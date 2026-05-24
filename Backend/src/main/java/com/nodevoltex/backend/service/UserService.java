@@ -79,4 +79,10 @@ public class UserService {
         user.setProfilePictureUrl(fileUrl);
         userRepository.save(user);
     }
+
+    public java.util.List<com.nodevoltex.backend.dto.UserDTO> getLeaderboard() {
+        return userRepository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "volforce")).stream()
+                .map(user -> new com.nodevoltex.backend.dto.UserDTO(user.getUsername(), user.getProfilePictureUrl(), user.getVolforce()))
+                .collect(java.util.stream.Collectors.toList());
+    }
 }

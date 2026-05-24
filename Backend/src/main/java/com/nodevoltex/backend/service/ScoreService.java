@@ -192,4 +192,47 @@ public class ScoreService {
                 ))
                 .collect(Collectors.toList());
     }
+
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<com.nodevoltex.backend.dto.UserScoreDTO> getUserBestScores(String username) {
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return scoreRepository.findTop10ByUserOrderByVolforceDesc(user).stream()
+                .map(this::convertToUserScoreDTO)
+                .collect(Collectors.toList());
+    }
+
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<com.nodevoltex.backend.dto.UserScoreDTO> getUserRecentScores(String username) {
+        var user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        return scoreRepository.findByUserOrderByCreatedAtDesc(user).stream()
+                .map(this::convertToUserScoreDTO)
+                .collect(Collectors.toList());
+    }
+
+    private com.nodevoltex.backend.dto.UserScoreDTO convertToUserScoreDTO(Score score) {
+        return new com.nodevoltex.backend.dto.UserScoreDTO(
+                score.getBeatmap().getId(),
+                score.getBeatmap().getTitle(),
+                score.getBeatmap().getArtist(),
+                score.getBeatmap().getDifficulty(),
+                score.getBeatmap().getLevel(),
+                score.getScore(),
+                score.getGrade(),
+                score.getVolforce(),
+                score.getMaxCombo(),
+                score.getsCriticals(),
+                score.getCriticals(),
+                score.getNears(),
+                score.getMids(),
+                score.getFars(),
+                score.getMisses(),
+                score.getLaserTicks(),
+                score.getLaserMisses(),
+                score.getEarly(),
+                score.getLate(),
+                score.getCreatedAt().atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        );
+    }
 }

@@ -38,6 +38,10 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/scores/leaderboard/**").permitAll()
+                        .requestMatchers("/api/users/leaderboard").permitAll()
+                        .requestMatchers("/api/users/profile/**").permitAll()
+                        .requestMatchers("/api/scores/user/**").permitAll()
+                        .requestMatchers("/api/beatmaps/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll() // Serve static profile pictures
                         .anyRequest().authenticated()
                 )

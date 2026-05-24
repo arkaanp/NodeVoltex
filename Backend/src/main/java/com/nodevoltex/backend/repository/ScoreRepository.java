@@ -16,4 +16,5 @@ public interface ScoreRepository extends JpaRepository<Score, UUID> {
     Optional<Score> findByUserAndBeatmap(User user, Beatmap beatmap);
     List<Score> findByBeatmapOrderByScoreDesc(Beatmap beatmap, Pageable pageable);
     List<Score> findTop10ByUserOrderByVolforceDesc(User user);
+    List<Score> findByUserOrderByCreatedAtDesc(User user);
 }
