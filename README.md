@@ -29,7 +29,7 @@ Welcome to **[NodeVoltex](https://node-voltex.vercel.app/)**, a premium, modern 
 
 ---
 ## Screenshots
-For Documendation.
+For Documentation.
 
 ![image](https://i.imgur.com/lyRMTBW.jpeg)
 ![image](https://i.imgur.com/rVHiPZq.jpeg)
