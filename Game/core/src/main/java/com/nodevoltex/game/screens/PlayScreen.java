@@ -432,7 +432,7 @@ public class PlayScreen implements Screen {
                     music.stop();
                 }
 
-                game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, null, fullDiffName, mapFilePath, false, runTimestamp, replayJsonStr));
+                game.setScreen(new ScoreScreen(game, beatmap.general, scoreManager, null, fullDiffName, mapFilePath, false, inputController.isReplayPlayback, runTimestamp, replayJsonStr));
             })
         ));
     }

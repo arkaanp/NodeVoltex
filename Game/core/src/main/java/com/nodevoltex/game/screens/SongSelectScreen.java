@@ -259,7 +259,7 @@ public class SongSelectScreen implements Screen {
         stage.addAction(Actions.sequence(
             Actions.delay(0.8f),
             // --- Pass null for the fresh replay JSON string since we are loading from history ---
-            Actions.run(() -> game.setScreen(new ScoreScreen(game, mockMeta, null, data, diffNameOnly, mapPath, true, data.timestamp, null)))
+            Actions.run(() -> game.setScreen(new ScoreScreen(game, mockMeta, null, data, diffNameOnly, mapPath, true, false, data.timestamp, null)))
         ));
     }
 

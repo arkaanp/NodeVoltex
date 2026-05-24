@@ -57,10 +57,14 @@ public class ScoreScreen implements Screen {
     private String currentMapPath;
     private long currentReplayTimestamp;
     private String currentReplayJson;
+    private boolean fromHistory;
+    private boolean isReplay;
 
     public ScoreScreen(NodeVoltex game, Beatmap.General metadata, ScoreManager scoreManager,
-                       SaveData historyData, String difficultyName, String mapFilePath, boolean fromHistory, long playTimestamp, String replayJson) {
+                       SaveData historyData, String difficultyName, String mapFilePath, boolean fromHistory, boolean isReplay, long playTimestamp, String replayJson) {
         this.game = game;
+        this.fromHistory = fromHistory;
+        this.isReplay = isReplay;
         this.stage = new Stage(new ScreenViewport());
         this.skin = NodeVoltex.skin;
         this.shapeRenderer = new ShapeRenderer();
@@ -103,9 +107,9 @@ public class ScoreScreen implements Screen {
             totalEarly = scoreManager.noteStats.early + scoreManager.releaseStats.early;
             totalLate = scoreManager.noteStats.late + scoreManager.releaseStats.late;
 
-            // --- Block score history saving if a mod was used ---
+            // --- Block score history saving if a mod was used or it is a replay ---
             boolean isModded = SettingsManager.getModAutoPlay() || SettingsManager.getModNoLaser();
-            if (!isModded) {
+            if (!isModded && !isReplay) {
                 // --- Pass 'playTimestamp' and 'metadata' to the save method ---
                 saveScoreData(metadata, mapFilePath, finalScore, grade, scoreManager, totalSCrit, totalCrit, totalNear, totalMid, totalFar, totalMiss, totalEarly, totalLate, playTimestamp);
             }
@@ -171,7 +175,14 @@ public class ScoreScreen implements Screen {
         innerSongBox.add(metaText).expandX().left();
 
         metaBox.add(innerSongBox).expandX().fillX().padBottom(7.5f).row();
-        Label diffLabel = new Label(difficultyName + " " + metadata.level, skin);
+        String cleanDiff = difficultyName != null ? difficultyName.trim() : "";
+        String lvlStr = String.valueOf(metadata.level);
+        Label diffLabel;
+        if (cleanDiff.endsWith(lvlStr)) {
+            diffLabel = new Label(cleanDiff, skin);
+        } else {
+            diffLabel = new Label(cleanDiff + " " + metadata.level, skin);
+        }
         diffLabel.setColor(Color.CYAN);
         metaBox.add(diffLabel).align(Align.left).row();
 
@@ -290,30 +301,29 @@ public class ScoreScreen implements Screen {
         currentLeftShift = addSlantedStat(statsTable, "Laser Accuracy", String.format(java.util.Locale.US, "%.1f%%", laserAccuracy), Color.WHITE, statsRowWidth, currentLeftShift, 30f, tan3);
 
         // --- VOLFORCE ---
-        currentLeftShift = currentLeftShift + (20f * tan3);
+        if (!fromHistory && !isReplay) {
+            currentLeftShift = currentLeftShift + (20f * tan3);
 
-        Table vfRow = new Table();
-        Label vfLbl = new Label("Volforce", skin);
-        vfLbl.setColor(Color.valueOf("#00E5FF")); // arcade cyan
+            Table vfRow = new Table();
+            Label vfLbl = new Label("Volforce", skin);
+            vfLbl.setColor(Color.valueOf("#00E5FF")); // arcade cyan
 
-        String initialVfText;
-        if (com.nodevoltex.game.managers.SettingsManager.getAuthToken().isEmpty()) {
-            initialVfText = "- (+0.000)";
-        } else if (fromHistory) {
-            float currentVf = com.nodevoltex.game.managers.SettingsManager.getVolforce();
-            initialVfText = String.format(java.util.Locale.US, "%.3f (+0.000)", currentVf);
-        } else {
-            float prevVf = com.nodevoltex.game.managers.SettingsManager.getVolforce();
-            initialVfText = String.format(java.util.Locale.US, "%.3f (+...)", prevVf);
+            String initialVfText;
+            if (com.nodevoltex.game.managers.SettingsManager.getAuthToken().isEmpty()) {
+                initialVfText = "- (+0.000)";
+            } else {
+                float prevVf = com.nodevoltex.game.managers.SettingsManager.getVolforce();
+                initialVfText = String.format(java.util.Locale.US, "%.3f (+...)", prevVf);
+            }
+
+            volforceValueLabel = new Label(initialVfText, skin);
+            volforceValueLabel.setColor(Color.WHITE);
+
+            vfRow.add(vfLbl).expandX().left();
+            vfRow.add(volforceValueLabel).align(Align.right);
+
+            statsTable.add(vfRow).width(statsRowWidth).left().padLeft(currentLeftShift).padTop(15f).padBottom(2f).row();
         }
-
-        volforceValueLabel = new Label(initialVfText, skin);
-        volforceValueLabel.setColor(Color.WHITE);
-
-        vfRow.add(vfLbl).expandX().left();
-        vfRow.add(volforceValueLabel).align(Align.right);
-
-        statsTable.add(vfRow).width(statsRowWidth).left().padLeft(currentLeftShift).padTop(15f).padBottom(2f).row();
 
         leftCol.add(statsTable).expandX().left().padLeft(15).row();
 
