@@ -842,6 +842,32 @@ public class SettingsOverlay {
                             return true;
                         }
 
+                        // 1. Validate: Only allow alphanumeric A-Z, 0-9 and Space (SPC)
+                        boolean isValid = keyName.equals("SPC") || keyName.matches("^[A-Z0-9]$");
+                        if (!isValid) {
+                            return true; // Ignore and swallow invalid non-alphabet keys
+                        }
+
+                        // 2. Validate: Don't allow duplicates across primary and alternate slots
+                        boolean isAlreadyBound = false;
+                        for (int i = 0; i < 10; i++) {
+                            if (i == editingIndex) {
+                                if (isPrimary) {
+                                    if (alt[i].equals(keyName)) isAlreadyBound = true;
+                                } else {
+                                    if (pri[i].equals(keyName)) isAlreadyBound = true;
+                                }
+                            } else {
+                                if (pri[i].equals(keyName) || alt[i].equals(keyName)) {
+                                    isAlreadyBound = true;
+                                }
+                            }
+                        }
+
+                        if (isAlreadyBound) {
+                            return true; // Consume duplicate key without saving
+                        }
+
                         String[] currentArr = isPrimary ? pri : alt;
                         currentArr[editingIndex] = keyName;
 

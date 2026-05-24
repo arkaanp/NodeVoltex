@@ -26,6 +26,9 @@ public class LaserCursor {
     public float missedTimer = 0f;
     public boolean hasComboBroken = false;
 
+    private boolean rawLeft = false;
+    private boolean rawRight = false;
+
     // --- Alternate Key Variables ---
     private final int keyLeftPri;
     private final int keyRightPri;
@@ -63,18 +66,29 @@ public class LaserCursor {
             currentRight = Gdx.input.isKeyPressed(keyRightPri) || Gdx.input.isKeyPressed(keyRightAlt);
         }
 
-        // RECORDING: Save state changes
+        // RECORDING: Save state changes using RAW inputs so the replay file doesn't spam
         if (inputController != null && inputController.isRecording) {
-            if (currentLeft && !isMovingLeft) inputController.currentReplay.events.add(new ReplayData.InputEvent(timeMs, labelL, true));
-            else if (!currentLeft && isMovingLeft) inputController.currentReplay.events.add(new ReplayData.InputEvent(timeMs, labelL, false));
+            if (currentLeft && !rawLeft) inputController.currentReplay.events.add(new com.nodevoltex.game.data.ReplayData.InputEvent(timeMs, labelL, true));
+            else if (!currentLeft && rawLeft) inputController.currentReplay.events.add(new com.nodevoltex.game.data.ReplayData.InputEvent(timeMs, labelL, false));
 
-            if (currentRight && !isMovingRight) inputController.currentReplay.events.add(new ReplayData.InputEvent(timeMs, labelR, true));
-            else if (!currentRight && isMovingRight) inputController.currentReplay.events.add(new ReplayData.InputEvent(timeMs, labelR, false));
+            if (currentRight && !rawRight) inputController.currentReplay.events.add(new com.nodevoltex.game.data.ReplayData.InputEvent(timeMs, labelR, true));
+            else if (!currentRight && rawRight) inputController.currentReplay.events.add(new com.nodevoltex.game.data.ReplayData.InputEvent(timeMs, labelR, false));
         }
 
-        isMovingLeft = currentLeft;
-        isMovingRight = currentRight;
+        rawLeft = currentLeft;
+        rawRight = currentRight;
 
+        // Exploit fix, Mutual Exclusion
+        // If both keys are pressed down, they cancel out to neutral
+        if (currentLeft && currentRight) {
+            isMovingLeft = false;
+            isMovingRight = false;
+        } else {
+            isMovingLeft = currentLeft;
+            isMovingRight = currentRight;
+        }
+
+        // Evaluate intent based on the sanitized, mutually-exclusive inputs
         if (expectedDirection < 0) {
             isHoldingCorrectKey = isMovingLeft;
         } else if (expectedDirection > 0) {

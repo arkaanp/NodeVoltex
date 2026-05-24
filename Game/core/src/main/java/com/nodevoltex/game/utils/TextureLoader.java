@@ -15,12 +15,26 @@ public class TextureLoader {
     private static final Map<String, Texture> cache = new HashMap<>();
     private static final String BASE_URL = "http://localhost:8082";
 
+    private static String transformCloudinaryUrl(String url) {
+        if (url == null || url.isEmpty()) return url;
+        String transformed = url;
+        if (url.contains("cloudinary.com")) {
+            // Case-insensitive replacement of .webp with .png
+            transformed = transformed.replaceAll("(?i)\\.webp", ".png");
+            // Swap auto format or webp format settings for png format
+            transformed = transformed.replace("/f_auto/", "/f_png/");
+            transformed = transformed.replace("/f_webp/", "/f_png/");
+        }
+        return transformed;
+    }
+
     public interface TextureCallback {
         void onLoaded(Texture texture);
         void onError(Throwable t);
     }
 
     public static void loadTexture(String url, final TextureCallback callback) {
+        url = transformCloudinaryUrl(url);
         if (url == null || url.isEmpty()) {
             callback.onError(new Exception("Empty URL"));
             return;
@@ -40,6 +54,7 @@ public class TextureLoader {
 
         Net.HttpRequest request = new Net.HttpRequest(Net.HttpMethods.GET);
         request.setUrl(fullUrl);
+        request.setTimeOut(10000);
 
         Gdx.net.sendHttpRequest(request, new Net.HttpResponseListener() {
             @Override
